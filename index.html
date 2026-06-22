@@ -13,7 +13,7 @@
      this key.
      ============================================================ -->
 <script>
-  const SUPABASE_URL = "https://kqwqbohoeltlbwcopeug.supabase.co";
+    const SUPABASE_URL = "https://kqwqbohoeltlbwcopeug.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_T6oCd3aRO0OPheQXEkmvRA_nvIhEPcv";
 </script>
 
@@ -413,7 +413,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_T6oCd3aRO0OPheQXEkmvRA_nvIhEPcv";
   <div class="receipt-line"></div>
   <div class="receipt-footer">
     <p>Thank you for your business!</p>
-    <p style="font-size: 10px; margin-top: 5px;">System Solutions Powered by<br><strong>NYANSATEK - 0540900055</strong></p>
+    <p style="font-size: 10px; margin-top: 5px;">System Solutions Powered by<br><strong>NYANSATEK</strong></p>
   </div>
 </div>
 
@@ -800,36 +800,66 @@ async function processSale() {
 }
 
 function printReceipt(invoiceId, method, total, tendered) {
-  document.getElementById('receipt-biz-title').innerText = profile.display_name || 'Business';
-  document.getElementById('receipt-date').innerText = new Date().toLocaleString();
-  document.getElementById('receipt-payment-method').innerText = method;
-  document.getElementById('receipt-total').innerText = `GH₵ ${total.toFixed(2)}`;
+  const bizName = escapeHtml(profile.display_name || 'Business');
+  const dateStr = new Date().toLocaleString();
 
-  const paidRow = document.getElementById('receipt-paid-row');
-  const changeRow = document.getElementById('receipt-change-row');
+  let cashLines = '';
   if (method === 'Cash') {
-    paidRow.style.display = 'flex';
-    changeRow.style.display = 'flex';
-    document.getElementById('receipt-paid').innerText = `GH₵ ${tendered.toFixed(2)}`;
-    document.getElementById('receipt-change').innerText = `GH₵ ${(tendered - total).toFixed(2)}`;
-  } else {
-    paidRow.style.display = 'none';
-    changeRow.style.display = 'none';
+    cashLines = `
+      <div class="row"><span>Amount Paid:</span><span>GH&#8373; ${tendered.toFixed(2)}</span></div>
+      <div class="row"><span>Change:</span><span>GH&#8373; ${(tendered - total).toFixed(2)}</span></div>`;
   }
 
-  const itemsContainer = document.getElementById('receipt-items');
-  itemsContainer.innerHTML = '';
+  let itemLines = '';
   cart.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'receipt-item-row';
-    div.innerHTML = `<span>${escapeHtml(item.name)} (x${item.qty})</span><span>GH₵ ${(item.price * item.qty).toFixed(2)}</span>`;
-    itemsContainer.appendChild(div);
+    itemLines += `<div class="row"><span>${escapeHtml(item.name)} (x${item.qty})</span><span>GH&#8373; ${(item.price * item.qty).toFixed(2)}</span></div>`;
   });
 
-  document.body.classList.remove('printing-statement');
-  document.body.classList.add('printing-receipt');
-  window.print();
-  document.body.classList.remove('printing-receipt');
+  const receiptHtml = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Courier New',Courier,monospace; font-size:13px; width:80mm; max-width:100%; margin:0 auto; padding:10px; color:#000; background:#fff; }
+  h3 { font-size:15px; text-align:center; margin-bottom:4px; }
+  .center { text-align:center; margin-bottom:8px; font-size:12px; }
+  .line { border-top:1px dashed #000; margin:8px 0; }
+  .row { display:flex; justify-content:space-between; margin-bottom:4px; }
+  .bold { font-weight:bold; }
+  .footer { text-align:center; margin-top:10px; font-size:11px; }
+  @media print { @page { margin:2mm; size:80mm auto; } }
+</style></head>
+<body>
+  <h3>${bizName}</h3>
+  <div class="center">${dateStr}</div>
+  <div class="line"></div>
+  <div class="row bold"><span>Payment:</span><span>${escapeHtml(method)}</span></div>
+  <div class="line"></div>
+  ${itemLines}
+  <div class="line"></div>
+  <div class="row bold"><span>TOTAL:</span><span>GH&#8373; ${total.toFixed(2)}</span></div>
+  ${cashLines}
+  <div class="line"></div>
+  <div class="footer"><p>Thank you for your business!</p>
+  <p style="margin-top:5px;font-size:10px;">Powered by <strong>NYANSATEK</strong></p></div>
+</body></html>`;
+
+  // Remove any existing print iframe
+  const old = document.getElementById('receipt-iframe');
+  if (old) old.remove();
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'receipt-iframe';
+  iframe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;';
+  document.body.appendChild(iframe);
+
+  iframe.onload = function () {
+    setTimeout(function () {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }, 300);
+  };
+
+  iframe.srcdoc = receiptHtml;
 }
 
 document.getElementById('extract-statement-btn').addEventListener('click', () => generateStatement(false));
