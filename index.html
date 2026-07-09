@@ -3,410 +3,361 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NYANSATEK Elite POS System</title>
+<title>NYANSATEK Elite POS</title>
 <script>
      const SUPABASE_URL = "https://kqwqbohoeltlbwcopeug.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_T6oCd3aRO0OPheQXEkmvRA_nvIhEPcv";
-  const SMS_API_KEY   = "";
-  const SMS_SENDER_ID = "NYANSATEK";
+const SMS_API_KEY="";
+const SMS_SENDER_ID="NYANSATEK";
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
-:root{--primary:#111827;--accent:#d4af37;--bg:#f3f4f6;--border:#e5e7eb;
-  --success:#10b981;--danger:#ef4444;--text:#1f2937;--grey:#9ca3af;--blue:#2563eb;}
-*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
-body{background:var(--bg);color:var(--text);display:flex;flex-direction:column;min-height:100vh;}
-.auth-screen{flex:1;display:flex;align-items:center;justify-content:center;background:var(--primary);}
-.auth-card{background:white;border-radius:10px;padding:40px;width:380px;
-  box-shadow:0 10px 30px rgba(0,0,0,.3);border-top:4px solid var(--accent);}
-.auth-card h1{font-size:1.3rem;color:var(--primary);margin-bottom:6px;}
-.auth-card .sub{color:var(--grey);font-size:.85rem;margin-bottom:24px;}
-.auth-error{background:#fee2e2;color:#991b1b;padding:10px 12px;border-radius:6px;
-  font-size:.85rem;margin-bottom:16px;display:none;}
-.auth-error.visible{display:block;}
-header{background:var(--primary);color:white;padding:0 20px;height:54px;
-  display:flex;align-items:center;justify-content:space-between;
-  border-bottom:3px solid var(--accent);flex-shrink:0;}
-.brand{font-size:1rem;font-weight:700;color:var(--accent);}
-.brand span{color:var(--grey);font-size:.75rem;font-weight:normal;margin-left:8px;}
-.header-right{display:flex;align-items:center;gap:10px;}
-.sales-badge{background:rgba(212,175,55,.1);border:1px solid var(--accent);
-  border-radius:6px;padding:3px 10px;font-size:.72rem;color:var(--grey);text-align:center;}
-.sales-badge strong{color:var(--success);display:block;font-size:.88rem;}
-.nav-tabs button{background:transparent;border:1px solid transparent;color:var(--grey);
-  padding:5px 11px;font-weight:600;cursor:pointer;border-radius:4px;font-size:.82rem;transition:all .2s;}
-.nav-tabs button.active{border-color:var(--accent);color:white;background:rgba(212,175,55,.12);}
-.nav-tabs .logout{color:#fca5a5!important;}
+:root{--p:#111827;--a:#d4af37;--bg:#f3f4f6;--b:#e5e7eb;--g:#9ca3af;--s:#10b981;--d:#ef4444;--bl:#2563eb;--t:#1f2937;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif;}
+body{background:var(--bg);color:var(--t);display:flex;flex-direction:column;min-height:100vh;}
+/* AUTH */
+.as{flex:1;display:flex;align-items:center;justify-content:center;background:var(--p);}
+.ac{background:#fff;border-radius:10px;padding:36px;width:380px;box-shadow:0 10px 30px rgba(0,0,0,.3);border-top:4px solid var(--a);}
+.ac h1{font-size:1.25rem;color:var(--p);margin-bottom:5px;}
+.sub{color:var(--g);font-size:.83rem;margin-bottom:20px;}
+.aerr{background:#fee2e2;color:#991b1b;padding:9px 12px;border-radius:5px;font-size:.82rem;margin-bottom:14px;display:none;}
+.aerr.on{display:block;}
+/* HEADER */
+header{background:var(--p);color:#fff;padding:0 18px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--a);flex-shrink:0;}
+.brand{font-size:.95rem;font-weight:700;color:var(--a);}
+.brand em{color:var(--g);font-size:.72rem;font-weight:400;font-style:normal;margin-left:7px;}
+.hr{display:flex;align-items:center;gap:8px;}
+.sbadge{background:rgba(212,175,55,.1);border:1px solid var(--a);border-radius:5px;padding:2px 9px;font-size:.7rem;color:var(--g);text-align:center;}
+.sbadge strong{color:var(--s);display:block;font-size:.84rem;}
+nav button{background:transparent;border:1px solid transparent;color:var(--g);padding:4px 10px;font-weight:600;cursor:pointer;border-radius:4px;font-size:.78rem;transition:all .15s;}
+nav button.on{border-color:var(--a);color:#fff;background:rgba(212,175,55,.12);}
+nav .lo{color:#fca5a5!important;}
+nav .hist-btn{color:var(--a)!important;font-size:1rem;padding:4px 8px;}
+/* LAYOUT */
 main{flex:1;overflow:hidden;}
-.view-section{display:none;}
-#cashier-view{height:calc(100vh - 54px - 40px);}
-#cashier-view.active{display:grid;grid-template-columns:1fr 290px;}
-.products-panel{overflow-y:auto;padding:14px;background:var(--bg);}
-.search-row{display:grid;grid-template-columns:1fr 170px;gap:8px;margin-bottom:10px;}
-.search-row input{padding:9px 12px;border:1px solid var(--border);border-radius:6px;
-  font-size:.88rem;background:white;width:100%;}
-.search-row input:focus{outline:none;border-color:var(--accent);}
-.cat-filters{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
-.cat-btn{background:white;border:1px solid var(--border);border-radius:20px;
-  padding:4px 12px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--text);transition:all .15s;}
-.cat-btn.active{background:var(--blue);border-color:var(--blue);color:white;}
-.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;}
-.product-card{background:white;border:1.5px solid var(--border);border-radius:8px;
-  padding:10px 6px 8px;cursor:pointer;text-align:center;transition:all .15s;user-select:none;}
-.product-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(37,99,235,.15);transform:translateY(-1px);}
-.product-card:active{transform:scale(.96);}
-.product-card.oos{opacity:.45;cursor:not-allowed;}
-.product-card img.p-img{width:56px;height:56px;object-fit:cover;border-radius:6px;margin:0 auto 6px;display:block;}
-.p-emoji{font-size:36px;margin-bottom:5px;}
-.p-name{font-size:11px;font-weight:600;color:var(--text);margin-bottom:3px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.p-price{font-size:12px;font-weight:700;color:var(--blue);}
-.p-cat{font-size:10px;color:var(--grey);margin-top:2px;}
-.cart-panel{background:white;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
-.cart-head{padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:.9rem;display:flex;align-items:center;gap:7px;}
-.cart-badge{background:var(--blue);color:white;border-radius:12px;padding:1px 7px;font-size:.72rem;}
-.cart-list{flex:1;overflow-y:auto;padding:8px;}
-.cart-empty{text-align:center;padding:30px 16px;color:var(--grey);}
-.cart-empty .icon{font-size:2.5rem;margin-bottom:6px;}
-.cart-item{display:flex;align-items:center;gap:6px;padding:7px 4px;border-bottom:1px solid var(--border);font-size:.82rem;}
-.ci-name{flex:1;font-weight:500;font-size:.78rem;}
-.ci-ctrls{display:flex;align-items:center;gap:3px;}
-.qty-btn{width:20px;height:20px;border:1px solid var(--border);border-radius:3px;cursor:pointer;
-  font-weight:700;font-size:.85rem;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:0;}
-.ci-total{font-weight:600;font-size:.78rem;min-width:48px;text-align:right;}
-.rm-btn{color:var(--danger);background:none;border:none;cursor:pointer;font-size:1rem;padding:0 2px;}
-.cart-checkout{border-top:2px solid var(--border);padding:10px;}
-.form-group{margin-bottom:9px;}
-.form-group label{display:block;font-size:.73rem;font-weight:600;margin-bottom:3px;color:#4b5563;}
-.form-group input,.form-group select{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:4px;font-size:.83rem;}
-.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--accent);}
-.totals-bd{font-size:.78rem;color:#4b5563;margin-bottom:6px;}
-.totals-bd div{display:flex;justify-content:space-between;padding:2px 0;}
-.change-ln{color:var(--success);font-weight:600;}
-.grand-total{display:flex;justify-content:space-between;font-size:1.05rem;font-weight:700;
-  color:var(--primary);border-top:2px dashed var(--border);padding-top:7px;margin:5px 0 9px;}
-.sale-btns{display:flex;flex-direction:column;gap:5px;}
-.btn-complete{background:var(--primary);color:white;}
-.btn-print{background:var(--accent);color:var(--primary);}
-.btn-sms{background:var(--success);color:white;}
-.card{background:white;border-radius:8px;border:1px solid var(--border);padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
-.card h2{font-size:1.05rem;margin-bottom:14px;padding-bottom:7px;border-bottom:2px solid var(--bg);color:var(--primary);}
-.btn{background:var(--primary);color:white;padding:8px 16px;border:none;border-radius:4px;
-  font-weight:600;cursor:pointer;font-size:.88rem;transition:all .2s;}
-.btn:hover{opacity:.86;}
+.view{display:none;}
+/* CASHIER */
+#cv{height:calc(100vh - 92px);}
+#cv.on{display:grid;grid-template-columns:1fr 288px;}
+.pp{overflow-y:auto;height:100%;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.srow{display:grid;grid-template-columns:1fr 160px;gap:7px;}
+.srow input{padding:8px 11px;border:1px solid var(--b);border-radius:5px;font-size:.85rem;width:100%;background:#fff;}
+.srow input:focus{outline:none;border-color:var(--a);}
+.cats{display:flex;flex-wrap:wrap;gap:5px;}
+.cb{background:#fff;border:1px solid var(--b);border-radius:18px;padding:3px 11px;font-size:.76rem;font-weight:600;cursor:pointer;color:var(--t);transition:all .12s;}
+.cb.on{background:var(--bl);border-color:var(--bl);color:#fff;}
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:7px;flex:1;}
+.pgm{display:flex;align-items:center;justify-content:center;color:var(--g);flex:1;font-size:.85rem;text-align:center;padding:24px;}
+.pc{background:#fff;border:1.5px solid var(--b);border-radius:7px;padding:9px 5px 7px;cursor:pointer;text-align:center;transition:all .12s;user-select:none;}
+.pc:hover{border-color:var(--bl);box-shadow:0 2px 7px rgba(37,99,235,.14);transform:translateY(-1px);}
+.pc:active{transform:scale(.95);}
+.pc.oos{opacity:.4;cursor:not-allowed;}
+.pn{font-size:10.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.pr{font-size:11.5px;font-weight:700;color:var(--bl);}
+.pcat{font-size:9.5px;color:var(--g);margin-top:1px;}
+/* CART */
+.cp{background:#fff;border-left:1px solid var(--b);display:flex;flex-direction:column;height:100%;}
+.ch{padding:9px 13px;border-bottom:1px solid var(--b);font-weight:700;font-size:.88rem;display:flex;align-items:center;gap:6px;}
+.cbdg{background:var(--bl);color:#fff;border-radius:11px;padding:1px 6px;font-size:.68rem;}
+.rb-btn{margin-left:auto;background:none;border:1px solid var(--b);border-radius:4px;padding:2px 7px;font-size:.72rem;cursor:pointer;color:var(--g);}
+.rb-btn:hover{border-color:var(--a);color:var(--a);}
+.cl{flex:1;overflow-y:auto;padding:7px;}
+.ce{text-align:center;padding:28px 14px;color:var(--g);font-size:.82rem;}
+.ce .ei{font-size:2.2rem;margin-bottom:5px;}
+.ci{display:flex;align-items:center;gap:5px;padding:6px 3px;border-bottom:1px solid var(--b);font-size:.8rem;}
+.cin{flex:1;font-weight:500;font-size:.75rem;}
+.qb{width:19px;height:19px;border:1px solid var(--b);border-radius:3px;cursor:pointer;font-weight:700;font-size:.82rem;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:0;}
+.ct2{font-weight:600;font-size:.75rem;min-width:46px;text-align:right;}
+.rm{color:var(--d);background:none;border:none;cursor:pointer;font-size:.95rem;padding:0 2px;}
+.ck{border-top:2px solid var(--b);padding:9px;}
+.gt{display:flex;justify-content:space-between;font-size:1rem;font-weight:700;color:var(--p);border-top:2px dashed var(--b);padding-top:6px;margin:4px 0 8px;}
+.sbs{display:flex;flex-direction:column;gap:4px;}
+/* SHARED */
+.fg{margin-bottom:8px;}
+.fg label{display:block;font-size:.71rem;font-weight:600;margin-bottom:2px;color:#4b5563;}
+.fg input,.fg select,.fg textarea{width:100%;padding:6px 8px;border:1px solid var(--b);border-radius:4px;font-size:.81rem;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--a);}
+.card{background:#fff;border-radius:7px;border:1px solid var(--b);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.card h2{font-size:1rem;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--bg);color:var(--p);}
+.btn{background:var(--p);color:#fff;padding:7px 14px;border:none;border-radius:4px;font-weight:600;cursor:pointer;font-size:.83rem;transition:all .15s;}
+.btn:hover{opacity:.84;}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
-.btn-accent{background:var(--accent);color:var(--primary);}
-.btn-green{background:var(--success);color:white;}
-.btn-full{width:100%;padding:10px;font-size:.88rem;}
-.btn-sm{padding:5px 11px;font-size:.78rem;}
-.hint{font-size:.78rem;color:var(--grey);margin-bottom:9px;}
-.empty-state{text-align:center;padding:36px;color:var(--grey);border:1px dashed var(--border);border-radius:6px;margin-top:14px;}
-#admin-view.active{display:grid;grid-template-columns:330px 1fr;gap:18px;padding:18px;
-  overflow-y:auto;max-height:calc(100vh - 54px - 40px);}
-#master-inventory-view.active{display:block;padding:18px;overflow-y:auto;max-height:calc(100vh - 54px - 40px);}
-.master-inv-grid{display:grid;grid-template-columns:330px 1fr;gap:18px;margin-top:14px;}
-.tab-bar{display:flex;border-bottom:2px solid var(--border);margin-bottom:14px;}
-.tab-btn{background:none;border:none;padding:7px 12px;font-size:.82rem;font-weight:600;
-  cursor:pointer;color:var(--grey);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;}
-.tab-btn.active{color:var(--primary);border-bottom-color:var(--accent);}
-.tab-pane{display:none;}
-.tab-pane.active{display:block;}
-.photo-zone{border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;
-  cursor:pointer;margin-bottom:11px;transition:border-color .15s;}
-.photo-zone:hover{border-color:var(--accent);}
-.photo-zone img{width:72px;height:72px;border-radius:6px;object-fit:cover;margin:0 auto 6px;display:block;}
-table{width:100%;border-collapse:collapse;font-size:.83rem;}
-th{background:var(--bg);padding:9px 11px;font-weight:600;border-bottom:2px solid var(--border);text-align:left;font-size:.78rem;}
-td{padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:middle;}
-.inline-price{width:78px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-weight:600;text-align:right;font-size:.83rem;}
-.badge{padding:3px 8px;border-radius:12px;font-size:.73rem;font-weight:600;}
-.badge-g{background:#d1fae5;color:#065f46;}
-.badge-y{background:#fef3c7;color:#92400e;}
-.badge-r{background:#fee2e2;color:#991b1b;}
-.prod-thumb{width:34px;height:34px;object-fit:cover;border-radius:4px;}
-.prod-em-sm{font-size:22px;}
-#ledger-view.active,#master-ledger-view.active,#master-view.active{
-  display:block;padding:18px;overflow-y:auto;max-height:calc(100vh - 54px - 40px);}
-.filter-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap;}
-.filter-row .form-group{margin-bottom:0;flex:1;min-width:150px;}
-.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px;}
-.metric-card{background:white;border:1px solid var(--border);border-radius:6px;padding:13px;text-align:center;}
-.metric-card.hl{background:#fefcbf;border-color:var(--accent);}
-.metric-card p{font-size:.73rem;text-transform:uppercase;color:var(--grey);margin-bottom:3px;font-weight:600;}
-.metric-card h3{font-size:1.3rem;color:var(--primary);}
-.stmt-head{border-left:4px solid var(--accent);background:var(--bg);padding:13px;margin-bottom:14px;border-radius:0 6px 6px 0;}
-.modal-overlay{position:fixed;inset:0;background:rgba(17,24,39,.72);display:flex;
-  align-items:center;justify-content:center;z-index:1000;}
-.modal-card{background:white;border-radius:10px;padding:26px;width:350px;border-top:4px solid var(--accent);}
-.modal-card h3{font-size:1.05rem;margin-bottom:5px;}
-.modal-card .sub{font-size:.83rem;color:var(--grey);margin-bottom:16px;}
-.loading-overlay{position:fixed;inset:0;background:rgba(17,24,39,.6);display:none;
-  align-items:center;justify-content:center;color:white;font-weight:600;z-index:999;}
-.loading-overlay.visible{display:flex;}
-footer{background:var(--primary);color:var(--grey);text-align:center;padding:10px;font-size:.78rem;flex-shrink:0;}
-footer strong{color:var(--accent);}
+.ba{background:var(--a);color:var(--p);}
+.bg2{background:var(--s);color:#fff;}
+.bd{background:var(--d);color:#fff;}
+.bf{width:100%;padding:9px;font-size:.85rem;}
+.bsm{padding:4px 10px;font-size:.76rem;}
+.hint{font-size:.76rem;color:var(--g);margin-bottom:8px;}
+.es{text-align:center;padding:28px;color:var(--g);border:1px dashed var(--b);border-radius:5px;margin-top:10px;}
+.badge{padding:2px 7px;border-radius:11px;font-size:.7rem;font-weight:600;}
+.bg{background:#d1fae5;color:#065f46;}
+.by{background:#fef3c7;color:#92400e;}
+.br{background:#fee2e2;color:#991b1b;}
+.bpurp{background:#ede9fe;color:#5b21b6;}
+/* ADMIN */
+#av{height:calc(100vh - 92px);overflow:hidden;}
+#av.on{display:grid;grid-template-columns:310px 1fr;gap:16px;padding:16px;}
+#av .lp{overflow-y:auto;height:100%;}
+#av .rp{overflow-y:auto;height:100%;}
+/* MASTER INV */
+#miv{height:calc(100vh - 92px);overflow:hidden;}
+#miv.on{display:grid;grid-template-columns:310px 1fr;gap:16px;padding:16px;}
+#miv .lp{overflow-y:auto;height:100%;}
+#miv .rp{overflow-y:auto;height:100%;}
+/* LEDGER */
+#lv.on,#mlv.on,#mv.on{display:block;padding:16px;overflow-y:auto;height:calc(100vh - 92px);}
+/* TABS */
+.tbar{display:flex;flex-wrap:wrap;border-bottom:2px solid var(--b);margin-bottom:12px;gap:2px;}
+.tb{background:none;border:none;padding:6px 11px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--g);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .12s;white-space:nowrap;}
+.tb.on{color:var(--p);border-bottom-color:var(--a);}
+.tp{display:none;}
+.tp.on{display:block;}
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:.8rem;}
+th{background:var(--bg);padding:8px 10px;font-weight:600;border-bottom:2px solid var(--b);text-align:left;font-size:.74rem;}
+td{padding:8px 10px;border-bottom:1px solid var(--b);vertical-align:middle;}
+.ip{width:75px;padding:3px 5px;border:1px solid var(--b);border-radius:3px;font-weight:600;text-align:right;font-size:.79rem;}
+/* SEARCH DROP */
+.sdrop{position:relative;}
+.sdrop input{width:100%;padding:6px 8px;border:1px solid var(--b);border-radius:4px;font-size:.81rem;}
+.sdrop input:focus{outline:none;border-color:var(--a);}
+.sdlist{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--b);border-radius:4px;max-height:180px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.1);display:none;}
+.sdlist.on{display:block;}
+.sdi{padding:6px 9px;cursor:pointer;font-size:.8rem;border-bottom:1px solid var(--b);}
+.sdi:hover{background:var(--bg);}
+/* METRICS */
+.mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin-bottom:12px;}
+.mc{background:#fff;border:1px solid var(--b);border-radius:5px;padding:12px;text-align:center;}
+.mc.hl{background:#fefcbf;border-color:var(--a);}
+.mc p{font-size:.7rem;text-transform:uppercase;color:var(--g);margin-bottom:2px;font-weight:600;}
+.mc h3{font-size:1.2rem;color:var(--p);}
+.sh{border-left:4px solid var(--a);background:var(--bg);padding:12px;margin-bottom:12px;border-radius:0 5px 5px 0;}
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(17,24,39,.74);display:flex;align-items:center;justify-content:center;z-index:900;}
+.mc2{background:#fff;border-radius:9px;padding:24px;width:420px;border-top:4px solid var(--a);max-height:85vh;overflow-y:auto;}
+.mc2 h3{font-size:1rem;margin-bottom:4px;}
+.mc2 .sub{font-size:.8rem;color:var(--g);margin-bottom:14px;}
+.mc2-wide{width:600px;}
+/* CART MINI (credit/supplier) */
+.minicart{border:1px solid var(--b);border-radius:5px;margin-bottom:10px;max-height:160px;overflow-y:auto;}
+.mci{display:flex;align-items:center;gap:5px;padding:5px 8px;border-bottom:1px solid var(--b);font-size:.78rem;}
+.mci:last-child{border-bottom:none;}
+/* LOADING */
+.lov{position:fixed;inset:0;background:rgba(17,24,39,.6);display:none;align-items:center;justify-content:center;color:#fff;font-weight:600;z-index:999;}
+.lov.on{display:flex;}
+/* FOOTER */
+footer{background:var(--p);color:var(--g);text-align:center;padding:9px;font-size:.75rem;flex-shrink:0;}
+footer strong{color:var(--a);}
+/* PRINT A4 */
 @media print{
-  header,footer,.nav-tabs,.filter-row,.sale-btns,.tab-bar,
-  .cart-checkout,.btn,.loading-overlay{display:none!important;}
-  body{background:white!important;display:block!important;}
-  body.printing-statement main{display:block!important;padding:0!important;max-width:100%!important;}
-  body.printing-statement .view-section{display:none!important;}
-  body.printing-statement .view-section.print-target{display:block!important;padding:16px!important;}
-  body.printing-statement table{width:100%!important;border:1px solid #000!important;}
-  body.printing-statement th{background:#e5e7eb!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  body.printing-statement .card{border:none!important;box-shadow:none!important;}
-  body.printing-statement .metric-card{border:1px solid #9ca3af!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  header,footer,nav,.sbs,.tbar,.lov,.mo,
+  .rb-btn,.btn,#av .lp,#cv .pp,#cv .ck{display:none!important;}
+  body{background:#fff!important;display:block!important;}
+  body.pr-receipt #app,body.pr-stmt #app{display:none!important;}
+  body.pr-receipt #pframe,body.pr-stmt #pframe{display:block!important;position:absolute;top:0;left:0;width:100%;}
 }
 </style>
 </head>
 <body>
+<div class="lov" id="lov">Working...</div>
 
-<div class="loading-overlay" id="loading-overlay">Working...</div>
-
-<div class="auth-screen" id="login-screen">
-  <div class="auth-card">
+<!-- AUTH -->
+<div class="as" id="ls">
+  <div class="ac">
     <h1>NYANSATEK Elite POS</h1>
     <p class="sub">Sign in to your business environment</p>
-    <div class="auth-error" id="login-error"></div>
-    <form id="login-form">
-      <div class="form-group"><label>Business Name</label>
-        <input type="text" id="login-biz" placeholder="e.g. ALPHA HARDWARE LTD" required></div>
-      <div class="form-group"><label>Password</label>
-        <input type="password" id="login-pass" required></div>
-      <button type="submit" class="btn btn-accent" id="login-btn" style="width:100%;">Sign In</button>
+    <div class="aerr" id="le"></div>
+    <form id="lf">
+      <div class="fg"><label>Business Name</label>
+        <input type="text" id="lb" placeholder="e.g. ALPHA HARDWARE LTD" required></div>
+      <div class="fg"><label>Password</label>
+        <input type="password" id="lp" required></div>
+      <button type="submit" class="btn ba bf" id="lbtn">Sign In</button>
     </form>
   </div>
 </div>
 
-<div class="auth-screen" id="force-pw-screen" style="display:none;">
-  <div class="auth-card">
+<div class="as" id="fps" style="display:none;">
+  <div class="ac">
     <h1>Set a New Password</h1>
-    <p class="sub">First login — choose a password only you know.</p>
-    <div class="auth-error" id="force-pw-error"></div>
-    <form id="force-pw-form">
-      <div class="form-group"><label>New Password (min 8 characters)</label>
-        <input type="password" id="new-pw" minlength="8" required></div>
-      <div class="form-group"><label>Confirm New Password</label>
-        <input type="password" id="confirm-pw" minlength="8" required></div>
-      <button type="submit" class="btn btn-accent" style="width:100%;">Save &amp; Continue</button>
+    <p class="sub">First login — choose a private password.</p>
+    <div class="aerr" id="fpe"></div>
+    <form id="fpf">
+      <div class="fg"><label>New Password (min 8 chars)</label>
+        <input type="password" id="np" minlength="8" required></div>
+      <div class="fg"><label>Confirm Password</label>
+        <input type="password" id="cp2" minlength="8" required></div>
+      <button type="submit" class="btn ba bf">Save &amp; Continue</button>
     </form>
   </div>
 </div>
 
-<div class="modal-overlay" id="sms-modal" style="display:none;">
-  <div class="modal-card">
+<!-- SMS MODAL -->
+<div class="mo" id="smsm" style="display:none;">
+  <div class="mc2">
     <h3>Send Purchase SMS</h3>
-    <p class="sub">Enter the customer's phone number to send a purchase summary.</p>
-    <div class="form-group"><label>Customer Phone Number</label>
-      <input type="tel" id="sms-phone" placeholder="e.g. 0541234567"></div>
-    <div style="display:flex;gap:8px;margin-top:6px;">
-      <button onclick="confirmSendSms()" class="btn btn-green" style="flex:1;">Send &amp; Complete</button>
-      <button onclick="closeSmsModal()" class="btn" style="flex:1;">Cancel</button>
+    <p class="sub">Enter the customer's phone number.</p>
+    <div class="fg"><label>Phone Number</label>
+      <input type="tel" id="smsp" placeholder="e.g. 0541234567"></div>
+    <div style="display:flex;gap:7px;margin-top:5px;">
+      <button onclick="confirmSms()" class="btn bg2" style="flex:1;">Send &amp; Complete</button>
+      <button onclick="closeSms()" class="btn" style="flex:1;">Cancel</button>
     </div>
   </div>
 </div>
 
-<div id="app-shell" style="display:none;flex-direction:column;min-height:100vh;">
+<!-- CREDIT INVOICE MODAL -->
+<div class="mo" id="cim" style="display:none;">
+  <div class="mc2 mc2-wide">
+    <h3>Issue Credit Invoice</h3>
+    <p class="sub">Items from current cart will be assigned to this customer.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="fg"><label>Customer Name *</label><input type="text" id="ci-cname" required></div>
+      <div class="fg"><label>Phone (optional)</label><input type="tel" id="ci-cphone"></div>
+      <div class="fg"><label>Due Date *</label><input type="date" id="ci-due" required></div>
+      <div class="fg"><label>Notes</label><input type="text" id="ci-note"></div>
+    </div>
+    <div style="display:flex;gap:7px;margin-top:5px;">
+      <button onclick="issueCreditInvoice()" class="btn ba" style="flex:1;">Issue Invoice &amp; Print</button>
+      <button onclick="closeCreditModal()" class="btn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
 
+<!-- RECENT BILLINGS MODAL -->
+<div class="mo" id="rbm" style="display:none;">
+  <div class="mc2 mc2-wide">
+    <h3>Recent Billings</h3>
+    <p class="sub">Last 10 sales — tap Reprint to reissue any receipt.</p>
+    <div id="rbcontent"><div class="es">Loading...</div></div>
+    <button onclick="document.getElementById('rbm').style.display='none'" class="btn bf" style="margin-top:10px;">Close</button>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="mo" id="hm" style="display:none;">
+  <div class="mc2 mc2-wide">
+    <h3>&#128203; Activity History</h3>
+    <p class="sub">Recent entries across all areas of the system.</p>
+    <div class="tbar" id="htbar">
+      <button class="tb on" onclick="loadHist('sales')">Sales</button>
+      <button class="tb" onclick="loadHist('credit')">Credit Sales</button>
+      <button class="tb" onclick="loadHist('inv')">Inventory</button>
+      <button class="tb" onclick="loadHist('exp')">Expenses</button>
+      <button class="tb" onclick="loadHist('supp')">Supplier</button>
+    </div>
+    <div id="hcontent"><div class="es">Select a tab above.</div></div>
+    <button onclick="document.getElementById('hm').style.display='none'" class="btn bf" style="margin-top:10px;">Close</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;flex-direction:column;min-height:100vh;">
   <header>
-    <div class="brand"><span id="header-biz">—</span><span>| System Matrix</span></div>
-    <div class="header-right">
-      <div class="sales-badge" id="sales-badge" style="display:none;">
-        Today's Sales<strong id="today-sales">GH&#8373; 0.00</strong>
-      </div>
-      <div class="nav-tabs" id="nav-tabs"></div>
+    <div class="brand"><span id="hbiz">—</span><em>| System Matrix</em></div>
+    <div class="hr">
+      <div class="sbadge" id="sb" style="display:none;">Today<strong id="tsal">GH&#8373;0.00</strong></div>
+      <nav id="nav"></nav>
     </div>
   </header>
-
   <main>
 
-    <div id="cashier-view" class="view-section">
-      <div class="products-panel">
-        <div class="search-row">
-          <input type="text" id="prod-search" placeholder="Search products...">
-          <input type="text" id="barcode-input" placeholder="Scan barcode...">
+    <!-- CASHIER -->
+    <div id="cv" class="view">
+      <div class="pp">
+        <div class="srow">
+          <input type="text" id="psch" placeholder="&#128269; Search products...">
+          <input type="text" id="bci" placeholder="&#128247; Scan barcode...">
         </div>
-        <div class="cat-filters" id="cat-filters"></div>
-        <div class="product-grid" id="product-grid">
-          <div class="empty-state" style="grid-column:1/-1;">No products yet.</div>
-        </div>
+        <div class="cats" id="catf"></div>
+        <div id="pg2" class="pg"></div>
       </div>
-      <div class="cart-panel">
-        <div class="cart-head">&#128722; Cart <span class="cart-badge" id="cart-badge">0</span></div>
-        <div class="cart-list" id="cart-list">
-          <div class="cart-empty"><div class="icon">&#128722;</div>
-            <div>Cart is empty</div><div style="font-size:.78rem;">Tap a product to add</div></div>
+      <div class="cp">
+        <div class="ch">&#128722; Cart <span class="cbdg" id="cbdg">0</span>
+          <button class="rb-btn" onclick="openRecentBillings()">&#128338; Recent</button>
         </div>
-        <div class="cart-checkout">
-          <div class="form-group"><label>Payment Method</label>
-            <select id="pay-method" onchange="toggleTendered()">
+        <div class="cl" id="cl"></div>
+        <div class="ck">
+          <div class="fg"><label>Payment Method</label>
+            <select id="pm" onchange="toggleTen()">
               <option value="Cash">Cash Tender</option>
               <option value="Mobile Money">Mobile Money (MoMo)</option>
               <option value="Card">Card / POS Terminal</option>
             </select></div>
-          <div id="tendered-wrap" class="form-group"><label>Amount Tendered (GH&#8373;)</label>
-            <input type="number" id="tendered" placeholder="0.00" oninput="calcChange()"></div>
-          <div class="totals-bd">
-            <div><span>Subtotal</span><span id="subtotal">GH&#8373; 0.00</span></div>
-            <div class="change-ln" id="change-ln"><span>Change Due</span><span id="change-due">GH&#8373; 0.00</span></div>
+          <div id="tw" class="fg"><label>Amount Tendered (GH&#8373;)</label>
+            <input type="number" id="ten" placeholder="0.00" oninput="calcCh()"></div>
+          <div style="font-size:.75rem;color:#4b5563;margin-bottom:5px;">
+            <div style="display:flex;justify-content:space-between;"><span>Subtotal</span><span id="stot">GH&#8373;0.00</span></div>
+            <div style="display:flex;justify-content:space-between;color:var(--s);font-weight:600;" id="chrow">
+              <span>Change</span><span id="chd">GH&#8373;0.00</span></div>
           </div>
-          <div class="grand-total"><span>TOTAL</span><span id="cart-total">GH&#8373; 0.00</span></div>
-          <div class="sale-btns">
-            <button class="btn btn-full btn-complete" onclick="processSale('complete')">COMPLETE</button>
-            <button class="btn btn-full btn-print"   onclick="processSale('print')">PRINT &amp; COMPLETE</button>
-            <button class="btn btn-full btn-sms"     onclick="processSale('sms')">SEND SMS &amp; COMPLETE</button>
+          <div class="gt"><span>TOTAL</span><span id="gtot">GH&#8373;0.00</span></div>
+          <div class="sbs">
+            <button class="btn bf" style="background:var(--p);" onclick="doSale('complete')">COMPLETE</button>
+            <button class="btn bf ba" onclick="doSale('print')">PRINT &amp; COMPLETE</button>
+            <button class="btn bf bg2" onclick="doSale('sms')">SEND SMS &amp; COMPLETE</button>
+            <button class="btn bf" style="background:#7c3aed;" onclick="doSale('credit')">ISSUE CREDIT INVOICE</button>
           </div>
         </div>
       </div>
     </div>
 
-    <div id="admin-view" class="view-section">
-      <div class="card">
-        <h2>Inventory Management</h2>
-        <div class="tab-bar" id="admin-tab-bar">
-          <button class="tab-btn active" onclick="switchInvTab('create','admin')">+ Create Product</button>
-          <button class="tab-btn"        onclick="switchInvTab('addstock','admin')">+ Add to Stock</button>
-          <button class="tab-btn"        onclick="switchInvTab('log','admin')">&#128203; History</button>
-        </div>
-        <div class="tab-pane active" id="admin-pane-create">
-          <div class="photo-zone" id="admin-photo-zone" onclick="document.getElementById('admin-photo-file').click()">
-            <img id="admin-photo-preview" src="" alt="" style="display:none;">
-            <div id="admin-photo-hint">
-              <div style="font-size:2rem;">&#128247;</div>
-              <div style="font-size:.78rem;color:var(--grey);margin-top:4px;">Click to upload product photo</div>
-            </div>
-          </div>
-          <input type="file" id="admin-photo-file" accept="image/*" style="display:none;">
-          <form id="admin-product-form">
-            <div class="form-group"><label>Product Name</label><input type="text" id="ap-name" required></div>
-            <div class="form-group"><label>Category</label>
-              <select id="ap-cat">
-                <option>General</option><option>Produce</option><option>Dairy</option>
-                <option>Bakery</option><option>Meat</option><option>Beverages</option>
-                <option>Snacks</option><option>Household</option><option>Personal Care</option>
-                <option>Hardware</option><option>Electronics</option><option>Clothing</option>
-              </select></div>
-            <div class="form-group"><label>Barcode (optional)</label><input type="text" id="ap-barcode"></div>
-            <div class="form-group"><label>Price (GH&#8373;)</label><input type="number" step="0.01" id="ap-price" required></div>
-            <div class="form-group"><label>Initial Stock Qty</label><input type="number" id="ap-stock" min="0" required></div>
-            <div class="form-group"><label>Note (optional)</label><input type="text" id="ap-note" placeholder="e.g. Opening stock"></div>
-            <button type="submit" class="btn btn-full">Save Product</button>
-          </form>
-        </div>
-        <div class="tab-pane" id="admin-pane-addstock">
-          <div class="form-group"><label>Select Product</label>
-            <select id="as-select"><option value="">-- Select a product --</option></select></div>
-          <div id="as-current" class="hint"></div>
-          <div class="form-group"><label>Quantity to Add</label>
-            <input type="number" id="as-qty" min="1" placeholder="e.g. 50"></div>
-          <div class="form-group"><label>Note (optional)</label>
-            <input type="text" id="as-note" placeholder="e.g. Supplier delivery"></div>
-          <button class="btn btn-full btn-accent" onclick="addToStock('admin')">Add to Stock</button>
-        </div>
-        <div class="tab-pane" id="admin-pane-log">
-          <div id="admin-log-content"><div class="empty-state">Click Load to see history.</div></div>
-          <button class="btn btn-sm" style="margin-top:10px;" onclick="loadLog('admin')">Load Log</button>
-        </div>
-      </div>
-      <div class="card">
-        <h2>Current Inventory</h2>
-        <p class="hint">Edit prices directly — press Enter or click away to save.</p>
-        <table id="admin-inv-table">
-          <thead><tr><th></th><th>Product</th><th>Category</th>
-            <th style="text-align:right;">Price (GH&#8373;)</th>
-            <th style="text-align:center;">Stock</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div id="ledger-view" class="view-section">
-      <div class="card">
-        <h2>Periodic Sales Statement</h2>
-        <div class="filter-row">
-          <div class="form-group"><label>Start Date</label><input type="date" id="led-start"></div>
-          <div class="form-group"><label>End Date</label><input type="date" id="led-end"></div>
-          <div style="display:flex;gap:7px;align-items:flex-end;">
-            <button class="btn" onclick="genStatement(null,'led-start','led-end','led-out','led-empty','led-print-btn')">Extract</button>
-            <button id="led-print-btn" class="btn btn-accent" style="display:none;" onclick="printStatement('ledger-view')">Print</button>
-          </div>
-        </div>
-        <div id="led-out" style="display:none;"></div>
-        <div id="led-empty" class="empty-state">Select a date range and click Extract.</div>
-      </div>
-    </div>
-
-    <div id="master-view" class="view-section">
-      <div class="card">
-        <h2>Registered Businesses</h2>
-        <p class="hint">New businesses are onboarded via Supabase — see tenant-onboarding-template.sql.</p>
-        <table id="org-table">
-          <thead><tr><th>Business Name</th><th>Contact Email</th><th>Status</th><th>Since</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div id="master-inventory-view" class="view-section">
-      <div class="card" style="margin-bottom:14px;">
-        <div class="form-group" style="margin-bottom:0;">
-          <label>Select Business to Manage</label>
-          <select id="m-inv-org" onchange="masterLoadInv(this.value)">
-            <option value="">-- Select a business --</option>
-          </select>
-        </div>
-      </div>
-      <div id="master-inv-content" style="display:none;" class="master-inv-grid">
+    <!-- ADMIN INVENTORY -->
+    <div id="av" class="view">
+      <div class="lp">
         <div class="card">
-          <h2 id="m-inv-form-title">Manage Inventory</h2>
-          <div class="tab-bar" id="master-tab-bar">
-            <button class="tab-btn active" onclick="switchInvTab('create','master')">+ Create</button>
-            <button class="tab-btn"        onclick="switchInvTab('addstock','master')">+ Add Stock</button>
-            <button class="tab-btn"        onclick="switchInvTab('log','master')">&#128203; History</button>
+          <h2>Inventory Management</h2>
+          <div class="tbar" id="atbar">
+            <button class="tb on" onclick="swInvTab('cr','a')">+ Create</button>
+            <button class="tb" onclick="swInvTab('as','a')">+ Add Stock</button>
+            <button class="tb" onclick="swInvTab('lg','a')">&#128203; History</button>
           </div>
-          <div class="tab-pane active" id="master-pane-create">
-            <div class="photo-zone" id="master-photo-zone" onclick="document.getElementById('master-photo-file').click()">
-              <img id="master-photo-preview" src="" alt="" style="display:none;">
-              <div id="master-photo-hint">
-                <div style="font-size:2rem;">&#128247;</div>
-                <div style="font-size:.78rem;color:var(--grey);margin-top:4px;">Click to upload product photo</div>
-              </div>
-            </div>
-            <input type="file" id="master-photo-file" accept="image/*" style="display:none;">
-            <form id="master-product-form">
-              <div class="form-group"><label>Product Name</label><input type="text" id="mp-name" required></div>
-              <div class="form-group"><label>Category</label>
-                <select id="mp-cat">
+          <div class="tp on" id="a-tp-cr">
+            <form id="apf">
+              <div class="fg"><label>Product Name</label><input type="text" id="an" required></div>
+              <div class="fg"><label>Category</label>
+                <select id="ac2">
                   <option>General</option><option>Produce</option><option>Dairy</option>
                   <option>Bakery</option><option>Meat</option><option>Beverages</option>
                   <option>Snacks</option><option>Household</option><option>Personal Care</option>
                   <option>Hardware</option><option>Electronics</option><option>Clothing</option>
                 </select></div>
-              <div class="form-group"><label>Barcode (optional)</label><input type="text" id="mp-barcode"></div>
-              <div class="form-group"><label>Price (GH&#8373;)</label><input type="number" step="0.01" id="mp-price" required></div>
-              <div class="form-group"><label>Initial Stock</label><input type="number" id="mp-stock" min="0" required></div>
-              <div class="form-group"><label>Note (optional)</label><input type="text" id="mp-note"></div>
-              <button type="submit" class="btn btn-full">Save Product</button>
+              <div class="fg"><label>Barcode (optional)</label><input type="text" id="abr"></div>
+              <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="asp" required></div>
+              <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="acp" value="0"></div>
+              <div class="fg"><label>Initial Stock</label><input type="number" id="astk" min="0" required></div>
+              <div class="fg"><label>Note</label><input type="text" id="anote" placeholder="e.g. Opening stock"></div>
+              <button type="submit" class="btn bf">Save Product</button>
             </form>
           </div>
-          <div class="tab-pane" id="master-pane-addstock">
-            <div class="form-group"><label>Select Product</label>
-              <select id="m-as-select"><option value="">-- Select --</option></select></div>
-            <div id="m-as-current" class="hint"></div>
-            <div class="form-group"><label>Quantity to Add</label><input type="number" id="m-as-qty" min="1"></div>
-            <div class="form-group"><label>Note (optional)</label><input type="text" id="m-as-note"></div>
-            <button class="btn btn-full btn-accent" onclick="addToStock('master')">Add to Stock</button>
+          <div class="tp" id="a-tp-as">
+            <div class="fg"><label>Search Product</label>
+              <div class="sdrop" id="asdrop">
+                <input type="text" id="asrch" placeholder="Type product name..." autocomplete="off"
+                       oninput="filterStockSearch(this.value,'a')">
+                <div class="sdlist" id="asdlist"></div>
+              </div>
+              <div id="ascur" class="hint" style="margin-top:4px;"></div>
+            </div>
+            <div class="fg"><label>Quantity to Add</label><input type="number" id="asqty" min="1"></div>
+            <div class="fg"><label>Note</label><input type="text" id="asnote" placeholder="e.g. Supplier delivery"></div>
+            <button class="btn bf ba" onclick="addStk('a')">Add to Stock</button>
           </div>
-          <div class="tab-pane" id="master-pane-log">
-            <div id="master-log-content"><div class="empty-state">Click Load to see history.</div></div>
-            <button class="btn btn-sm" style="margin-top:10px;" onclick="loadLog('master')">Load Log</button>
+          <div class="tp" id="a-tp-lg">
+            <div id="algc"><div class="es">Click Load to see history.</div></div>
+            <button class="btn bsm" style="margin-top:8px;" onclick="loadLog('a')">Load Log</button>
           </div>
         </div>
+      </div>
+      <div class="rp">
         <div class="card">
-          <h2 id="master-inv-table-title">Inventory</h2>
-          <table id="master-inv-table">
-            <thead><tr><th></th><th>Product</th><th>Category</th>
-              <th style="text-align:right;">Price (GH&#8373;)</th>
+          <h2>Current Inventory</h2>
+          <p class="hint">Edit selling price &amp; cost price inline — press Enter to save.</p>
+          <table id="ait">
+            <thead><tr><th>Product</th><th>Category</th>
+              <th style="text-align:right;">Cost (GH&#8373;)</th>
+              <th style="text-align:right;">Sell (GH&#8373;)</th>
+              <th style="text-align:right;">Profit</th>
               <th style="text-align:center;">Stock</th></tr></thead>
             <tbody></tbody>
           </table>
@@ -414,559 +365,1378 @@ footer strong{color:var(--accent);}
       </div>
     </div>
 
-    <div id="master-ledger-view" class="view-section">
+    <!-- LEDGER -->
+    <div id="lv" class="view">
       <div class="card">
-        <h2>Financial Ledger — All Businesses</h2>
-        <div class="filter-row">
-          <div class="form-group"><label>Business</label>
-            <select id="m-led-org"><option value="">-- Select --</option></select></div>
-          <div class="form-group"><label>Start Date</label><input type="date" id="m-led-start"></div>
-          <div class="form-group"><label>End Date</label><input type="date" id="m-led-end"></div>
-          <div style="display:flex;gap:7px;align-items:flex-end;">
-            <button class="btn" onclick="masterGenStatement()">Extract</button>
-            <button id="m-led-print-btn" class="btn btn-accent" style="display:none;" onclick="printStatement('master-ledger-view')">Print</button>
+        <h2>SME Financial Tracker</h2>
+        <div class="tbar">
+          <button class="tb on" onclick="swLedTab('sh')">Sales History</button>
+          <button class="tb" onclick="swLedTab('pr')">Profit Report</button>
+          <button class="tb" onclick="swLedTab('cs')">Credit Sales</button>
+          <button class="tb" onclick="swLedTab('cp')">Credit Payments</button>
+          <button class="tb" onclick="swLedTab('si')">Supplier Invoices</button>
+          <button class="tb" onclick="swLedTab('sp')">Supplier Payments</button>
+          <button class="tb" onclick="swLedTab('is')">Income Statement</button>
+        </div>
+
+        <!-- TAB: SALES HISTORY -->
+        <div class="tp on" id="l-tp-sh">
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+            <div class="fg" style="margin:0;flex:1;"><label>Start Date</label><input type="date" id="sh-s"></div>
+            <div class="fg" style="margin:0;flex:1;"><label>End Date</label><input type="date" id="sh-e"></div>
+            <button class="btn" onclick="genSalesHist()">Extract</button>
+            <button id="sh-pb" class="btn ba" style="display:none;" onclick="printStmt('lv')">Print</button>
+          </div>
+          <div id="sh-out" style="display:none;"></div>
+          <div id="sh-em" class="es">Select a date range and click Extract.</div>
+        </div>
+
+        <!-- TAB: PROFIT REPORT -->
+        <div class="tp" id="l-tp-pr">
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+            <div class="fg" style="margin:0;flex:1;"><label>Start Date</label><input type="date" id="pr-s"></div>
+            <div class="fg" style="margin:0;flex:1;"><label>End Date</label><input type="date" id="pr-e"></div>
+            <button class="btn" onclick="genProfitReport()">Extract</button>
+            <button id="pr-pb" class="btn ba" style="display:none;" onclick="printStmt('lv')">Print</button>
+          </div>
+          <div id="pr-out" style="display:none;"></div>
+          <div id="pr-em" class="es">Select a date range and click Extract.</div>
+        </div>
+
+        <!-- TAB: CREDIT SALES -->
+        <div class="tp" id="l-tp-cs">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Issue New Credit Invoice</h3>
+              <div class="fg"><label>Customer Name *</label><input type="text" id="cs-cn" required></div>
+              <div class="fg"><label>Customer Phone</label><input type="tel" id="cs-cp"></div>
+              <div class="fg"><label>Due Date *</label><input type="date" id="cs-due"></div>
+              <div class="fg"><label>Notes</label><input type="text" id="cs-note"></div>
+              <div class="fg"><label>Search &amp; Add Product</label>
+                <div class="sdrop"><input type="text" id="cs-psch" placeholder="Type product name..."
+                  autocomplete="off" oninput="filterCredProd(this.value)">
+                  <div class="sdlist" id="cs-pdlist"></div>
+                </div>
+              </div>
+              <div class="minicart" id="cscart"><div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div></div>
+              <div style="display:flex;justify-content:space-between;font-weight:600;font-size:.82rem;margin-bottom:8px;">
+                <span>Total:</span><span id="cstot">GH&#8373;0.00</span>
+              </div>
+              <button class="btn bf ba" onclick="issueCredit()">Issue Invoice &amp; Print</button>
+            </div>
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Outstanding Credit Sales</h3>
+              <button class="btn bsm" onclick="loadCreditList()">Refresh List</button>
+              <div id="cslist" style="margin-top:8px;"><div class="es">Click Refresh to load.</div></div>
+            </div>
           </div>
         </div>
-        <div id="m-led-out" style="display:none;"></div>
-        <div id="m-led-empty" class="empty-state">Select a business and date range.</div>
+
+        <!-- TAB: CREDIT PAYMENTS -->
+        <div class="tp" id="l-tp-cp">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Receive Credit Payment</h3>
+              <div class="fg"><label>Search Credit Invoice</label>
+                <div class="sdrop"><input type="text" id="cp-sch" placeholder="Customer name or invoice ID..."
+                  autocomplete="off" oninput="filterCreditInv(this.value)">
+                  <div class="sdlist" id="cp-dlist"></div>
+                </div>
+                <div id="cp-sel" class="hint" style="margin-top:4px;"></div>
+              </div>
+              <div class="fg"><label>Amount Received (GH&#8373;)</label><input type="number" id="cp-amt"></div>
+              <div class="fg"><label>Payment Method</label>
+                <select id="cp-pm">
+                  <option>Cash</option><option>Mobile Money</option><option>Card</option>
+                </select></div>
+              <div class="fg"><label>Notes</label><input type="text" id="cp-note"></div>
+              <button class="btn bf ba" onclick="recvCreditPay()">Record Payment</button>
+            </div>
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Recent Credit Payments</h3>
+              <button class="btn bsm" onclick="loadCPHistory()">Refresh</button>
+              <div id="cplist" style="margin-top:8px;"><div class="es">Click Refresh to load.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: SUPPLIER INVOICES -->
+        <div class="tp" id="l-tp-si">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Record Supplies Received</h3>
+              <div class="fg"><label>Supplier Name *</label><input type="text" id="si-sn"></div>
+              <div class="fg"><label>Invoice Ref (optional)</label><input type="text" id="si-ref"></div>
+              <div class="fg"><label>Date Received *</label><input type="date" id="si-dt"></div>
+              <div class="fg"><label>Due Date</label><input type="date" id="si-due"></div>
+              <div class="fg"><label>Add Item</label>
+                <div style="display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:center;">
+                  <div class="sdrop"><input type="text" id="si-psch" placeholder="Product name..."
+                    autocomplete="off" oninput="filterSuppProd(this.value)">
+                    <div class="sdlist" id="si-pdlist"></div>
+                  </div>
+                  <input type="number" id="si-qty" placeholder="Qty" style="width:55px;padding:6px 5px;border:1px solid var(--b);border-radius:4px;font-size:.79rem;">
+                  <input type="number" id="si-uc" placeholder="Cost" style="width:65px;padding:6px 5px;border:1px solid var(--b);border-radius:4px;font-size:.79rem;">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                  <input type="checkbox" id="si-us" checked>
+                  <label style="font-size:.75rem;cursor:pointer;">Update stock on save</label>
+                  <button class="btn bsm" onclick="addSuppItem()" style="margin-left:auto;">Add</button>
+                </div>
+              </div>
+              <div class="minicart" id="sicart"><div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div></div>
+              <div style="display:flex;justify-content:space-between;font-weight:600;font-size:.82rem;margin-bottom:8px;">
+                <span>Total:</span><span id="sitot">GH&#8373;0.00</span>
+              </div>
+              <div class="fg"><label>Notes</label><input type="text" id="si-note"></div>
+              <button class="btn bf" onclick="recordSuppInv()">Record Supplier Invoice</button>
+            </div>
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Outstanding Payables</h3>
+              <button class="btn bsm" onclick="loadSuppInvList()">Refresh</button>
+              <div id="silist" style="margin-top:8px;"><div class="es">Click Refresh to load.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: SUPPLIER PAYMENTS -->
+        <div class="tp" id="l-tp-sp">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Pay a Supplier</h3>
+              <div class="fg"><label>Search Supplier Invoice</label>
+                <div class="sdrop"><input type="text" id="sp-sch" placeholder="Supplier name..."
+                  autocomplete="off" oninput="filterSuppInv(this.value)">
+                  <div class="sdlist" id="sp-dlist"></div>
+                  <div id="sp-sel" class="hint" style="margin-top:4px;"></div>
+                </div>
+              </div>
+              <div class="fg"><label>Amount Paid (GH&#8373;)</label><input type="number" id="sp-amt"></div>
+              <div class="fg"><label>Payment Method</label>
+                <select id="sp-pm"><option>Cash</option><option>Mobile Money</option><option>Card</option></select></div>
+              <div class="fg"><label>Notes</label><input type="text" id="sp-note"></div>
+              <button class="btn bf bg2" onclick="makeSuppPay()">Record Payment</button>
+            </div>
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Recent Supplier Payments</h3>
+              <button class="btn bsm" onclick="loadSPHistory()">Refresh</button>
+              <div id="splist" style="margin-top:8px;"><div class="es">Click Refresh to load.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: INCOME STATEMENT -->
+        <div class="tp" id="l-tp-is">
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+            <div class="fg" style="margin:0;flex:1;"><label>Start Date</label><input type="date" id="is-s"></div>
+            <div class="fg" style="margin:0;flex:1;"><label>End Date</label><input type="date" id="is-e"></div>
+            <button class="btn" onclick="genIncomeSt()">Generate</button>
+            <button id="is-pb" class="btn ba" style="display:none;" onclick="printStmt('lv')">Print</button>
+          </div>
+          <div style="border:1px solid var(--b);border-radius:5px;padding:12px;margin-bottom:12px;">
+            <div class="fg"><label>Add Expense</label>
+              <div style="display:grid;grid-template-columns:1fr auto auto;gap:5px;align-items:center;">
+                <input type="text" id="ex-desc" placeholder="Description">
+                <input type="number" id="ex-amt" placeholder="Amount" style="width:90px;padding:6px 7px;border:1px solid var(--b);border-radius:4px;font-size:.8rem;">
+                <input type="date" id="ex-dt" style="width:130px;padding:6px 7px;border:1px solid var(--b);border-radius:4px;font-size:.8rem;">
+              </div>
+              <button class="btn bsm ba" style="margin-top:5px;" onclick="addExp()">+ Add Expense</button>
+            </div>
+          </div>
+          <div id="is-out" style="display:none;"></div>
+          <div id="is-em" class="es">Select a period and click Generate.</div>
+        </div>
+
+      </div><!-- /card -->
+    </div><!-- /ledger view -->
+
+    <!-- MASTER VIEWS -->
+    <div id="mv" class="view">
+      <div class="card">
+        <h2>Registered Businesses</h2>
+        <p class="hint">Add businesses via Supabase — see tenant-onboarding-template.sql.</p>
+        <table id="ot"><thead><tr><th>Business</th><th>Email</th><th>Status</th><th>Since</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+
+    <div id="miv" class="view">
+      <div class="lp">
+        <div class="card">
+          <h2>Inventory Management</h2>
+          <div class="fg"><label>Select Business</label>
+            <select id="morg" onchange="mLoadInv(this.value)">
+              <option value="">-- Select --</option>
+            </select></div>
+          <div id="minvform" style="display:none;">
+            <div class="tbar" id="mtbar">
+              <button class="tb on" onclick="swInvTab('cr','m')">+ Create</button>
+              <button class="tb" onclick="swInvTab('as','m')">+ Add Stock</button>
+              <button class="tb" onclick="swInvTab('lg','m')">&#128203; History</button>
+            </div>
+            <div class="tp on" id="m-tp-cr">
+              <form id="mpf">
+                <div class="fg"><label>Product Name</label><input type="text" id="mn" required></div>
+                <div class="fg"><label>Category</label>
+                  <select id="mc3">
+                    <option>General</option><option>Produce</option><option>Dairy</option>
+                    <option>Bakery</option><option>Meat</option><option>Beverages</option>
+                    <option>Snacks</option><option>Household</option><option>Personal Care</option>
+                    <option>Hardware</option><option>Electronics</option><option>Clothing</option>
+                  </select></div>
+                <div class="fg"><label>Barcode (optional)</label><input type="text" id="mbr"></div>
+                <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="msp2" required></div>
+                <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="mcp2" value="0"></div>
+                <div class="fg"><label>Initial Stock</label><input type="number" id="mstk" min="0" required></div>
+                <div class="fg"><label>Note</label><input type="text" id="mnote"></div>
+                <button type="submit" class="btn bf">Save Product</button>
+              </form>
+            </div>
+            <div class="tp" id="m-tp-as">
+              <div class="fg"><label>Search Product</label>
+                <div class="sdrop" id="msdrop">
+                  <input type="text" id="msrch" placeholder="Type product name..."
+                         autocomplete="off" oninput="filterStockSearch(this.value,'m')">
+                  <div class="sdlist" id="msdlist"></div>
+                </div>
+                <div id="mscur" class="hint" style="margin-top:4px;"></div>
+              </div>
+              <div class="fg"><label>Quantity to Add</label><input type="number" id="msqty" min="1"></div>
+              <div class="fg"><label>Note</label><input type="text" id="msnote"></div>
+              <button class="btn bf ba" onclick="addStk('m')">Add to Stock</button>
+            </div>
+            <div class="tp" id="m-tp-lg">
+              <div id="mlgc"><div class="es">Click Load.</div></div>
+              <button class="btn bsm" style="margin-top:8px;" onclick="loadLog('m')">Load Log</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rp">
+        <div class="card">
+          <h2 id="minvtitle">Inventory</h2>
+          <table id="mit">
+            <thead><tr><th>Product</th><th>Category</th>
+              <th style="text-align:right;">Cost</th>
+              <th style="text-align:right;">Sell</th>
+              <th style="text-align:right;">Profit</th>
+              <th style="text-align:center;">Stock</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="mlv" class="view">
+      <div class="card">
+        <h2>Financial Ledger — All Businesses</h2>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+          <div class="fg" style="margin:0;flex:1.5;"><label>Business</label>
+            <select id="mlo"><option value="">-- Select --</option></select></div>
+          <div class="fg" style="margin:0;flex:1;"><label>Start</label><input type="date" id="mls"></div>
+          <div class="fg" style="margin:0;flex:1;"><label>End</label><input type="date" id="mle"></div>
+          <button class="btn" onclick="mGenStmt()">Extract</button>
+          <button id="ml-pb" class="btn ba" style="display:none;" onclick="printStmt('mlv')">Print</button>
+        </div>
+        <div id="mlo2" style="display:none;"></div>
+        <div id="mle2" class="es">Select a business and date range.</div>
       </div>
     </div>
 
   </main>
-  <footer><span id="footer-biz">—</span> Terminal Solutions &bull; Powered by <strong>NYANSATEK</strong></footer>
+  <footer><span id="fbiz">—</span> Terminal Solutions &bull; Powered by <strong>NYANSATEK</strong></footer>
 </div>
 
 <script>
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const CAT_EMOJI={'Produce':'🥦','Dairy':'🥛','Bakery':'🍞','Meat':'🥩','Beverages':'🧃',
-  'Snacks':'🍪','Household':'🧹','Personal Care':'🧴','Hardware':'🔧',
-  'Electronics':'🔌','Clothing':'👕','General':'📦'};
-let session=null,profile=null,inventory=[],cart=[],orgList=[],activeOrgId=null,activeCat='ALL';
-let adminPhoto=null,masterPhoto=null,pendingSale=null;
+const CE={'Produce':'🥦','Dairy':'🥛','Bakery':'🍞','Meat':'🥩','Beverages':'🧃','Snacks':'🍪',
+  'Household':'🧹','Personal Care':'🧴','Hardware':'🔧','Electronics':'🔌','Clothing':'👕','General':'📦'};
+const GHC='GH\u20B3';
+let sess=null,prof=null,inv=[],cart=[],cCart=[],sCart=[],suppInvList=[],credInvList=[];
+let orgList=[],activeOrg=null,selCreditSale=null,selSuppInv=null;
+let pendSale=null,selStkId=null,activeCat='';
 
-const showLoad=on=>document.getElementById('loading-overlay').classList.toggle('visible',on);
-const esc=s=>!s?'':String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function showScreen(n){
-  document.getElementById('login-screen').style.display=n==='login'?'flex':'none';
-  document.getElementById('force-pw-screen').style.display=n==='force'?'flex':'none';
-  document.getElementById('app-shell').style.display=n==='app'?'flex':'none';
-}
-async function compressImage(file){
-  return new Promise(res=>{
-    const r=new FileReader();
-    r.onload=e=>{const i=new Image();
-      i.onload=()=>{const M=200;let w=i.width,h=i.height;
-        if(w>h){if(w>M){h=h*M/w;w=M;}}else{if(h>M){w=w*M/h;h=M;}}
-        const c=document.createElement('canvas');c.width=w;c.height=h;
-        c.getContext('2d').drawImage(i,0,0,w,h);res(c.toDataURL('image/jpeg',.72));};
-      i.src=e.target.result;};r.readAsDataURL(file);});
-}
-function setTodayDates(...ids){const t=new Date().toISOString().split('T')[0];
-  ids.forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=t;});}
+const L=on=>document.getElementById('lov').classList.toggle('on',on);
+const E=s=>!s?'':String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const GH=n=>GHC+(n||0).toFixed(2);
+const today=()=>new Date().toISOString().split('T')[0];
 
-document.getElementById('login-form').addEventListener('submit',async e=>{
+function scr(n){
+  document.getElementById('ls').style.display=n==='l'?'flex':'none';
+  document.getElementById('fps').style.display=n==='f'?'flex':'none';
+  document.getElementById('app').style.display=n==='a'?'flex':'none';
+}
+
+document.getElementById('lf').addEventListener('submit',async e=>{
   e.preventDefault();
-  const eb=document.getElementById('login-error');eb.classList.remove('visible');
-  const biz=document.getElementById('login-biz').value.trim();
-  const pw=document.getElementById('login-pass').value;
-  const btn=document.getElementById('login-btn');
-  btn.disabled=true;btn.innerText='Signing in...';
+  const eb=document.getElementById('le');eb.classList.remove('on');
+  const biz=document.getElementById('lb').value.trim(),pw=document.getElementById('lp').value;
+  const btn=document.getElementById('lbtn');btn.disabled=true;btn.innerText='Signing in...';
   try{
     const{data:row,error:le}=await sb.from('login_lookup').select('login_email').ilike('business_name',biz).maybeSingle();
     if(le||!row)throw new Error('Business name or password is incorrect.');
     const{error:ae}=await sb.auth.signInWithPassword({email:row.login_email,password:pw});
     if(ae)throw new Error('Business name or password is incorrect.');
-    await loadAfterAuth();
-  }catch(err){eb.innerText=err.message;eb.classList.add('visible');}
+    await boot2();
+  }catch(err){eb.innerText=err.message;eb.classList.add('on');}
   finally{btn.disabled=false;btn.innerText='Sign In';}
 });
 
-document.getElementById('force-pw-form').addEventListener('submit',async e=>{
+document.getElementById('fpf').addEventListener('submit',async e=>{
   e.preventDefault();
-  const eb=document.getElementById('force-pw-error');eb.classList.remove('visible');
-  const np=document.getElementById('new-pw').value,cp=document.getElementById('confirm-pw').value;
-  if(np!==cp){eb.innerText='Passwords do not match.';eb.classList.add('visible');return;}
-  showLoad(true);
+  const eb=document.getElementById('fpe');eb.classList.remove('on');
+  const np=document.getElementById('np').value,cp=document.getElementById('cp2').value;
+  if(np!==cp){eb.innerText='Passwords do not match.';eb.classList.add('on');return;}
+  L(true);
   const{error}=await sb.auth.updateUser({password:np});
-  if(error){showLoad(false);eb.innerText=error.message;eb.classList.add('visible');return;}
-  await sb.from('profiles').update({must_change_password:false}).eq('id',session.user.id);
-  showLoad(false);await loadAfterAuth();
+  if(error){L(false);eb.innerText=error.message;eb.classList.add('on');return;}
+  await sb.from('profiles').update({must_change_password:false}).eq('id',sess.user.id);
+  L(false);await boot2();
 });
 
 async function handleLogout(){
-  await sb.auth.signOut();session=null;profile=null;inventory=[];cart=[];activeOrgId=null;showScreen('login');
+  await sb.auth.signOut();sess=null;prof=null;inv=[];cart=[];scr('l');
 }
 
-async function loadAfterAuth(){
-  showLoad(true);
-  const{data:{session:s}}=await sb.auth.getSession();session=s;
-  if(!session){showLoad(false);showScreen('login');return;}
-  const{data:prof}=await sb.from('profiles').select('*').eq('id',session.user.id).single();
-  if(!prof){showLoad(false);showScreen('login');return;}
-  profile=prof;
-  if(profile.must_change_password){showLoad(false);showScreen('force');return;}
-  if(profile.role==='master')await initMaster();else await initTenant();
-  showLoad(false);showScreen('app');
+async function boot2(){
+  L(true);
+  const{data:{session:s}}=await sb.auth.getSession();sess=s;
+  if(!sess){L(false);scr('l');return;}
+  const{data:p}=await sb.from('profiles').select('*').eq('id',sess.user.id).single();
+  if(!p){L(false);scr('l');return;}
+  prof=p;
+  if(prof.must_change_password){L(false);scr('f');return;}
+  if(prof.role==='master')await initMaster();else await initTenant();
+  L(false);scr('a');
 }
 
-const VIEW_DISPLAY={'cashier':'grid','admin':'grid','ledger':'block','master':'block','master-inventory':'block','master-ledger':'block'};
-function switchView(view){
-  document.querySelectorAll('.view-section').forEach(el=>{el.style.display='none';el.classList.remove('active');});
-  document.querySelectorAll('.nav-tabs button').forEach(b=>b.classList.remove('active'));
-  const el=document.getElementById(view+'-view');
-  if(el){el.style.display=VIEW_DISPLAY[view]||'block';el.classList.add('active');}
-  const btn=document.getElementById('tab-'+view);if(btn)btn.classList.add('active');
+const VD={'cv':'grid','av':'grid','lv':'block','mv':'block','miv':'grid','mlv':'block'};
+function swV(v){
+  document.querySelectorAll('.view').forEach(el=>{el.style.display='none';el.classList.remove('on');});
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
+  const el=document.getElementById(v);
+  if(el){el.style.display=VD[v]||'block';el.classList.add('on');}
+  const b=document.getElementById('t-'+v);if(b)b.classList.add('on');
 }
 
-function buildNavTabs(role){
-  const nav=document.getElementById('nav-tabs');nav.innerHTML='';
+function buildNav(role){
+  const nav=document.getElementById('nav');nav.innerHTML='';
   const tabs=role==='master'
-    ?[['master','Business Overview'],['master-inventory','Inventory Manager'],['master-ledger','Financial Ledger']]
+    ?[['mv','Businesses'],['miv','Inv. Manager'],['mlv','Financial Ledger']]
     :role==='admin'
-    ?[['cashier','Cashier Portal'],['admin','Admin Inventory'],['ledger','Executive Ledger']]
-    :[['cashier','Cashier Portal']];
-  tabs.forEach(([key,label],i)=>{
-    const btn=document.createElement('button');btn.id='tab-'+key;btn.innerText=label;
-    if(i===0)btn.classList.add('active');btn.onclick=()=>switchView(key);nav.appendChild(btn);});
-  const lo=document.createElement('button');lo.innerText='Log Out';lo.className='logout';lo.onclick=handleLogout;nav.appendChild(lo);
+    ?[['cv','Cashier'],['av','Admin Inventory'],['lv','SME Ledger']]
+    :[['cv','Cashier']];
+  tabs.forEach(([k,l],i)=>{
+    const b=document.createElement('button');b.id='t-'+k;b.innerText=l;
+    if(i===0)b.classList.add('on');b.onclick=()=>swV(k);nav.appendChild(b);
+  });
+  const hb=document.createElement('button');hb.className='hist-btn';hb.title='Activity History';
+  hb.innerHTML='&#128203;';hb.onclick=()=>{document.getElementById('hm').style.display='flex';loadHist('sales');};
+  nav.appendChild(hb);
+  const lo=document.createElement('button');lo.innerText='Log Out';lo.className='lo';lo.onclick=handleLogout;nav.appendChild(lo);
 }
 
 async function initTenant(){
-  buildNavTabs(profile.role);
-  const biz=profile.display_name||'Business';
-  document.getElementById('header-biz').innerText=biz;
-  document.getElementById('footer-biz').innerText=biz;
-  document.getElementById('sales-badge').style.display='block';
-  activeOrgId=profile.org_id;
-  switchView('cashier');toggleTendered();setTodayDates('led-start','led-end');
-  await loadInventory(profile.org_id);await refreshSales();
+  buildNav(prof.role);
+  const biz=prof.display_name||'Business';
+  document.getElementById('hbiz').innerText=biz;
+  document.getElementById('fbiz').innerText=biz;
+  document.getElementById('sb').style.display='block';
+  activeOrg=prof.org_id;
+  swV('cv');toggleTen();
+  setDef('sh-s','sh-e','pr-s','pr-e','is-s','is-e','ex-dt','si-dt');
+  await loadInv(prof.org_id);await refSales();
 }
 
-async function refreshSales(){
-  const t=new Date().toISOString().split('T')[0];
-  const{data}=await sb.from('sales').select('total').eq('org_id',profile.org_id)
+function setDef(...ids){const t=today();ids.forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=t;});}
+
+async function refSales(){
+  const t=today();
+  const{data}=await sb.from('sales').select('total').eq('org_id',prof.org_id)
     .gte('created_at',t+'T00:00:00').lte('created_at',t+'T23:59:59');
   const tot=(data||[]).reduce((s,r)=>s+r.total,0);
-  const el=document.getElementById('today-sales');if(el)el.innerText='GH\u20B3 '+tot.toFixed(2);
+  const el=document.getElementById('tsal');if(el)el.innerText=GH(tot);
 }
 
-async function loadInventory(orgId){
-  const{data,error}=await sb.from('products').select('*').eq('org_id',orgId).order('name');
-  if(error){console.error(error);return;}
-  inventory=data||[];
-  if(profile.role!=='master'){renderProductGrid(activeCat);renderInvTable('admin-inv-table');populateStockDrop('as-select');}
-  else{renderInvTable('master-inv-table');populateStockDrop('m-as-select');}
+async function loadInv(orgId){
+  const{data}=await sb.from('products').select('*').eq('org_id',orgId).order('name');
+  inv=data||[];
+  renderPG();
+  renderInvTable(prof.role==='master'?'mit':'ait');
 }
 
-function stockBadge(s){
-  if(s===0)return '<span class="badge badge-r">Out of Stock</span>';
-  if(s<=10)return '<span class="badge badge-y">'+s+' units</span>';
-  return '<span class="badge badge-g">'+s+' units</span>';
+function sbadge(s){
+  if(s===0)return '<span class="badge br">Out of Stock</span>';
+  if(s<=10)return `<span class="badge by">${s} units</span>`;
+  return `<span class="badge bg">${s} units</span>`;
 }
 
-function renderInvTable(tableId){
-  const tbody=document.querySelector('#'+tableId+' tbody');if(!tbody)return;
-  tbody.innerHTML='';
-  if(!inventory.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--grey);padding:24px;">No products yet.</td></tr>';return;}
-  inventory.forEach(item=>{
+function renderInvTable(tid){
+  const tb=document.querySelector('#'+tid+' tbody');if(!tb)return;
+  tb.innerHTML='';
+  if(!inv.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--g);padding:20px;">No products yet.</td></tr>';return;}
+  inv.forEach(it=>{
+    const profit=(it.price||0)-(it.cost_price||0);
     const tr=document.createElement('tr');
-    const thumb=item.photo_url?'<img src="'+item.photo_url+'" class="prod-thumb" alt="">':'<span class="prod-em-sm">'+(CAT_EMOJI[item.category]||'📦')+'</span>';
-    tr.innerHTML=thumb+'</td><td><strong>'+esc(item.name)+'</strong><br><span style="font-size:.72rem;color:var(--grey);font-family:monospace;">'+esc(item.barcode||'')+'</span></td><td><span class="badge" style="background:#ede9fe;color:#5b21b6;">'+esc(item.category||'General')+'</span></td><td style="text-align:right;"><input type="number" step="0.01" min="0" class="inline-price" value="'+item.price.toFixed(2)+'"></td><td style="text-align:center;">'+stockBadge(item.stock)+'</td>';
-    tr.innerHTML='<td>'+thumb+'</td><td><strong>'+esc(item.name)+'</strong><br><span style="font-size:.72rem;color:var(--grey);font-family:monospace;">'+esc(item.barcode||'')+'</span></td><td><span class="badge" style="background:#ede9fe;color:#5b21b6;">'+esc(item.category||'General')+'</span></td><td style="text-align:right;"><input type="number" step="0.01" min="0" class="inline-price" value="'+item.price.toFixed(2)+'"></td><td style="text-align:center;">'+stockBadge(item.stock)+'</td>';
-    tr.querySelector('.inline-price').addEventListener('change',e=>updatePrice(item.id,e.target.value));
-    tbody.appendChild(tr);
+    tr.innerHTML=`<td><strong>${E(it.name)}</strong><br><span style="font-size:.68rem;color:var(--g);font-family:monospace;">${E(it.barcode||'')}</span></td>
+      <td><span class="badge bpurp">${E(it.category||'General')}</span></td>
+      <td style="text-align:right;"><input type="number" step="0.01" min="0" class="ip" data-id="${it.id}" data-field="cost" value="${(it.cost_price||0).toFixed(2)}"></td>
+      <td style="text-align:right;"><input type="number" step="0.01" min="0" class="ip" data-id="${it.id}" data-field="sell" value="${(it.price||0).toFixed(2)}"></td>
+      <td style="text-align:right;font-weight:600;color:${profit>=0?'var(--s)':'var(--d)'};">${GH(profit)}</td>
+      <td style="text-align:center;">${sbadge(it.stock)}</td>`;
+    tr.querySelectorAll('.ip').forEach(inp=>inp.addEventListener('change',e=>updatePriceField(it.id,e.target.dataset.field,e.target.value)));
+    tb.appendChild(tr);
   });
 }
 
-async function updatePrice(id,val){
-  const price=parseFloat(val);if(isNaN(price)||price<0)return;
-  await sb.from('products').update({price}).eq('id',id);await loadInventory(activeOrgId);
+async function updatePriceField(id,field,val){
+  const v=parseFloat(val);if(isNaN(v)||v<0)return;
+  const upd=field==='cost'?{cost_price:v}:{price:v};
+  await sb.from('products').update(upd).eq('id',id);
+  await loadInv(activeOrg);
 }
 
-function populateStockDrop(selId){
-  const sel=document.getElementById(selId);if(!sel)return;
-  sel.innerHTML='<option value="">-- Select a product --</option>';
-  inventory.forEach(item=>{const opt=document.createElement('option');opt.value=item.id;opt.text=item.name+' (Stock: '+item.stock+')';sel.appendChild(opt);});
-}
-
-function renderProductGrid(cat){
-  activeCat=cat;
-  const grid=document.getElementById('product-grid');
-  const filters=document.getElementById('cat-filters');
-  if(!grid||!filters)return;
-  const cats=['ALL',...new Set(inventory.map(p=>p.category||'General'))];
-  filters.innerHTML='';
+// ── PRODUCT GRID ────────────────────────────────────────────────
+function renderPG(){
+  const grid=document.getElementById('pg2');
+  const catf=document.getElementById('catf');
+  if(!grid||!catf)return;
+  const cats=['ALL',...new Set(inv.map(p=>p.category||'General'))];
+  catf.innerHTML='';
   cats.forEach(c=>{
-    const btn=document.createElement('button');btn.className='cat-btn'+(c===activeCat?' active':'');
-    btn.innerText=c==='ALL'?'All':c;btn.onclick=()=>renderProductGrid(c);filters.appendChild(btn);});
-  const search=(document.getElementById('prod-search')?.value||'').toLowerCase();
-  let shown=cat==='ALL'?inventory:inventory.filter(p=>(p.category||'General')===cat);
+    const btn=document.createElement('button');btn.className='cb'+(c===activeCat||(!activeCat&&c==='ALL')?' on':'');
+    btn.innerText=c==='ALL'?'All':c;
+    btn.onclick=()=>{activeCat=c;renderPG();};
+    catf.appendChild(btn);
+  });
+  const search=(document.getElementById('psch')?.value||'').toLowerCase();
+  const hasFilter=search.length>0||(activeCat&&activeCat!=='ALL');
+  if(!hasFilter){
+    grid.innerHTML='<div class="pgm">Search for a product above or tap a category to display items.</div>';
+    return;
+  }
+  let shown=activeCat&&activeCat!=='ALL'?inv.filter(p=>(p.category||'General')===activeCat):inv;
   if(search)shown=shown.filter(p=>p.name.toLowerCase().includes(search));
-  if(!shown.length){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1;">No products found.</div>';return;}
+  if(!shown.length){grid.innerHTML='<div class="pgm">No products found.</div>';return;}
   grid.innerHTML='';
-  shown.forEach(item=>{
-    const card=document.createElement('div');card.className='product-card'+(item.stock<=0?' oos':'');
-    const visual=item.photo_url?'<img class="p-img" src="'+item.photo_url+'" alt="'+esc(item.name)+'">'
-      :'<div class="p-emoji">'+(CAT_EMOJI[item.category]||'📦')+'</div>';
-    card.innerHTML=visual+'<div class="p-name">'+esc(item.name)+'</div><div class="p-price">GH\u20B3 '+item.price.toFixed(2)+'</div><div class="p-cat">'+esc(item.category||'General')+'</div>';
-    if(item.stock>0)card.onclick=()=>addToCart(item.id);else card.title='Out of stock';
+  shown.forEach(it=>{
+    const card=document.createElement('div');card.className='pc'+(it.stock<=0?' oos':'');
+    card.innerHTML=`<div style="font-size:28px;margin-bottom:3px;">${CE[it.category]||'📦'}</div>
+      <div class="pn">${E(it.name)}</div><div class="pr">${GH(it.price)}</div>
+      <div class="pcat">${E(it.category||'General')}</div>`;
+    if(it.stock>0)card.onclick=()=>addToCart(it.id);else card.title='Out of stock';
     grid.appendChild(card);
   });
 }
 
-document.getElementById('prod-search').addEventListener('input',()=>renderProductGrid(activeCat));
-document.getElementById('barcode-input').addEventListener('keypress',e=>{
-  if(e.key==='Enter'){const code=e.target.value.trim();if(code){addToCartByBarcode(code);e.target.value='';}}
+document.getElementById('psch').addEventListener('input',()=>renderPG());
+document.getElementById('bci').addEventListener('keypress',e=>{
+  if(e.key==='Enter'){const c=e.target.value.trim();if(c){addByBarcode(c);e.target.value='';}}
 });
 
-function addToCartByBarcode(barcode){
-  const p=inventory.find(i=>i.barcode&&i.barcode.toLowerCase()===barcode.toLowerCase());
-  if(!p){alert('Item ['+barcode+'] not found.');return;}addToCart(p.id);
+function addByBarcode(bc){
+  const p=inv.find(i=>i.barcode&&i.barcode.toLowerCase()===bc.toLowerCase());
+  if(!p){alert('Item not found: '+bc);return;}addToCart(p.id);
 }
 
 function addToCart(id){
-  const product=inventory.find(i=>i.id===id);if(!product)return;
-  const ci=cart.find(i=>i.id===id);const newQty=ci?ci.qty+1:1;
-  if(newQty>product.stock){alert('Only '+product.stock+' units in stock.');return;}
-  if(ci)ci.qty++;else cart.push({...product,qty:1});renderCart();
+  const p=inv.find(i=>i.id===id);if(!p)return;
+  const ci=cart.find(i=>i.id===id);
+  if((ci?ci.qty+1:1)>p.stock){alert('Only '+p.stock+' units available.');return;}
+  if(ci)ci.qty++;else cart.push({...p,qty:1});renderCart();
 }
-
-function adjustQty(id,change){
-  const item=cart.find(i=>i.id===id);const product=inventory.find(i=>i.id===id);if(!item||!product)return;
-  if(change>0&&(item.qty+change)>product.stock){alert('Max stock: '+product.stock);return;}
-  item.qty+=change;if(item.qty<=0)cart=cart.filter(i=>i.id!==id);renderCart();
+function adjQ(id,d){
+  const it=cart.find(i=>i.id===id),p=inv.find(i=>i.id===id);if(!it||!p)return;
+  if(d>0&&(it.qty+d)>p.stock){alert('Max: '+p.stock);return;}
+  it.qty+=d;if(it.qty<=0)cart=cart.filter(i=>i.id!==id);renderCart();
 }
-function removeCartItem(id){cart=cart.filter(i=>i.id!==id);renderCart();}
+function rmCart(id){cart=cart.filter(i=>i.id!==id);renderCart();}
 
 function renderCart(){
-  const list=document.getElementById('cart-list');
-  const badge=document.getElementById('cart-badge');
-  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const cl=document.getElementById('cl'),bd=document.getElementById('cbdg');
+  const tot=cart.reduce((s,i)=>s+i.price*i.qty,0);
   if(!cart.length){
-    list.innerHTML='<div class="cart-empty"><div class="icon">&#128722;</div><div>Cart is empty</div><div style="font-size:.78rem;">Tap a product to add</div></div>';
-    badge.innerText='0';document.getElementById('cart-total').innerText='GH\u20B3 0.00';
-    document.getElementById('subtotal').innerText='GH\u20B3 0.00';calcChange();return;
+    cl.innerHTML='<div class="ce"><div class="ei">🛒</div>Cart is empty<br><span style="font-size:.75rem;">Tap a product to add</span></div>';
+    bd.innerText='0';document.getElementById('gtot').innerText=GH(0);
+    document.getElementById('stot').innerText=GH(0);calcCh();return;
   }
-  list.innerHTML='';
-  cart.forEach(item=>{
-    const div=document.createElement('div');div.className='cart-item';
-    div.innerHTML='<div class="ci-name">'+esc(item.name)+'</div>'
-      +'<div class="ci-ctrls"><button class="qty-btn" data-act="dec">\u2212</button>'
-      +'<span style="min-width:20px;text-align:center;font-weight:600;">'+item.qty+'</span>'
-      +'<button class="qty-btn" data-act="inc">+</button></div>'
-      +'<div class="ci-total">GH\u20B3 '+(item.price*item.qty).toFixed(2)+'</div>'
-      +'<button class="rm-btn" data-act="rm">\u00D7</button>';
-    div.querySelector('[data-act="dec"]').onclick=()=>adjustQty(item.id,-1);
-    div.querySelector('[data-act="inc"]').onclick=()=>adjustQty(item.id,1);
-    div.querySelector('[data-act="rm"]').onclick=()=>removeCartItem(item.id);
-    list.appendChild(div);
+  cl.innerHTML='';
+  cart.forEach(it=>{
+    const d=document.createElement('div');d.className='ci';
+    d.innerHTML=`<div class="cin">${E(it.name)}</div>
+      <div style="display:flex;align-items:center;gap:2px;">
+        <button class="qb" data-a="d">−</button>
+        <span style="min-width:18px;text-align:center;font-size:.78rem;font-weight:600;">${it.qty}</span>
+        <button class="qb" data-a="i">+</button>
+      </div>
+      <div class="ct2">${GH(it.price*it.qty)}</div>
+      <button class="rm">×</button>`;
+    d.querySelector('[data-a="d"]').onclick=()=>adjQ(it.id,-1);
+    d.querySelector('[data-a="i"]').onclick=()=>adjQ(it.id,1);
+    d.querySelector('.rm').onclick=()=>rmCart(it.id);
+    cl.appendChild(d);
   });
-  badge.innerText=cart.reduce((s,i)=>s+i.qty,0);
-  document.getElementById('cart-total').innerText='GH\u20B3 '+total.toFixed(2);
-  document.getElementById('subtotal').innerText='GH\u20B3 '+total.toFixed(2);calcChange();
+  bd.innerText=cart.reduce((s,i)=>s+i.qty,0);
+  document.getElementById('gtot').innerText=GH(tot);
+  document.getElementById('stot').innerText=GH(tot);calcCh();
 }
 
-function toggleTendered(){
-  const isCash=document.getElementById('pay-method').value==='Cash';
-  document.getElementById('tendered-wrap').style.display=isCash?'block':'none';
-  document.getElementById('change-ln').style.display=isCash?'flex':'none';calcChange();
+function toggleTen(){
+  const c=document.getElementById('pm').value==='Cash';
+  document.getElementById('tw').style.display=c?'block':'none';
+  document.getElementById('chrow').style.display=c?'flex':'none';calcCh();
+}
+function calcCh(){
+  const tot=parseFloat(document.getElementById('gtot').innerText.replace(GHC,''))||0;
+  if(document.getElementById('pm').value!=='Cash'){document.getElementById('chd').innerText=GH(0);return;}
+  const ten=parseFloat(document.getElementById('ten').value)||0;
+  document.getElementById('chd').innerText=ten>=tot?GH(ten-tot):GH(0);
 }
 
-function calcChange(){
-  const total=parseFloat(document.getElementById('cart-total').innerText.replace('GH\u20B3 ',''))||0;
-  if(document.getElementById('pay-method').value!=='Cash'){document.getElementById('change-due').innerText='GH\u20B3 0.00';return;}
-  const ten=parseFloat(document.getElementById('tendered').value)||0;
-  document.getElementById('change-due').innerText=ten>=total?'GH\u20B3 '+(ten-total).toFixed(2):'GH\u20B3 0.00';
-}
-
-async function processSale(mode){
+// ── SALES ────────────────────────────────────────────────────────
+async function doSale(mode){
   if(!cart.length){alert('Cart is empty.');return;}
-  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
-  const method=document.getElementById('pay-method').value;
-  let tendered=total;
-  if(method==='Cash'){tendered=parseFloat(document.getElementById('tendered').value)||0;
-    if(tendered<total){alert('Amount tendered is less than total.');return;}}
-  pendingSale={total,method,tendered};
-  if(mode==='sms'){document.getElementById('sms-modal').style.display='flex';return;}
-  await completeSale(mode,null);pendingSale=null;
+  const tot=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const method=document.getElementById('pm').value;
+  let ten=tot;
+  if(method==='Cash'){ten=parseFloat(document.getElementById('ten').value)||0;
+    if(ten<tot){alert('Amount tendered is less than total.');return;}}
+  pendSale={tot,method,ten};
+  if(mode==='credit'){document.getElementById('cim').style.display='flex';return;}
+  if(mode==='sms'){document.getElementById('smsm').style.display='flex';return;}
+  await finSale(mode,null);pendSale=null;
 }
 
-async function completeSale(mode,smsPhone){
-  const{total,method,tendered}=pendingSale;
-  showLoad(true);
-  const invoiceId='INV-'+Math.floor(10000+Math.random()*90000);
+async function finSale(mode,phone){
+  const{tot,method,ten}=pendSale;
+  L(true);
+  const inv2=cart.toSpliced?cart.toSpliced():JSON.parse(JSON.stringify(cart));
+  const invId='INV-'+Math.floor(10000+Math.random()*90000);
   const{data:sale,error:se}=await sb.from('sales').insert({
-    org_id:profile.org_id,invoice_id:invoiceId,cashier_id:profile.id,
-    payment_method:method,total,
-    amount_tendered:method==='Cash'?tendered:null,
-    change_due:method==='Cash'?tendered-total:null
+    org_id:prof.org_id,invoice_id:invId,cashier_id:prof.id,
+    payment_method:method,total:tot,
+    amount_tendered:method==='Cash'?ten:null,
+    change_due:method==='Cash'?ten-tot:null
   }).select().single();
-  if(se){showLoad(false);alert('Could not record sale: '+se.message);return;}
-  await sb.from('sale_items').insert(cart.map(item=>({
-    sale_id:sale.id,product_id:item.id,name_snapshot:item.name,
-    price_snapshot:item.price,qty:item.qty,line_total:item.price*item.qty})));
-  for(const item of cart)await sb.from('products').update({stock:item.stock-item.qty}).eq('id',item.id);
-  const smsMsg=(mode==='sms'&&smsPhone)?buildSms(invoiceId,method,total):null;
-  const rcptHtml=(mode==='print'||mode==='sms')?buildReceiptHtml(invoiceId,method,total,tendered):null;
-  cart=[];document.getElementById('tendered').value='';
-  await loadInventory(profile.org_id);renderCart();await refreshSales();showLoad(false);
-  if(smsMsg)await sendSms(smsPhone,smsMsg);
-  if(rcptHtml)printIframe(rcptHtml);
-  else if(mode==='complete')alert('Sale complete! Invoice '+invoiceId);
+  if(se){L(false);alert('Sale error: '+se.message);return;}
+  await sb.from('sale_items').insert(cart.map(it=>({
+    sale_id:sale.id,product_id:it.id,name_snapshot:it.name,
+    cost_price_snapshot:it.cost_price||0,price_snapshot:it.price,
+    qty:it.qty,line_total:it.price*it.qty
+  })));
+  for(const it of cart)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
+  const cartSnap=JSON.parse(JSON.stringify(cart));
+  cart=[];document.getElementById('ten').value='';
+  await loadInv(prof.org_id);renderCart();await refSales();L(false);
+  if(mode==='print'||mode==='sms'){
+    const rh=buildRcpt(invId,method,tot,ten,cartSnap,'RECEIPT');
+    printIF(rh);
+  }
+  if(mode==='sms'&&phone)await sendSMS(phone,buildSMSMsg(invId,method,tot,cartSnap));
+  if(mode==='complete')alert('Sale recorded. Invoice: '+invId);
 }
 
-function closeSmsModal(){document.getElementById('sms-modal').style.display='none';document.getElementById('sms-phone').value='';}
-async function confirmSendSms(){
-  const phone=document.getElementById('sms-phone').value.trim();
-  if(!phone){alert('Please enter a phone number.');return;}
-  document.getElementById('sms-modal').style.display='none';
-  await completeSale('sms',phone);pendingSale=null;document.getElementById('sms-phone').value='';
+// Credit invoice from cashier cart
+function closeCreditModal(){document.getElementById('cim').style.display='none';}
+async function issueCreditFromCart(){
+  const cn=document.getElementById('ci-cname').value.trim();
+  const cp=document.getElementById('ci-cphone').value.trim();
+  const due=document.getElementById('ci-due').value;
+  const note=document.getElementById('ci-note').value.trim();
+  if(!cn||!due){alert('Customer name and due date are required.');return;}
+  const tot=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  L(true);closeCreditModal();
+  const cartSnap=JSON.parse(JSON.stringify(cart));
+  const invId='CRD-'+Math.floor(10000+Math.random()*90000);
+  const{data:cs,error}=await sb.from('credit_sales').insert({
+    org_id:prof.org_id,invoice_id:invId,customer_name:cn,customer_phone:cp||null,
+    due_date:due,total:tot,status:'unpaid',notes:note||null,created_by:prof.id
+  }).select().single();
+  if(error){L(false);alert('Error: '+error.message);return;}
+  await sb.from('credit_sale_items').insert(cartSnap.map(it=>({
+    credit_sale_id:cs.id,product_id:it.id,name_snapshot:it.name,
+    cost_price_snapshot:it.cost_price||0,selling_price_snapshot:it.price,
+    qty:it.qty,line_total:it.price*it.qty
+  })));
+  for(const it of cartSnap)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
+  cart=[];document.getElementById('ten').value='';
+  await loadInv(prof.org_id);renderCart();L(false);
+  const rh=buildRcpt(invId,'Credit',tot,0,cartSnap,'CREDIT INVOICE',cn,cp,due);
+  printIF(rh);
 }
 
-function buildSms(invoiceId,method,total){
-  const biz=profile.display_name||'Business';
-  const items=cart.map(i=>i.name+' x'+i.qty).join(', ');
-  return biz+'\nInv: '+invoiceId+'\n'+items+'\nTotal: GH'+String.fromCharCode(8371)+total.toFixed(2)+'\nPayment: '+method+'\nThank you!';
-}
-async function sendSms(phone,message){
-  if(!SMS_API_KEY){alert('Sale complete! (Note: Add your Arkesel API key as SMS_API_KEY at top of index.html for real SMS delivery.)');return;}
-  try{await fetch('https://sms.arkesel.com/sms/api?action=send-sms&api_key='+encodeURIComponent(SMS_API_KEY)+'&to='+encodeURIComponent(phone)+'&from='+encodeURIComponent(SMS_SENDER_ID)+'&sms='+encodeURIComponent(message));}
-  catch(e){console.error('SMS error:',e);}
+function closeSms(){document.getElementById('smsm').style.display='none';document.getElementById('smsp').value='';}
+async function confirmSms(){
+  const ph=document.getElementById('smsp').value.trim();
+  if(!ph){alert('Please enter a phone number.');return;}
+  document.getElementById('smsm').style.display='none';
+  await finSale('sms',ph);pendSale=null;
+  document.getElementById('smsp').value='';
 }
 
-function buildReceiptHtml(invoiceId,method,total,tendered){
-  const biz=esc(profile.display_name||'Business');
-  let cash='';
-  if(method==='Cash')cash='<div class="rr"><span>Paid:</span><span>GH&#8373; '+tendered.toFixed(2)+'</span></div><div class="rr"><span>Change:</span><span>GH&#8373; '+(tendered-total).toFixed(2)+'</span></div>';
-  const items=cart.map(i=>'<div class="rr"><span>'+esc(i.name)+' x'+i.qty+'</span><span>GH&#8373; '+(i.price*i.qty).toFixed(2)+'</span></div>').join('');
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:"Courier New",monospace;font-size:13px;width:80mm;max-width:100%;margin:0 auto;padding:10px;color:#000;background:#fff;}h3{text-align:center;font-size:15px;margin-bottom:4px;}.center{text-align:center;font-size:11px;margin-bottom:6px;}.line{border-top:1px dashed #000;margin:7px 0;}.rr{display:flex;justify-content:space-between;margin-bottom:3px;}.bold{font-weight:bold;}.footer{text-align:center;margin-top:10px;font-size:11px;}@media print{@page{size:80mm auto;margin:2mm;}}</style></head><body>'
-    +'<h3>'+biz+'</h3><div class="center">'+new Date().toLocaleString()+'</div><div class="center">Invoice: '+esc(invoiceId)+'</div>'
-    +'<div class="line"></div><div class="rr bold"><span>Payment:</span><span>'+esc(method)+'</span></div>'
-    +'<div class="line"></div>'+items+'<div class="line"></div>'
-    +'<div class="rr bold"><span>TOTAL:</span><span>GH&#8373; '+total.toFixed(2)+'</span></div>'+cash
-    +'<div class="line"></div><div class="footer"><p>Thank you for your business!</p><p style="font-size:10px;margin-top:5px;">Powered by <strong>NYANSATEK</strong></p></div></body></html>';
+function buildSMSMsg(invId,method,tot,items){
+  const biz=prof.display_name||'Business';
+  return `${biz}\nInv:${invId}\n${items.map(i=>i.name+' x'+i.qty).join(', ')}\nTotal:${GH(tot)}\n${method}\nThank you!`;
+}
+async function sendSMS(ph,msg){
+  if(!SMS_API_KEY){alert('Sale complete! (Add SMS_API_KEY at top of file for real SMS.)');return;}
+  try{await fetch(`https://sms.arkesel.com/sms/api?action=send-sms&api_key=${encodeURIComponent(SMS_API_KEY)}&to=${encodeURIComponent(ph)}&from=${encodeURIComponent(SMS_SENDER_ID)}&sms=${encodeURIComponent(msg)}`);}catch(e){console.error(e);}
 }
 
-function printIframe(html){
-  const old=document.getElementById('rc-iframe');if(old)old.remove();
-  const f=document.createElement('iframe');f.id='rc-iframe';
+// ── PRINT ────────────────────────────────────────────────────────
+function buildRcpt(invId,method,tot,ten,items,type='RECEIPT',cname='',cphone='',dueDate=''){
+  const biz=E(prof.display_name||'Business');
+  const isCreditInv=type==='CREDIT INVOICE';
+  let cashLines='';
+  if(method==='Cash'&&!isCreditInv)cashLines=`<div class="rr"><span>Paid:</span><span>${GH(ten)}</span></div><div class="rr"><span>Change:</span><span>${GH(ten-tot)}</span></div>`;
+  const custInfo=cname?`<div class="rr"><span>Customer:</span><span>${E(cname)}</span></div>${cphone?`<div class="rr"><span>Phone:</span><span>${E(cphone)}</span></div>`:''}${dueDate?`<div class="rr bold" style="color:#c00;"><span>DUE DATE:</span><span>${dueDate}</span></div>`:''}`:'' ;
+
+  if(isCreditInv){
+    // A4 formal invoice layout for credit sales
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@page{size:A4;margin:18mm 20mm;}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:10.5pt;color:#000;}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #111827;padding-bottom:12px;margin-bottom:16px;}
+.hdr h1{font-size:20pt;color:#111827;margin:0;}
+.hdr .inv-meta{text-align:right;font-size:9pt;color:#555;}
+.inv-meta strong{color:#d4af37;font-size:12pt;display:block;margin-bottom:4px;}
+.cust{background:#f8f8f8;border-left:4px solid #d4af37;padding:10px 14px;margin-bottom:14px;border-radius:0 5px 5px 0;}
+.cust p{margin:2px 0;font-size:9.5pt;}
+table{width:100%;border-collapse:collapse;margin-bottom:12px;}
+th{background:#111827;color:#fff;padding:7px 9px;text-align:left;font-size:9pt;}
+td{padding:7px 9px;border-bottom:1px solid #ddd;font-size:9pt;}
+.tot-blk{max-width:260px;margin-left:auto;border:2px solid #111827;border-radius:4px;}
+.trow{display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #ddd;font-size:9.5pt;}
+.trow.grand{background:#111827;color:#fff;font-weight:700;font-size:11pt;border:none;}
+.footer{text-align:center;margin-top:24px;font-size:8.5pt;color:#888;border-top:1px solid #ddd;padding-top:10px;}
+</style></head><body>
+<div class="hdr">
+  <div><h1>${biz}</h1><p style="color:#555;font-size:9pt;margin-top:3px;">Date: ${new Date().toLocaleDateString()}</p></div>
+  <div class="inv-meta"><strong>CREDIT INVOICE</strong>Invoice No: <b>${E(invId)}</b><br>Due Date: <b style="color:#c00;">${dueDate||'—'}</b></div>
+</div>
+<div class="cust"><p><b>Bill To:</b></p><p>${E(cname)}</p>${cphone?`<p>Phone: ${E(cphone)}</p>`:''}</div>
+<table><thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Unit Price</th><th style="text-align:right;">Total</th></tr></thead>
+<tbody>${items.map(i=>`<tr><td>${E(i.name)}</td><td style="text-align:center;">${i.qty}</td><td style="text-align:right;">${GH(i.price)}</td><td style="text-align:right;font-weight:600;">${GH(i.price*i.qty)}</td></tr>`).join('')}
+</tbody></table>
+<div class="tot-blk">
+  <div class="trow grand"><span>TOTAL DUE</span><span>${GH(tot)}</span></div>
+</div>
+<p style="font-size:8.5pt;color:#555;margin-top:10px;">Payment due by: <strong>${dueDate||'—'}</strong>. Please present this invoice when making payment.</p>
+<div class="footer">Thank you for your business! &bull; Powered by <strong>NYANSATEK</strong></div>
+</body></html>`;
+  }
+
+  // Thermal receipt (80mm width) for regular sales
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@page{size:80mm auto;margin:2mm;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Courier New',Courier,monospace;font-size:12px;width:80mm;max-width:80mm;color:#000;background:#fff;padding:6px;}
+.ct{text-align:center;margin-bottom:6px;}
+.ct h2{font-size:14px;margin-bottom:1px;}
+.ct .tp{font-size:10px;font-weight:bold;letter-spacing:1px;}
+.ct .dt{font-size:9px;color:#444;}
+.ln{border-top:1px dashed #000;margin:5px 0;}
+.rr{display:flex;justify-content:space-between;margin-bottom:2px;font-size:11px;}
+.bold{font-weight:bold;}
+.ft{text-align:center;margin-top:8px;font-size:9px;color:#555;}
+</style></head><body>
+<div class="ct"><h2>${biz}</h2><div class="tp">${type}</div><div class="dt">${new Date().toLocaleString()}</div><div class="dt">Invoice: ${E(invId)}</div></div>
+<div class="ln"></div>
+<div class="rr bold"><span>Payment:</span><span>${E(method)}</span></div>
+<div class="ln"></div>
+${items.map(i=>`<div class="rr"><span>${E(i.name)} x${i.qty}</span><span>${GH(i.price*i.qty)}</span></div>`).join('')}
+<div class="ln"></div>
+<div class="rr bold"><span>TOTAL:</span><span>${GH(tot)}</span></div>
+${cashLines}
+<div class="ln"></div>
+<div class="ft">Thank you for your business!<br>Powered by <strong>NYANSATEK</strong></div>
+</body></html>`;
+}
+
+function printIF(html){
+  const old=document.getElementById('rif');if(old)old.remove();
+  const f=document.createElement('iframe');f.id='rif';
   f.style.cssText='position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;';
   document.body.appendChild(f);
-  f.onload=()=>setTimeout(()=>{f.contentWindow.focus();f.contentWindow.print();},300);
+  f.onload=()=>setTimeout(()=>{f.contentWindow.focus();f.contentWindow.print();},350);
   f.srcdoc=html;
 }
 
-document.getElementById('admin-photo-file').addEventListener('change',async e=>{
-  const file=e.target.files[0];if(!file)return;
-  adminPhoto=await compressImage(file);
-  document.getElementById('admin-photo-preview').src=adminPhoto;
-  document.getElementById('admin-photo-preview').style.display='block';
-  document.getElementById('admin-photo-hint').style.display='none';
-});
-
-document.getElementById('master-photo-file').addEventListener('change',async e=>{
-  const file=e.target.files[0];if(!file)return;
-  masterPhoto=await compressImage(file);
-  document.getElementById('master-photo-preview').src=masterPhoto;
-  document.getElementById('master-photo-preview').style.display='block';
-  document.getElementById('master-photo-hint').style.display='none';
-});
-
-function switchInvTab(tab,ctx){
-  const prefix=ctx==='master'?'master-':'admin-';
-  ['create','addstock','log'].forEach(t=>{
-    const pane=document.getElementById(prefix+'pane-'+t);if(pane)pane.classList.toggle('active',t===tab);});
-  const bar=document.getElementById(ctx==='master'?'master-tab-bar':'admin-tab-bar');
-  if(bar)bar.querySelectorAll('.tab-btn').forEach((btn,i)=>btn.classList.toggle('active',['create','addstock','log'][i]===tab));
+// ── RECENT BILLINGS ──────────────────────────────────────────────
+async function openRecentBillings(){
+  document.getElementById('rbm').style.display='flex';
+  L(true);
+  const{data}=await sb.from('sales').select('*,sale_items(name_snapshot,qty,price_snapshot)')
+    .eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(10);
+  L(false);
+  const c=document.getElementById('rbcontent');
+  if(!data||!data.length){c.innerHTML='<div class="es">No recent sales.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Invoice</th><th>Date</th><th>Items</th><th>Total</th><th></th></tr></thead>
+  <tbody>${data.map(s=>`<tr>
+    <td style="font-family:monospace;font-weight:600;">${E(s.invoice_id)}</td>
+    <td style="font-size:.75rem;">${new Date(s.created_at).toLocaleString()}</td>
+    <td style="font-size:.75rem;color:var(--g);">${(s.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
+    <td style="font-weight:600;">${GH(s.total)}</td>
+    <td><button class="btn bsm ba" onclick='reprintSale(${JSON.stringify(s)})'>Reprint</button></td>
+  </tr>`).join('')}</tbody></table>`;
 }
 
-document.getElementById('admin-product-form').addEventListener('submit',async e=>{
+function reprintSale(s){
+  const items=(s.sale_items||[]).map(i=>({name:i.name_snapshot,qty:i.qty,price:i.price_snapshot}));
+  const rh=buildRcpt(s.invoice_id,s.payment_method,s.total,s.amount_tendered||s.total,items);
+  printIF(rh);
+}
+
+// ── ADMIN INVENTORY ──────────────────────────────────────────────
+function swInvTab(tab,ctx){
+  const pref=ctx==='m'?'m-tp-':'a-tp-';
+  ['cr','as','lg'].forEach(t=>{
+    const p=document.getElementById(pref+t);if(p)p.classList.toggle('on',t===tab);
+  });
+  const bar=document.getElementById(ctx==='m'?'mtbar':'atbar');
+  if(bar)bar.querySelectorAll('.tb').forEach((b,i)=>b.classList.toggle('on',['cr','as','lg'][i]===tab));
+}
+
+document.getElementById('apf').addEventListener('submit',async e=>{
   e.preventDefault();
-  let barcode=document.getElementById('ap-barcode').value.trim()||'NT-'+Date.now();
-  const name=document.getElementById('ap-name').value.trim();
-  const price=parseFloat(document.getElementById('ap-price').value);
-  const stock=parseInt(document.getElementById('ap-stock').value)||0;
-  const category=document.getElementById('ap-cat').value;
-  const note=document.getElementById('ap-note').value.trim();
-  showLoad(true);
+  let br=document.getElementById('abr').value.trim()||'NT-'+Date.now();
+  const nm=document.getElementById('an').value.trim();
+  const sp=parseFloat(document.getElementById('asp').value)||0;
+  const cp=parseFloat(document.getElementById('acp').value)||0;
+  const stk=parseInt(document.getElementById('astk').value)||0;
+  const cat=document.getElementById('ac2').value;
+  const note=document.getElementById('anote').value.trim();
+  L(true);
   const{data:prod,error}=await sb.from('products').upsert(
-    {org_id:profile.org_id,barcode,name,price,stock,category,photo_url:adminPhoto||null},
+    {org_id:prof.org_id,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk,category:cat},
     {onConflict:'org_id,barcode'}).select().single();
-  if(!error&&prod)await sb.from('inventory_log').insert({org_id:profile.org_id,product_id:prod.id,
-    product_name_snapshot:name,added_by:profile.id,qty_added:stock,stock_before:0,stock_after:stock,note:note||'Initial stock'});
-  showLoad(false);if(error){alert('Error: '+error.message);return;}
-  adminPhoto=null;document.getElementById('admin-photo-preview').style.display='none';
-  document.getElementById('admin-photo-hint').style.display='block';e.target.reset();
-  await loadInventory(profile.org_id);alert('Product saved!');
+  if(!error&&prod)await sb.from('inventory_log').insert({org_id:prof.org_id,product_id:prod.id,
+    product_name_snapshot:nm,added_by:prof.id,qty_added:stk,stock_before:0,stock_after:stk,note:note||'Initial stock'});
+  L(false);if(error){alert('Error: '+error.message);return;}
+  e.target.reset();await loadInv(prof.org_id);alert('Product saved!');
 });
 
-document.getElementById('as-select').addEventListener('change',function(){
-  const p=inventory.find(i=>i.id===this.value);
-  document.getElementById('as-current').innerText=p?'Current stock: '+p.stock+' units':'';
-});
+// Searchable stock dropdown
+let selStkPId=null;
+function filterStockSearch(val,ctx){
+  const listId=ctx==='m'?'msdlist':'asdlist';
+  const list=document.getElementById(listId);
+  if(!val.trim()){list.classList.remove('on');return;}
+  const matches=inv.filter(i=>i.name.toLowerCase().includes(val.toLowerCase()));
+  if(!matches.length){list.classList.remove('on');return;}
+  list.innerHTML='';
+  matches.slice(0,8).forEach(p=>{
+    const d=document.createElement('div');d.className='sdi';
+    d.innerText=`${p.name} (Stock: ${p.stock})`;
+    d.onclick=()=>{
+      selStkPId=p.id;
+      const inp=document.getElementById(ctx==='m'?'msrch':'asrch');
+      inp.value=p.name;list.classList.remove('on');
+      const cur=document.getElementById(ctx==='m'?'mscur':'ascur');
+      if(cur)cur.innerText=`Current stock: ${p.stock} units`;
+    };
+    list.appendChild(d);
+  });
+  list.classList.add('on');
+}
 
-document.getElementById('m-as-select').addEventListener('change',function(){
-  const p=inventory.find(i=>i.id===this.value);
-  document.getElementById('m-as-current').innerText=p?'Current stock: '+p.stock+' units':'';
-});
-
-async function addToStock(ctx){
-  const orgId=ctx==='master'?activeOrgId:profile.org_id;
-  if(!orgId){alert('No business selected.');return;}
-  const selId=ctx==='master'?'m-as-select':'as-select';
-  const qtyId=ctx==='master'?'m-as-qty':'as-qty';
-  const noteId=ctx==='master'?'m-as-note':'as-note';
-  const productId=document.getElementById(selId).value;
-  const qty=parseInt(document.getElementById(qtyId).value)||0;
-  const note=document.getElementById(noteId).value.trim();
-  if(!productId){alert('Please select a product.');return;}
-  if(qty<=0){alert('Please enter a valid quantity.');return;}
-  const product=inventory.find(i=>i.id===productId);if(!product)return;
-  const newStock=product.stock+qty;
-  showLoad(true);
-  await sb.from('products').update({stock:newStock}).eq('id',productId);
-  await sb.from('inventory_log').insert({org_id:orgId,product_id:productId,product_name_snapshot:product.name,
-    added_by:profile.id,qty_added:qty,stock_before:product.stock,stock_after:newStock,
-    note:note||(ctx==='master'?'Added by NYANSATEK':null)});
-  showLoad(false);
-  document.getElementById(qtyId).value='';document.getElementById(noteId).value='';document.getElementById(selId).value='';
-  const curEl=document.getElementById(ctx==='master'?'m-as-current':'as-current');if(curEl)curEl.innerText='';
-  await loadInventory(orgId);alert('Added '+qty+' units. New stock: '+newStock);
+async function addStk(ctx){
+  const orgId=ctx==='m'?activeOrg:prof.org_id;
+  if(!orgId){alert('Select a business first.');return;}
+  if(!selStkPId){alert('Please search and select a product.');return;}
+  const qty=parseInt(document.getElementById(ctx==='m'?'msqty':'asqty').value)||0;
+  const note=document.getElementById(ctx==='m'?'msnote':'asnote').value.trim();
+  if(qty<=0){alert('Enter a valid quantity.');return;}
+  const prod=inv.find(i=>i.id===selStkPId);if(!prod)return;
+  const ns=prod.stock+qty;
+  L(true);
+  await sb.from('products').update({stock:ns}).eq('id',selStkPId);
+  await sb.from('inventory_log').insert({org_id:orgId,product_id:selStkPId,product_name_snapshot:prod.name,
+    added_by:prof.id,qty_added:qty,stock_before:prod.stock,stock_after:ns,
+    note:note||(ctx==='m'?'Added by NYANSATEK':null)});
+  L(false);selStkPId=null;
+  document.getElementById(ctx==='m'?'msrch':'asrch').value='';
+  document.getElementById(ctx==='m'?'msqty':'asqty').value='';
+  document.getElementById(ctx==='m'?'msnote':'asnote').value='';
+  const cur=document.getElementById(ctx==='m'?'mscur':'ascur');if(cur)cur.innerText='';
+  await loadInv(orgId);alert(`Added ${qty} units. New stock: ${ns}`);
 }
 
 async function loadLog(ctx){
-  const orgId=ctx==='master'?activeOrgId:profile.org_id;
-  const containerId=ctx==='master'?'master-log-content':'admin-log-content';
-  showLoad(true);
-  let q=sb.from('inventory_log').select('*').order('created_at',{ascending:false}).limit(150);
+  const orgId=ctx==='m'?activeOrg:prof.org_id;
+  const cid=ctx==='m'?'mlgc':'algc';
+  L(true);
+  let q=sb.from('inventory_log').select('*').order('created_at',{ascending:false}).limit(100);
   if(orgId)q=q.eq('org_id',orgId);
-  const{data,error}=await q;showLoad(false);
-  const container=document.getElementById(containerId);
-  if(error||!data||!data.length){container.innerHTML='<div class="empty-state">No history found.</div>';return;}
-  let html='<div style="overflow-x:auto;"><table><thead><tr><th>Date</th><th>Product</th><th>Added</th><th>Before</th><th>After</th><th>Note</th></tr></thead><tbody>';
-  data.forEach(row=>{
-    html+='<tr><td style="font-size:.73rem;font-family:monospace;">'+new Date(row.created_at).toLocaleString()+'</td>'
-      +'<td>'+esc(row.product_name_snapshot)+'</td><td style="color:var(--success);font-weight:600;">+'+row.qty_added+'</td>'
-      +'<td>'+(row.stock_before??'—')+'</td><td>'+(row.stock_after??'—')+'</td>'
-      +'<td style="color:var(--grey);font-size:.78rem;">'+esc(row.note||'—')+'</td></tr>';
-  });
-  html+='</tbody></table></div>';container.innerHTML=html;
+  const{data}=await q;L(false);
+  const c=document.getElementById(cid);
+  if(!data||!data.length){c.innerHTML='<div class="es">No history.</div>';return;}
+  c.innerHTML=`<div style="overflow-x:auto;"><table><thead><tr><th>Date</th><th>Product</th><th>Added</th><th>Before</th><th>After</th><th>Note</th></tr></thead>
+  <tbody>${data.map(r=>`<tr>
+    <td style="font-size:.7rem;font-family:monospace;">${new Date(r.created_at).toLocaleString()}</td>
+    <td>${E(r.product_name_snapshot)}</td>
+    <td style="color:var(--s);font-weight:600;">+${r.qty_added}</td>
+    <td>${r.stock_before??'—'}</td><td>${r.stock_after??'—'}</td>
+    <td style="color:var(--g);font-size:.73rem;">${E(r.note||'—')}</td>
+  </tr>`).join('')}</tbody></table></div>`;
 }
 
-async function genStatement(orgId,startId,endId,outId,emptyId,printBtnId){
-  const start=document.getElementById(startId)?.value;
-  const end=document.getElementById(endId)?.value;
-  if(!start||!end){alert('Please select both dates.');return;}
-  const resolvedOrg=orgId||profile.org_id;
-  showLoad(true);
-  const{data:sales,error}=await sb.from('sales').select('*, sale_items(name_snapshot,qty,price_snapshot)')
-    .eq('org_id',resolvedOrg).gte('created_at',start+'T00:00:00').lte('created_at',end+'T23:59:59').order('created_at');
-  showLoad(false);if(error){alert('Error: '+error.message);return;}
-  const outEl=document.getElementById(outId);const emptyEl=document.getElementById(emptyId);const pBtn=document.getElementById(printBtnId);
-  const bizName=orgId?(orgList.find(o=>o.id===orgId)?.business_name||'—'):(profile.display_name||'—');
-  if(!sales||!sales.length){
-    outEl.style.display='none';emptyEl.style.display='block';
-    emptyEl.innerText='No transactions found between '+start+' and '+end+'.';
-    if(pBtn)pBtn.style.display='none';return;
+// ── LEDGER TABS ──────────────────────────────────────────────────
+function swLedTab(tab){
+  ['sh','pr','cs','cp','si','sp','is'].forEach(t=>{
+    const p=document.getElementById('l-tp-'+t);if(p)p.classList.toggle('on',t===tab);
+  });
+  document.querySelectorAll('#lv .tbar .tb').forEach((b,i)=>b.classList.toggle('on',['sh','pr','cs','cp','si','sp','is'][i]===tab));
+}
+
+// Sales History
+async function genSalesHist(){
+  const s=document.getElementById('sh-s').value,e=document.getElementById('sh-e').value;
+  if(!s||!e){alert('Select both dates.');return;}
+  L(true);
+  const{data:sales}=await sb.from('sales').select('*,sale_items(name_snapshot,qty)')
+    .eq('org_id',prof.org_id).gte('created_at',s+'T00:00:00').lte('created_at',e+'T23:59:59').order('created_at');
+  L(false);
+  const out=document.getElementById('sh-out'),em=document.getElementById('sh-em'),pb=document.getElementById('sh-pb');
+  if(!sales||!sales.length){out.style.display='none';em.style.display='block';em.innerText='No sales in this period.';pb.style.display='none';return;}
+  let gr=0,cs2=0,mm=0,cd=0,rows='';
+  sales.forEach(s2=>{gr+=s2.total;if(s2.payment_method==='Cash')cs2+=s2.total;else if(s2.payment_method==='Mobile Money')mm+=s2.total;else cd+=s2.total;
+    rows+=`<tr><td style="font-family:monospace;font-size:.75rem;">${new Date(s2.created_at).toLocaleString()}</td>
+      <td style="font-weight:600;color:#3730a3;font-family:monospace;">${E(s2.invoice_id)}</td>
+      <td style="font-size:.75rem;color:var(--g);">${(s2.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
+      <td>${E(s2.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(s2.total)}</td></tr>`;
+  });
+  out.innerHTML=`<div class="sh"><h3>${E(prof.display_name||'')}</h3><p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
+  <div class="mg">
+    <div class="mc hl"><p>Total Revenue</p><h3 style="color:#b45309;">${GH(gr)}</h3></div>
+    <div class="mc"><p>Cash</p><h3>${GH(cs2)}</h3></div>
+    <div class="mc"><p>MoMo</p><h3>${GH(mm)}</h3></div>
+    <div class="mc"><p>Card</p><h3>${GH(cd)}</h3></div>
+  </div>
+  <table><thead><tr><th>Timestamp</th><th>Invoice</th><th>Items</th><th>Payment</th><th style="text-align:right;">Total</th></tr></thead>
+  <tbody>${rows}</tbody></table>`;
+  out.style.display='block';em.style.display='none';pb.style.display='inline-block';
+}
+
+// Profit Report
+async function genProfitReport(){
+  const s=document.getElementById('pr-s').value,e=document.getElementById('pr-e').value;
+  if(!s||!e){alert('Select both dates.');return;}
+  L(true);
+  const{data:sales}=await sb.from('sales').select('*,sale_items(name_snapshot,qty,price_snapshot,cost_price_snapshot)')
+    .eq('org_id',prof.org_id).gte('created_at',s+'T00:00:00').lte('created_at',e+'T23:59:59').order('created_at');
+  L(false);
+  const out=document.getElementById('pr-out'),em=document.getElementById('pr-em'),pb=document.getElementById('pr-pb');
+  if(!sales||!sales.length){out.style.display='none';em.style.display='block';em.innerText='No sales in this period.';pb.style.display='none';return;}
+  let rev=0,cogs=0,rows='';
+  sales.forEach(s2=>{
+    rev+=s2.total;
+    let saleCost=0;
+    (s2.sale_items||[]).forEach(i=>{saleCost+=(i.cost_price_snapshot||0)*i.qty;});
+    cogs+=saleCost;
+    const gp=s2.total-saleCost;
+    rows+=`<tr><td style="font-family:monospace;font-size:.75rem;">${new Date(s2.created_at).toLocaleString()}</td>
+      <td style="font-family:monospace;font-weight:600;color:#3730a3;">${E(s2.invoice_id)}</td>
+      <td style="text-align:right;">${GH(saleCost)}</td>
+      <td style="text-align:right;font-weight:600;">${GH(s2.total)}</td>
+      <td style="text-align:right;font-weight:600;color:${gp>=0?'var(--s)':'var(--d)'};">${GH(gp)}</td></tr>`;
+  });
+  const gProfit=rev-cogs;
+  out.innerHTML=`<div class="sh"><h3>${E(prof.display_name||'')}</h3><p style="font-size:.8rem;color:#4b5563;">Profit Report: <strong>${s} to ${e}</strong></p></div>
+  <div class="mg">
+    <div class="mc"><p>Total Revenue</p><h3>${GH(rev)}</h3></div>
+    <div class="mc"><p>Cost of Goods Sold</p><h3>${GH(cogs)}</h3></div>
+    <div class="mc hl"><p>Gross Profit</p><h3 style="color:${gProfit>=0?'var(--s)':'var(--d)'};">${GH(gProfit)}</h3></div>
+    <div class="mc"><p>Profit Margin</p><h3>${rev>0?((gProfit/rev)*100).toFixed(1)+'%':'0%'}</h3></div>
+  </div>
+  <table><thead><tr><th>Timestamp</th><th>Invoice</th><th style="text-align:right;">COGS</th>
+    <th style="text-align:right;">Revenue</th><th style="text-align:right;">Gross Profit</th></tr></thead>
+  <tbody>${rows}</tbody></table>`;
+  out.style.display='block';em.style.display='none';pb.style.display='inline-block';
+}
+
+// ── CREDIT SALES ─────────────────────────────────────────────────
+let cCart=[];
+function filterCredProd(val){
+  const list=document.getElementById('cs-pdlist');
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=inv.filter(i=>i.name.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const d=document.createElement('div');d.className='sdi';d.innerText=`${p.name} — ${GH(p.price)} (Stock:${p.stock})`;
+    d.onclick=()=>{addToCCart(p.id);document.getElementById('cs-psch').value='';list.classList.remove('on');};
+    list.appendChild(d);
+  });
+  list.classList.toggle('on',ms.length>0);
+}
+
+function addToCCart(id){
+  const p=inv.find(i=>i.id===id);if(!p)return;
+  const ci=cCart.find(i=>i.id===id);
+  if((ci?ci.qty+1:1)>p.stock){alert('Only '+p.stock+' available.');return;}
+  if(ci)ci.qty++;else cCart.push({...p,qty:1});renderCCart();
+}
+function adjCC(id,d){
+  const it=cCart.find(i=>i.id===id),p=inv.find(i=>i.id===id);if(!it||!p)return;
+  if(d>0&&(it.qty+d)>p.stock){alert('Max '+p.stock);return;}
+  it.qty+=d;if(it.qty<=0)cCart=cCart.filter(i=>i.id!==id);renderCCart();
+}
+
+function renderCCart(){
+  const c=document.getElementById('cscart');
+  const tot=cCart.reduce((s,i)=>s+i.price*i.qty,0);
+  document.getElementById('cstot').innerText=GH(tot);
+  if(!cCart.length){c.innerHTML='<div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div>';return;}
+  c.innerHTML='';
+  cCart.forEach(it=>{
+    const d=document.createElement('div');d.className='mci';
+    d.innerHTML=`<span style="flex:1;">${E(it.name)}</span>
+      <button class="qb" onclick="adjCC('${it.id}',-1)">−</button>
+      <span style="min-width:18px;text-align:center;font-size:.78rem;font-weight:600;">${it.qty}</span>
+      <button class="qb" onclick="adjCC('${it.id}',1)">+</button>
+      <span style="min-width:56px;text-align:right;font-size:.78rem;">${GH(it.price*it.qty)}</span>`;
+    c.appendChild(d);
+  });
+}
+
+async function issueCredit(){
+  const cn=document.getElementById('cs-cn').value.trim();
+  const cp2=document.getElementById('cs-cp').value.trim();
+  const due=document.getElementById('cs-due').value;
+  const note=document.getElementById('cs-note').value.trim();
+  if(!cn||!due){alert('Customer name and due date are required.');return;}
+  if(!cCart.length){alert('Add at least one item.');return;}
+  const tot=cCart.reduce((s,i)=>s+i.price*i.qty,0);
+  L(true);
+  const invId='CRD-'+Math.floor(10000+Math.random()*90000);
+  const{data:cs,error}=await sb.from('credit_sales').insert({
+    org_id:prof.org_id,invoice_id:invId,customer_name:cn,customer_phone:cp2||null,
+    due_date:due,total:tot,status:'unpaid',notes:note||null,created_by:prof.id
+  }).select().single();
+  if(error){L(false);alert('Error: '+error.message);return;}
+  await sb.from('credit_sale_items').insert(cCart.map(it=>({
+    credit_sale_id:cs.id,product_id:it.id,name_snapshot:it.name,
+    cost_price_snapshot:it.cost_price||0,selling_price_snapshot:it.price,
+    qty:it.qty,line_total:it.price*it.qty
+  })));
+  for(const it of cCart)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
+  const snap=JSON.parse(JSON.stringify(cCart));
+  cCart=[];renderCCart();
+  document.getElementById('cs-cn').value='';document.getElementById('cs-cp').value='';
+  document.getElementById('cs-due').value='';document.getElementById('cs-note').value='';
+  await loadInv(prof.org_id);L(false);
+  const rh=buildRcpt(invId,'Credit',tot,0,snap,'CREDIT INVOICE',cn,cp2,due);
+  printIF(rh);loadCreditList();
+}
+
+async function loadCreditList(){
+  L(true);
+  const{data}=await sb.from('credit_sales').select('*').eq('org_id',prof.org_id)
+    .order('created_at',{ascending:false}).limit(30);
+  L(false);credInvList=data||[];
+  const c=document.getElementById('cslist');
+  if(!data||!data.length){c.innerHTML='<div class="es">No credit sales yet.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Invoice</th><th>Customer</th><th>Total</th><th>Paid</th><th>Due</th><th>Status</th></tr></thead>
+  <tbody>${data.map(r=>`<tr>
+    <td style="font-family:monospace;font-size:.75rem;">${E(r.invoice_id)}</td>
+    <td>${E(r.customer_name)}</td>
+    <td>${GH(r.total)}</td>
+    <td style="color:var(--s);">${GH(r.amount_paid)}</td>
+    <td style="font-size:.75rem;">${r.due_date||'—'}</td>
+    <td><span class="badge ${r.status==='paid'?'bg':r.status==='partial'?'by':'br'}">${r.status}</span></td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+// ── CREDIT PAYMENTS ──────────────────────────────────────────────
+let selCPId=null,selCPSale=null;
+function filterCreditInv(val){
+  const list=document.getElementById('cp-dlist');
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=(credInvList||[]).filter(i=>i.customer_name.toLowerCase().includes(val.toLowerCase())||i.invoice_id.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const bal=p.total-p.amount_paid;
+    const d=document.createElement('div');d.className='sdi';
+    d.innerText=`${p.invoice_id} — ${p.customer_name} | Bal: ${GH(bal)}`;
+    d.onclick=()=>{
+      selCPId=p.id;selCPSale=p;
+      document.getElementById('cp-sch').value=p.customer_name+' ('+p.invoice_id+')';
+      document.getElementById('cp-sel').innerText=`Balance: ${GH(p.total-p.amount_paid)}`;
+      list.classList.remove('on');
+    };
+    list.appendChild(d);
+  });
+  list.classList.toggle('on',ms.length>0);
+}
+
+async function recvCreditPay(){
+  if(!selCPId){alert('Search and select a credit invoice first.');return;}
+  const amt=parseFloat(document.getElementById('cp-amt').value)||0;
+  const pm=document.getElementById('cp-pm').value;
+  const note=document.getElementById('cp-note').value.trim();
+  if(amt<=0){alert('Enter a valid amount.');return;}
+  const bal=selCPSale.total-selCPSale.amount_paid;
+  if(amt>bal+0.01){alert(`Amount exceeds balance of ${GH(bal)}`);return;}
+  L(true);
+  await sb.from('credit_payments').insert({org_id:prof.org_id,credit_sale_id:selCPId,amount:amt,payment_method:pm,notes:note||null,received_by:prof.id});
+  const newPaid=selCPSale.amount_paid+amt;
+  const newSt=newPaid>=selCPSale.total-0.01?'paid':newPaid>0?'partial':'unpaid';
+  await sb.from('credit_sales').update({amount_paid:newPaid,status:newSt}).eq('id',selCPId);
+  L(false);selCPId=null;selCPSale=null;
+  document.getElementById('cp-sch').value='';document.getElementById('cp-sel').innerText='';
+  document.getElementById('cp-amt').value='';document.getElementById('cp-note').value='';
+  await loadCreditList();await loadCPHistory();alert('Payment recorded!');
+}
+
+async function loadCPHistory(){
+  L(true);
+  const{data}=await sb.from('credit_payments').select('*,credit_sales(invoice_id,customer_name)')
+    .eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
+  L(false);
+  const c=document.getElementById('cplist');
+  if(!data||!data.length){c.innerHTML='<div class="es">No payments recorded yet.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Date</th><th>Customer</th><th>Invoice</th><th>Amount</th><th>Method</th></tr></thead>
+  <tbody>${data.map(r=>`<tr>
+    <td style="font-size:.75rem;">${new Date(r.created_at).toLocaleString()}</td>
+    <td>${E(r.credit_sales?.customer_name||'—')}</td>
+    <td style="font-family:monospace;font-size:.75rem;">${E(r.credit_sales?.invoice_id||'—')}</td>
+    <td style="font-weight:600;color:var(--s);">${GH(r.amount)}</td>
+    <td>${E(r.payment_method)}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+// ── SUPPLIER INVOICES ────────────────────────────────────────────
+let sCart2=[];
+function filterSuppProd(val){
+  const list=document.getElementById('si-pdlist');
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=inv.filter(i=>i.name.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const d=document.createElement('div');d.className='sdi';d.innerText=`${p.name} (Cost: ${GH(p.cost_price||0)})`;
+    d.onclick=()=>{
+      document.getElementById('si-psch').value=p.name;
+      document.getElementById('si-uc').value=(p.cost_price||0).toFixed(2);
+      document.getElementById('si-psch').dataset.pid=p.id;
+      list.classList.remove('on');
+    };
+    list.appendChild(d);
+  });
+  list.classList.toggle('on',ms.length>0);
+}
+
+function addSuppItem(){
+  const nm=document.getElementById('si-psch').value.trim();
+  const qty=parseInt(document.getElementById('si-qty').value)||0;
+  const uc=parseFloat(document.getElementById('si-uc').value)||0;
+  const pid=document.getElementById('si-psch').dataset.pid||null;
+  const us=document.getElementById('si-us').checked;
+  if(!nm||qty<=0||uc<=0){alert('Fill in item name, quantity and unit cost.');return;}
+  sCart2.push({pid,name:nm,qty,uc,total:qty*uc,update_stock:us});
+  document.getElementById('si-psch').value='';document.getElementById('si-psch').dataset.pid='';
+  document.getElementById('si-qty').value='';document.getElementById('si-uc').value='';
+  renderSCart();
+}
+
+function renderSCart(){
+  const c=document.getElementById('sicart');
+  const tot=sCart2.reduce((s,i)=>s+i.total,0);
+  document.getElementById('sitot').innerText=GH(tot);
+  if(!sCart2.length){c.innerHTML='<div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div>';return;}
+  c.innerHTML='';
+  sCart2.forEach((it,idx)=>{
+    const d=document.createElement('div');d.className='mci';
+    d.innerHTML=`<span style="flex:1;">${E(it.name)} x${it.qty} @ ${GH(it.uc)}</span>
+      <span style="font-size:.76rem;color:var(--g);">${it.update_stock?'(+stock)':''}</span>
+      <span style="min-width:60px;text-align:right;font-size:.78rem;">${GH(it.total)}</span>
+      <button class="rm" onclick="sCart2.splice(${idx},1);renderSCart()">×</button>`;
+    c.appendChild(d);
+  });
+}
+
+async function recordSuppInv(){
+  const sn=document.getElementById('si-sn').value.trim();
+  const ref=document.getElementById('si-ref').value.trim();
+  const dt=document.getElementById('si-dt').value;
+  const due=document.getElementById('si-due').value;
+  const note=document.getElementById('si-note').value.trim();
+  if(!sn||!dt){alert('Supplier name and date are required.');return;}
+  if(!sCart2.length){alert('Add at least one item.');return;}
+  const tot=sCart2.reduce((s,i)=>s+i.total,0);
+  L(true);
+  const{data:si,error}=await sb.from('supplier_invoices').insert({
+    org_id:prof.org_id,invoice_ref:ref||null,supplier_name:sn,total:tot,
+    received_date:dt,due_date:due||null,notes:note||null,created_by:prof.id
+  }).select().single();
+  if(error){L(false);alert('Error: '+error.message);return;}
+  await sb.from('supplier_invoice_items').insert(sCart2.map(it=>({
+    supplier_invoice_id:si.id,product_id:it.pid||null,name_snapshot:it.name,
+    qty:it.qty,unit_cost:it.uc,line_total:it.total,update_stock:it.update_stock
+  })));
+  for(const it of sCart2){
+    if(it.update_stock&&it.pid){
+      const prod=inv.find(i=>i.id===it.pid);
+      if(prod)await sb.from('products').update({stock:prod.stock+it.qty}).eq('id',it.pid);
+    }
   }
-  let gross=0,cash=0,momo=0,card=0,rows='';
-  sales.forEach(s=>{
-    gross+=s.total;
-    if(s.payment_method==='Cash')cash+=s.total;
-    else if(s.payment_method==='Mobile Money')momo+=s.total;
-    else if(s.payment_method==='Card')card+=s.total;
-    const items=(s.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ');
-    rows+='<tr><td style="font-family:monospace;font-size:.78rem;">'+new Date(s.created_at).toLocaleString()+'</td>'
-      +'<td style="font-weight:600;color:#3730a3;font-family:monospace;">'+esc(s.invoice_id)+'</td>'
-      +'<td style="font-size:.78rem;color:var(--grey);">'+esc(items)+'</td>'
-      +'<td>'+esc(s.payment_method)+'</td><td style="text-align:right;font-weight:600;">GH&#8373; '+s.total.toFixed(2)+'</td></tr>';
+  suppInvList=[];sCart2=[];renderSCart();
+  document.getElementById('si-sn').value='';document.getElementById('si-ref').value='';
+  document.getElementById('si-dt').value='';document.getElementById('si-due').value='';
+  document.getElementById('si-note').value='';
+  await loadInv(prof.org_id);L(false);loadSuppInvList();alert('Supplier invoice recorded!');
+}
+
+async function loadSuppInvList(){
+  L(true);
+  const{data}=await sb.from('supplier_invoices').select('*').eq('org_id',prof.org_id)
+    .order('received_date',{ascending:false}).limit(30);
+  L(false);suppInvList=data||[];
+  const c=document.getElementById('silist');
+  if(!data||!data.length){c.innerHTML='<div class="es">No supplier invoices yet.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Supplier</th><th>Ref</th><th>Date</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
+  <tbody>${data.map(r=>`<tr>
+    <td>${E(r.supplier_name)}</td>
+    <td style="font-size:.75rem;">${E(r.invoice_ref||'—')}</td>
+    <td style="font-size:.75rem;">${r.received_date}</td>
+    <td>${GH(r.total)}</td>
+    <td style="color:var(--s);">${GH(r.amount_paid)}</td>
+    <td><span class="badge ${r.status==='paid'?'bg':r.status==='partial'?'by':'br'}">${r.status}</span></td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+// ── SUPPLIER PAYMENTS ────────────────────────────────────────────
+let selSIId=null,selSIData=null;
+function filterSuppInv(val){
+  const list=document.getElementById('sp-dlist');
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=(suppInvList||[]).filter(i=>i.supplier_name.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const bal=p.total-p.amount_paid;
+    const d=document.createElement('div');d.className='sdi';
+    d.innerText=`${p.supplier_name}${p.invoice_ref?' ('+p.invoice_ref+')':''} | Bal: ${GH(bal)}`;
+    d.onclick=()=>{
+      selSIId=p.id;selSIData=p;
+      document.getElementById('sp-sch').value=p.supplier_name;
+      document.getElementById('sp-sel').innerText=`Balance: ${GH(p.total-p.amount_paid)}`;
+      list.classList.remove('on');
+    };
+    list.appendChild(d);
   });
-  outEl.innerHTML='<div class="stmt-head"><h3>'+esc(bizName)+'</h3><p style="font-size:.83rem;color:#4b5563;margin-top:3px;">Period: <strong>'+start+' to '+end+'</strong></p></div>'
-    +'<div class="metrics-grid"><div class="metric-card hl"><p>Total Revenue</p><h3 style="color:#b45309;">GH&#8373; '+gross.toFixed(2)+'</h3></div>'
-    +'<div class="metric-card"><p>Cash</p><h3>GH&#8373; '+cash.toFixed(2)+'</h3></div>'
-    +'<div class="metric-card"><p>MoMo</p><h3>GH&#8373; '+momo.toFixed(2)+'</h3></div>'
-    +'<div class="metric-card"><p>Card</p><h3>GH&#8373; '+card.toFixed(2)+'</h3></div></div>'
-    +'<h3 style="font-size:.88rem;margin-bottom:10px;">Itemized Breakdown</h3>'
-    +'<table><thead><tr><th>Timestamp</th><th>Invoice</th><th>Items</th><th>Payment</th><th style="text-align:right;">Total</th></tr></thead><tbody>'+rows+'</tbody></table>';
-  outEl.style.display='block';emptyEl.style.display='none';if(pBtn)pBtn.style.display='inline-block';
+  list.classList.toggle('on',ms.length>0);
 }
 
-function printStatement(viewId){
-  const el=document.getElementById(viewId);el.classList.add('print-target');
-  document.body.classList.remove('printing-receipt');document.body.classList.add('printing-statement');
-  window.print();document.body.classList.remove('printing-statement');el.classList.remove('print-target');
+async function makeSuppPay(){
+  if(!selSIId){alert('Search and select a supplier invoice first.');return;}
+  const amt=parseFloat(document.getElementById('sp-amt').value)||0;
+  const pm=document.getElementById('sp-pm').value;
+  const note=document.getElementById('sp-note').value.trim();
+  if(amt<=0){alert('Enter a valid amount.');return;}
+  L(true);
+  await sb.from('supplier_payments').insert({org_id:prof.org_id,supplier_invoice_id:selSIId,
+    supplier_name:selSIData.supplier_name,amount:amt,payment_method:pm,notes:note||null,paid_by:prof.id});
+  const newPaid=selSIData.amount_paid+amt;
+  const newSt=newPaid>=selSIData.total-0.01?'paid':newPaid>0?'partial':'unpaid';
+  await sb.from('supplier_invoices').update({amount_paid:newPaid,status:newSt}).eq('id',selSIId);
+  L(false);selSIId=null;selSIData=null;
+  document.getElementById('sp-sch').value='';document.getElementById('sp-sel').innerText='';
+  document.getElementById('sp-amt').value='';document.getElementById('sp-note').value='';
+  loadSuppInvList();loadSPHistory();alert('Payment recorded!');
 }
 
+async function loadSPHistory(){
+  L(true);
+  const{data}=await sb.from('supplier_payments').select('*').eq('org_id',prof.org_id)
+    .order('created_at',{ascending:false}).limit(30);
+  L(false);
+  const c=document.getElementById('splist');
+  if(!data||!data.length){c.innerHTML='<div class="es">No supplier payments yet.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Date</th><th>Supplier</th><th>Amount</th><th>Method</th><th>Notes</th></tr></thead>
+  <tbody>${data.map(r=>`<tr>
+    <td style="font-size:.75rem;">${new Date(r.created_at).toLocaleString()}</td>
+    <td>${E(r.supplier_name)}</td>
+    <td style="font-weight:600;color:var(--d);">${GH(r.amount)}</td>
+    <td>${E(r.payment_method)}</td>
+    <td style="color:var(--g);font-size:.75rem;">${E(r.notes||'—')}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+// ── EXPENSES & INCOME STATEMENT ──────────────────────────────────
+async function addExp(){
+  const desc=document.getElementById('ex-desc').value.trim();
+  const amt=parseFloat(document.getElementById('ex-amt').value)||0;
+  const dt=document.getElementById('ex-dt').value;
+  if(!desc||amt<=0||!dt){alert('Fill in description, amount and date.');return;}
+  L(true);
+  await sb.from('expenses').insert({org_id:prof.org_id,description:desc,amount:amt,expense_date:dt,recorded_by:prof.id});
+  L(false);document.getElementById('ex-desc').value='';document.getElementById('ex-amt').value='';
+  alert('Expense recorded!');
+}
+
+async function genIncomeSt(){
+  const s=document.getElementById('is-s').value,e=document.getElementById('is-e').value;
+  if(!s||!e){alert('Select both dates.');return;}
+  L(true);
+  const[{data:sales},{data:exps}]=await Promise.all([
+    sb.from('sales').select('total,sale_items(cost_price_snapshot,qty)').eq('org_id',prof.org_id)
+      .gte('created_at',s+'T00:00:00').lte('created_at',e+'T23:59:59'),
+    sb.from('expenses').select('*').eq('org_id',prof.org_id).gte('expense_date',s).lte('expense_date',e).order('expense_date')
+  ]);
+  L(false);
+  let rev=0,cogs=0;
+  (sales||[]).forEach(sl=>{rev+=sl.total;(sl.sale_items||[]).forEach(i=>{cogs+=(i.cost_price_snapshot||0)*i.qty;});});
+  const gp=rev-cogs;
+  const totalExp=(exps||[]).reduce((s,x)=>s+x.amount,0);
+  const netInc=gp-totalExp;
+  const expRows=(exps||[]).map(x=>`<tr>
+    <td>${x.expense_date}</td><td>${E(x.description)}</td>
+    <td style="text-align:right;font-weight:600;">${GH(x.amount)}</td>
+  </tr>`).join('');
+  const out=document.getElementById('is-out'),em=document.getElementById('is-em'),pb=document.getElementById('is-pb');
+  out.innerHTML=`<div class="sh"><h3>${E(prof.display_name||'')} — Income Statement</h3>
+    <p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
+  <div class="mg">
+    <div class="mc"><p>Total Revenue</p><h3>${GH(rev)}</h3></div>
+    <div class="mc"><p>Cost of Goods Sold</p><h3>${GH(cogs)}</h3></div>
+    <div class="mc hl"><p>Gross Profit</p><h3 style="color:${gp>=0?'#b45309':'var(--d)'};">${GH(gp)}</h3></div>
+    <div class="mc"><p>Total Expenses</p><h3 style="color:var(--d);">${GH(totalExp)}</h3></div>
+    <div class="mc hl" style="border-color:${netInc>=0?'var(--s)':'var(--d)'};"><p>Net Income</p>
+      <h3 style="color:${netInc>=0?'var(--s)':'var(--d)'};">${GH(netInc)}</h3></div>
+  </div>
+  ${expRows?`<h3 style="font-size:.85rem;margin:12px 0 8px;">Expense Details</h3>
+  <table><thead><tr><th>Date</th><th>Description</th><th style="text-align:right;">Amount</th></tr></thead>
+  <tbody>${expRows}</tbody></table>`:'<p class="hint" style="margin-top:8px;">No expenses recorded for this period.</p>'}`;
+  out.style.display='block';em.style.display='none';pb.style.display='inline-block';
+}
+
+function printStmt(vid){
+  const el=document.getElementById(vid);el.classList.add('pt');
+  document.body.classList.add('printing-statement');
+  window.print();
+  document.body.classList.remove('printing-statement');el.classList.remove('pt');
+}
+
+// ── HISTORY MODAL ────────────────────────────────────────────────
+async function loadHist(tab){
+  document.getElementById('htbar').querySelectorAll('.tb').forEach((b,i)=>b.classList.toggle('on',['sales','credit','inv','exp','supp'][i]===tab));
+  const c=document.getElementById('hcontent');c.innerHTML='<div class="es">Loading...</div>';
+  L(true);
+  let html='<div class="es">No entries found.</div>';
+  if(tab==='sales'){
+    const{data}=await sb.from('sales').select('invoice_id,created_at,total,payment_method').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
+    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Invoice</th><th>Method</th><th style="text-align:right;">Total</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${new Date(r.created_at).toLocaleString()}</td><td style="font-family:monospace;font-size:.73rem;">${E(r.invoice_id)}</td><td>${E(r.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(r.total)}</td></tr>`).join('')}</tbody></table>`;
+  }else if(tab==='credit'){
+    const{data}=await sb.from('credit_sales').select('*').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
+    if(data&&data.length)html=`<table><thead><tr><th>Invoice</th><th>Customer</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td style="font-family:monospace;font-size:.73rem;">${E(r.invoice_id)}</td><td>${E(r.customer_name)}</td><td>${GH(r.total)}</td><td style="color:var(--s);">${GH(r.amount_paid)}</td><td><span class="badge ${r.status==='paid'?'bg':r.status==='partial'?'by':'br'}">${r.status}</span></td></tr>`).join('')}</tbody></table>`;
+  }else if(tab==='inv'){
+    const{data}=await sb.from('inventory_log').select('*').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
+    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Product</th><th>Added</th><th>Note</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${new Date(r.created_at).toLocaleString()}</td><td>${E(r.product_name_snapshot)}</td><td style="color:var(--s);font-weight:600;">+${r.qty_added}</td><td style="color:var(--g);font-size:.73rem;">${E(r.note||'—')}</td></tr>`).join('')}</tbody></table>`;
+  }else if(tab==='exp'){
+    const{data}=await sb.from('expenses').select('*').eq('org_id',prof.org_id).order('expense_date',{ascending:false}).limit(30);
+    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Description</th><th style="text-align:right;">Amount</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${r.expense_date}</td><td>${E(r.description)}</td><td style="text-align:right;font-weight:600;color:var(--d);">${GH(r.amount)}</td></tr>`).join('')}</tbody></table>`;
+  }else if(tab==='supp'){
+    const{data}=await sb.from('supplier_invoices').select('*').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
+    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Supplier</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${r.received_date}</td><td>${E(r.supplier_name)}</td><td>${GH(r.total)}</td><td style="color:var(--s);">${GH(r.amount_paid)}</td><td><span class="badge ${r.status==='paid'?'bg':r.status==='partial'?'by':'br'}">${r.status}</span></td></tr>`).join('')}</tbody></table>`;
+  }
+  L(false);c.innerHTML=html;
+}
+
+// ── MASTER ────────────────────────────────────────────────────────
 async function initMaster(){
-  buildNavTabs('master');
-  document.getElementById('header-biz').innerText='NYANSATEK — Master Console';
-  document.getElementById('footer-biz').innerText='NYANSATEK';
-  document.getElementById('sales-badge').style.display='none';
-  switchView('master');await loadOrgs();setTodayDates('m-led-start','m-led-end');
+  buildNav('master');
+  document.getElementById('hbiz').innerText='NYANSATEK — Master Console';
+  document.getElementById('fbiz').innerText='NYANSATEK';
+  document.getElementById('sb').style.display='none';
+  swV('mv');await loadOrgs();setDef('mls','mle');
 }
 
 async function loadOrgs(){
-  showLoad(true);const{data,error}=await sb.from('organizations').select('*').order('business_name');showLoad(false);
-  if(error){alert('Could not load businesses: '+error.message);return;}
-  orgList=data||[];renderOrgTable();populateOrgSel('m-inv-org');populateOrgSel('m-led-org');
-}
-
-function renderOrgTable(){
-  const tbody=document.querySelector('#org-table tbody');if(!tbody)return;tbody.innerHTML='';
-  orgList.forEach(org=>{
+  L(true);const{data}=await sb.from('organizations').select('*').order('business_name');L(false);
+  orgList=data||[];
+  const tb=document.querySelector('#ot tbody');tb.innerHTML='';
+  orgList.forEach(o=>{
     const tr=document.createElement('tr');
-    tr.innerHTML='<td><strong>'+esc(org.business_name)+'</strong></td><td>'+esc(org.contact_email||'—')+'</td>'
-      +'<td>'+(org.is_active?'<span class="badge badge-g">Active</span>':'<span class="badge badge-r">Inactive</span>')+'</td>'
-      +'<td>'+new Date(org.created_at).toLocaleDateString()+'</td>';
-    tbody.appendChild(tr);});
+    tr.innerHTML=`<td><strong>${E(o.business_name)}</strong></td><td>${E(o.contact_email||'—')}</td>
+    <td><span class="badge ${o.is_active?'bg':'br'}">${o.is_active?'Active':'Inactive'}</span></td>
+    <td>${new Date(o.created_at).toLocaleDateString()}</td>`;
+    tb.appendChild(tr);
+  });
+  ['morg','mlo'].forEach(id=>{
+    const sel=document.getElementById(id);sel.innerHTML='<option value="">-- Select --</option>';
+    orgList.forEach(o=>{const op=document.createElement('option');op.value=o.id;op.text=o.business_name;sel.appendChild(op);});
+  });
 }
 
-function populateOrgSel(selId){
-  const sel=document.getElementById(selId);if(!sel)return;
-  sel.innerHTML='<option value="">-- Select a business --</option>';
-  orgList.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.text=o.business_name;sel.appendChild(opt);});
-}
-
-async function masterLoadInv(orgId){
-  if(!orgId)return;activeOrgId=orgId;
-  const contentEl=document.getElementById('master-inv-content');
-  contentEl.style.cssText='display:grid;grid-template-columns:330px 1fr;gap:18px;margin-top:14px;';
+async function mLoadInv(orgId){
+  if(!orgId)return;activeOrg=orgId;
+  document.getElementById('minvform').style.display='block';
   const org=orgList.find(o=>o.id===orgId);
-  document.getElementById('master-inv-table-title').innerText=(org?.business_name||'')+' — Current Inventory';
-  showLoad(true);await loadInventory(orgId);showLoad(false);
+  document.getElementById('minvtitle').innerText=(org?.business_name||'')+' — Inventory';
+  L(true);await loadInv(orgId);L(false);
 }
 
-document.getElementById('master-product-form').addEventListener('submit',async e=>{
+document.getElementById('mpf').addEventListener('submit',async e=>{
   e.preventDefault();
-  if(!activeOrgId){alert('Please select a business first.');return;}
-  let barcode=document.getElementById('mp-barcode').value.trim()||'NT-'+Date.now();
-  const name=document.getElementById('mp-name').value.trim();
-  const price=parseFloat(document.getElementById('mp-price').value);
-  const stock=parseInt(document.getElementById('mp-stock').value)||0;
-  const category=document.getElementById('mp-cat').value;
-  const note=document.getElementById('mp-note').value.trim();
-  showLoad(true);
+  if(!activeOrg){alert('Select a business first.');return;}
+  let br=document.getElementById('mbr').value.trim()||'NT-'+Date.now();
+  const nm=document.getElementById('mn').value.trim();
+  const sp=parseFloat(document.getElementById('msp2').value)||0;
+  const cp=parseFloat(document.getElementById('mcp2').value)||0;
+  const stk=parseInt(document.getElementById('mstk').value)||0;
+  const cat=document.getElementById('mc3').value;
+  const note=document.getElementById('mnote').value.trim();
+  L(true);
   const{data:prod,error}=await sb.from('products').upsert(
-    {org_id:activeOrgId,barcode,name,price,stock,category,photo_url:masterPhoto||null},
+    {org_id:activeOrg,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk,category:cat},
     {onConflict:'org_id,barcode'}).select().single();
-  if(!error&&prod)await sb.from('inventory_log').insert({org_id:activeOrgId,product_id:prod.id,
-    product_name_snapshot:name,added_by:profile.id,qty_added:stock,stock_before:0,stock_after:stock,
+  if(!error&&prod)await sb.from('inventory_log').insert({org_id:activeOrg,product_id:prod.id,
+    product_name_snapshot:nm,added_by:prof.id,qty_added:stk,stock_before:0,stock_after:stk,
     note:note||'Initial stock (added by NYANSATEK)'});
-  showLoad(false);if(error){alert('Error: '+error.message);return;}
-  masterPhoto=null;document.getElementById('master-photo-preview').style.display='none';
-  document.getElementById('master-photo-hint').style.display='block';e.target.reset();
-  await loadInventory(activeOrgId);alert('Product saved!');
+  L(false);if(error){alert('Error: '+error.message);return;}
+  e.target.reset();await loadInv(activeOrg);alert('Product saved!');
 });
 
-async function masterGenStatement(){
-  const orgId=document.getElementById('m-led-org').value;
-  if(!orgId){alert('Please select a business.');return;}
-  await genStatement(orgId,'m-led-start','m-led-end','m-led-out','m-led-empty','m-led-print-btn');
+async function mGenStmt(){
+  const orgId=document.getElementById('mlo').value;
+  const s=document.getElementById('mls').value,e=document.getElementById('mle').value;
+  if(!orgId||!s||!e){alert('Select a business and both dates.');return;}
+  L(true);
+  const{data:sales}=await sb.from('sales').select('*,sale_items(name_snapshot,qty)')
+    .eq('org_id',orgId).gte('created_at',s+'T00:00:00').lte('created_at',e+'T23:59:59').order('created_at');
+  L(false);
+  const out=document.getElementById('mlo2'),em=document.getElementById('mle2'),pb=document.getElementById('ml-pb');
+  const bizName=orgList.find(o=>o.id===orgId)?.business_name||'—';
+  if(!sales||!sales.length){out.style.display='none';em.style.display='block';em.innerText='No transactions.';pb.style.display='none';return;}
+  let gr=0,rows='';
+  sales.forEach(s2=>{gr+=s2.total;
+    rows+=`<tr><td style="font-size:.75rem;font-family:monospace;">${new Date(s2.created_at).toLocaleString()}</td>
+      <td style="font-weight:600;color:#3730a3;font-family:monospace;">${E(s2.invoice_id)}</td>
+      <td style="font-size:.75rem;color:var(--g);">${(s2.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
+      <td>${E(s2.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(s2.total)}</td></tr>`;
+  });
+  out.innerHTML=`<div class="sh"><h3>${E(bizName)}</h3><p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
+  <div class="mg"><div class="mc hl"><p>Total Revenue</p><h3 style="color:#b45309;">${GH(gr)}</h3></div></div>
+  <table><thead><tr><th>Timestamp</th><th>Invoice</th><th>Items</th><th>Payment</th><th style="text-align:right;">Total</th></tr></thead>
+  <tbody>${rows}</tbody></table>`;
+  out.style.display='block';em.style.display='none';pb.style.display='inline-block';
 }
 
-(async function boot(){
-  showLoad(true);const{data:{session:s}}=await sb.auth.getSession();showLoad(false);
-  if(s)await loadAfterAuth();else showScreen('login');
+// Close dropdowns on outside click
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.sdrop'))document.querySelectorAll('.sdlist').forEach(d=>d.classList.remove('on'));
+});
+
+// Boot
+(async function(){
+  L(true);
+  const{data:{session:s}}=await sb.auth.getSession();L(false);
+  if(s)await boot2();else scr('l');
 })();
 </script>
 </body>
