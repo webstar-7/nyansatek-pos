@@ -269,7 +269,6 @@ footer strong{color:var(--a);}
           <input type="text" id="psch" placeholder="&#128269; Search products...">
           <input type="text" id="bci" placeholder="&#128247; Scan barcode...">
         </div>
-        <div class="cats" id="catf"></div>
         <div id="pg2" class="pg"></div>
       </div>
       <div class="cp">
@@ -315,13 +314,7 @@ footer strong{color:var(--a);}
           <div class="tp on" id="a-tp-cr">
             <form id="apf">
               <div class="fg"><label>Product Name</label><input type="text" id="an" required></div>
-              <div class="fg"><label>Category</label>
-                <select id="ac2">
-                  <option>General</option><option>Produce</option><option>Dairy</option>
-                  <option>Bakery</option><option>Meat</option><option>Beverages</option>
-                  <option>Snacks</option><option>Household</option><option>Personal Care</option>
-                  <option>Hardware</option><option>Electronics</option><option>Clothing</option>
-                </select></div>
+
               <div class="fg"><label>Barcode (optional)</label><input type="text" id="abr"></div>
               <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="asp" required></div>
               <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="acp" value="0"></div>
@@ -354,7 +347,7 @@ footer strong{color:var(--a);}
           <h2>Current Inventory</h2>
           <p class="hint">Edit selling price &amp; cost price inline — press Enter to save.</p>
           <table id="ait">
-            <thead><tr><th>Product</th><th>Category</th>
+            <thead><tr><th>Product</th>
               <th style="text-align:right;">Cost (GH&#8373;)</th>
               <th style="text-align:right;">Sell (GH&#8373;)</th>
               <th style="text-align:right;">Profit</th>
@@ -576,13 +569,7 @@ footer strong{color:var(--a);}
             <div class="tp on" id="m-tp-cr">
               <form id="mpf">
                 <div class="fg"><label>Product Name</label><input type="text" id="mn" required></div>
-                <div class="fg"><label>Category</label>
-                  <select id="mc3">
-                    <option>General</option><option>Produce</option><option>Dairy</option>
-                    <option>Bakery</option><option>Meat</option><option>Beverages</option>
-                    <option>Snacks</option><option>Household</option><option>Personal Care</option>
-                    <option>Hardware</option><option>Electronics</option><option>Clothing</option>
-                  </select></div>
+
                 <div class="fg"><label>Barcode (optional)</label><input type="text" id="mbr"></div>
                 <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="msp2" required></div>
                 <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="mcp2" value="0"></div>
@@ -615,7 +602,7 @@ footer strong{color:var(--a);}
         <div class="card">
           <h2 id="minvtitle">Inventory</h2>
           <table id="mit">
-            <thead><tr><th>Product</th><th>Category</th>
+            <thead><tr><th>Product</th>
               <th style="text-align:right;">Cost</th>
               <th style="text-align:right;">Sell</th>
               <th style="text-align:right;">Profit</th>
@@ -778,7 +765,6 @@ function renderInvTable(tid){
     const profit=(it.price||0)-(it.cost_price||0);
     const tr=document.createElement('tr');
     tr.innerHTML=`<td><strong>${E(it.name)}</strong><br><span style="font-size:.68rem;color:var(--g);font-family:monospace;">${E(it.barcode||'')}</span></td>
-      <td><span class="badge bpurp">${E(it.category||'General')}</span></td>
       <td style="text-align:right;"><input type="number" step="0.01" min="0" class="ip" data-id="${it.id}" data-field="cost" value="${(it.cost_price||0).toFixed(2)}"></td>
       <td style="text-align:right;"><input type="number" step="0.01" min="0" class="ip" data-id="${it.id}" data-field="sell" value="${(it.price||0).toFixed(2)}"></td>
       <td style="text-align:right;font-weight:600;color:${profit>=0?'var(--s)':'var(--d)'};">${GH(profit)}</td>
@@ -798,31 +784,20 @@ async function updatePriceField(id,field,val){
 // ── PRODUCT GRID ────────────────────────────────────────────────
 function renderPG(){
   const grid=document.getElementById('pg2');
-  const catf=document.getElementById('catf');
-  if(!grid||!catf)return;
-  const cats=['ALL',...new Set(inv.map(p=>p.category||'General'))];
-  catf.innerHTML='';
-  cats.forEach(c=>{
-    const btn=document.createElement('button');btn.className='cb'+(c===activeCat||(!activeCat&&c==='ALL')?' on':'');
-    btn.innerText=c==='ALL'?'All':c;
-    btn.onclick=()=>{activeCat=c;renderPG();};
-    catf.appendChild(btn);
-  });
+  if(!grid)return;
   const search=(document.getElementById('psch')?.value||'').toLowerCase();
-  const hasFilter=search.length>0||(activeCat&&activeCat!=='ALL');
-  if(!hasFilter){
-    grid.innerHTML='<div class="pgm">Search for a product above or tap a category to display items.</div>';
+  if(!search){
+    grid.innerHTML='<div class="pgm">Type a product name above to search.</div>';
     return;
   }
-  let shown=activeCat&&activeCat!=='ALL'?inv.filter(p=>(p.category||'General')===activeCat):inv;
-  if(search)shown=shown.filter(p=>p.name.toLowerCase().includes(search));
+  const shown=inv.filter(p=>p.name.toLowerCase().includes(search));
   if(!shown.length){grid.innerHTML='<div class="pgm">No products found.</div>';return;}
   grid.innerHTML='';
   shown.forEach(it=>{
     const card=document.createElement('div');card.className='pc'+(it.stock<=0?' oos':'');
-    card.innerHTML=`<div style="font-size:28px;margin-bottom:3px;">${CE[it.category]||'📦'}</div>
-      <div class="pn">${E(it.name)}</div><div class="pr">${GH(it.price)}</div>
-      <div class="pcat">${E(it.category||'General')}</div>`;
+    card.innerHTML=`<div class="pn" style="white-space:normal;font-size:12px;margin-bottom:3px;">${E(it.name)}</div>
+      <div class="pr">${GH(it.price)}</div>
+      <div style="font-size:9.5px;color:var(--g);margin-top:2px;">${it.stock<=0?'Out of stock':it.stock+' in stock'}</div>`;
     if(it.stock>0)card.onclick=()=>addToCart(it.id);else card.title='Out of stock';
     grid.appendChild(card);
   });
@@ -1105,11 +1080,10 @@ document.getElementById('apf').addEventListener('submit',async e=>{
   const sp=parseFloat(document.getElementById('asp').value)||0;
   const cp=parseFloat(document.getElementById('acp').value)||0;
   const stk=parseInt(document.getElementById('astk').value)||0;
-  const cat=document.getElementById('ac2').value;
   const note=document.getElementById('anote').value.trim();
   L(true);
   const{data:prod,error}=await sb.from('products').upsert(
-    {org_id:prof.org_id,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk,category:cat},
+    {org_id:prof.org_id,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk},
     {onConflict:'org_id,barcode'}).select().single();
   if(!error&&prod)await sb.from('inventory_log').insert({org_id:prof.org_id,product_id:prod.id,
     product_name_snapshot:nm,added_by:prof.id,qty_added:stk,stock_before:0,stock_after:stk,note:note||'Initial stock'});
@@ -1688,11 +1662,10 @@ document.getElementById('mpf').addEventListener('submit',async e=>{
   const sp=parseFloat(document.getElementById('msp2').value)||0;
   const cp=parseFloat(document.getElementById('mcp2').value)||0;
   const stk=parseInt(document.getElementById('mstk').value)||0;
-  const cat=document.getElementById('mc3').value;
   const note=document.getElementById('mnote').value.trim();
   L(true);
   const{data:prod,error}=await sb.from('products').upsert(
-    {org_id:activeOrg,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk,category:cat},
+    {org_id:activeOrg,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk},
     {onConflict:'org_id,barcode'}).select().single();
   if(!error&&prod)await sb.from('inventory_log').insert({org_id:activeOrg,product_id:prod.id,
     product_name_snapshot:nm,added_by:prof.id,qty_added:stk,stock_before:0,stock_after:stk,
