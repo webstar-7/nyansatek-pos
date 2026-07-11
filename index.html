@@ -218,7 +218,7 @@ footer strong{color:var(--a);}
       <div class="fg"><label>Notes</label><input type="text" id="ci-note"></div>
     </div>
     <div style="display:flex;gap:7px;margin-top:5px;">
-      <button onclick="issueCreditInvoice()" class="btn ba" style="flex:1;">Issue Invoice &amp; Print</button>
+      <button onclick="issueCreditFromCart()" class="btn ba" style="flex:1;">Issue Invoice &amp; Print</button>
       <button onclick="closeCreditModal()" class="btn" style="flex:1;">Cancel</button>
     </div>
   </div>
@@ -309,6 +309,7 @@ footer strong{color:var(--a);}
           <div class="tbar" id="atbar">
             <button class="tb on" onclick="swInvTab('cr','a')">+ Create</button>
             <button class="tb" onclick="swInvTab('as','a')">+ Add Stock</button>
+            <button class="tb" onclick="swInvTab('ed','a')">&#9998; Edit</button>
             <button class="tb" onclick="swInvTab('lg','a')">&#128203; History</button>
           </div>
           <div class="tp on" id="a-tp-cr">
@@ -339,6 +340,23 @@ footer strong{color:var(--a);}
           <div class="tp" id="a-tp-lg">
             <div id="algc"><div class="es">Click Load to see history.</div></div>
             <button class="btn bsm" style="margin-top:8px;" onclick="loadLog('a')">Load Log</button>
+          </div>
+          <div class="tp" id="a-tp-ed">
+            <div class="fg"><label>Search Product to Edit</label>
+              <div class="sdrop">
+                <input type="text" id="ed-srch" placeholder="Type product name..."
+                       autocomplete="off" oninput="filterEditSearch(this.value,'a')">
+                <div class="sdlist" id="ed-sdlist"></div>
+              </div>
+            </div>
+            <div id="ed-form" style="display:none;">
+              <div class="fg"><label>Product Name</label><input type="text" id="ed-name"></div>
+              <div class="fg"><label>Barcode</label><input type="text" id="ed-barcode"></div>
+              <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="ed-sell"></div>
+              <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="ed-cost"></div>
+              <div class="fg"><label>Quantity</label><input type="number" id="ed-qty" min="0"></div>
+              <button class="btn bf ba" onclick="saveProductEdit('a')">Save Changes</button>
+            </div>
           </div>
         </div>
       </div>
@@ -564,6 +582,7 @@ footer strong{color:var(--a);}
             <div class="tbar" id="mtbar">
               <button class="tb on" onclick="swInvTab('cr','m')">+ Create</button>
               <button class="tb" onclick="swInvTab('as','m')">+ Add Stock</button>
+              <button class="tb" onclick="swInvTab('ed','m')">&#9998; Edit</button>
               <button class="tb" onclick="swInvTab('lg','m')">&#128203; History</button>
             </div>
             <div class="tp on" id="m-tp-cr">
@@ -594,6 +613,23 @@ footer strong{color:var(--a);}
             <div class="tp" id="m-tp-lg">
               <div id="mlgc"><div class="es">Click Load.</div></div>
               <button class="btn bsm" style="margin-top:8px;" onclick="loadLog('m')">Load Log</button>
+            </div>
+            <div class="tp" id="m-tp-ed">
+              <div class="fg"><label>Search Product to Edit</label>
+                <div class="sdrop">
+                  <input type="text" id="med-srch" placeholder="Type product name..."
+                         autocomplete="off" oninput="filterEditSearch(this.value,'m')">
+                  <div class="sdlist" id="med-sdlist"></div>
+                </div>
+              </div>
+              <div id="med-form" style="display:none;">
+                <div class="fg"><label>Product Name</label><input type="text" id="med-name"></div>
+                <div class="fg"><label>Barcode</label><input type="text" id="med-barcode"></div>
+                <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="med-sell"></div>
+                <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="med-cost"></div>
+                <div class="fg"><label>Quantity</label><input type="number" id="med-qty" min="0"></div>
+                <button class="btn bf ba" onclick="saveProductEdit('m')">Save Changes</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1001,33 +1037,63 @@ td{padding:7px 9px;border-bottom:1px solid #ddd;font-size:9pt;}
 </body></html>`;
   }
 
-  // Thermal receipt (80mm width) for regular sales
+  // Thermal receipt (80mm) — styled with table layout
+  const cashRows=method==='Cash'?`
+    <tr><td colspan="3" style="text-align:right;font-size:10px;padding:2px 3px;">Amount Paid</td>
+        <td style="text-align:right;font-size:10px;padding:2px 3px;">${GH(ten)}</td></tr>
+    <tr><td colspan="3" style="text-align:right;font-size:10px;padding:2px 3px;">Change</td>
+        <td style="text-align:right;font-size:10px;padding:2px 3px;">${GH(ten-tot)}</td></tr>`:'';
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
-@page{size:80mm auto;margin:2mm;}
+@page{size:80mm auto;margin:2mm 2mm;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Courier New',Courier,monospace;font-size:12px;width:80mm;max-width:80mm;color:#000;background:#fff;padding:6px;}
-.ct{text-align:center;margin-bottom:6px;}
-.ct h2{font-size:14px;margin-bottom:1px;}
-.ct .tp{font-size:10px;font-weight:bold;letter-spacing:1px;}
-.ct .dt{font-size:9px;color:#444;}
-.ln{border-top:1px dashed #000;margin:5px 0;}
-.rr{display:flex;justify-content:space-between;margin-bottom:2px;font-size:11px;}
-.bold{font-weight:bold;}
-.ft{text-align:center;margin-top:8px;font-size:9px;color:#555;}
+body{font-family:'Courier New',Courier,monospace;font-size:11px;width:76mm;color:#000;background:#fff;}
+.hdr{text-align:center;border-bottom:2px solid #000;padding:5px 0 6px;}
+.hdr h2{font-size:14px;font-weight:bold;letter-spacing:1px;margin-bottom:1px;}
+.hdr .tp{font-size:9px;font-weight:bold;letter-spacing:3px;margin-bottom:2px;}
+.hdr .dt{font-size:9px;color:#333;}
+.meta{padding:4px 0;border-bottom:1px dashed #000;margin-bottom:3px;}
+.meta .mr{display:flex;justify-content:space-between;font-size:10px;padding:1px 0;}
+tbl{width:100%;border-collapse:collapse;}
+table{width:100%;border-collapse:collapse;}
+th{border-top:1px solid #000;border-bottom:1px solid #000;font-size:9px;padding:3px 3px;text-align:left;font-weight:bold;}
+th:nth-child(2),th:nth-child(3),th:nth-child(4){text-align:right;}
+td{font-size:10px;padding:3px 3px;border-bottom:1px dotted #bbb;vertical-align:top;}
+td:nth-child(2),td:nth-child(3),td:nth-child(4){text-align:right;white-space:nowrap;}
+.subtot td{border-top:1px solid #000;border-bottom:none;font-size:10px;padding:3px 3px;}
+.grandtot td{border-top:2px solid #000;border-bottom:2px solid #000;font-size:12px;font-weight:bold;padding:4px 3px;}
+.ft{text-align:center;border-top:1px solid #000;margin-top:5px;padding-top:5px;font-size:9px;color:#444;}
 </style></head><body>
-<div class="ct"><h2>${biz}</h2><div class="tp">${type}</div><div class="dt">${new Date().toLocaleString()}</div><div class="dt">Invoice: ${E(invId)}</div></div>
-<div class="ln"></div>
-<div class="rr bold"><span>Payment:</span><span>${E(method)}</span></div>
-<div class="ln"></div>
-${items.map(i=>`<div class="rr"><span>${E(i.name)} x${i.qty}</span><span>${GH(i.price*i.qty)}</span></div>`).join('')}
-<div class="ln"></div>
-<div class="rr bold"><span>TOTAL:</span><span>${GH(tot)}</span></div>
-${cashLines}
-<div class="ln"></div>
-<div class="ft">Thank you for your business!<br>Powered by <strong>NYANSATEK</strong></div>
+<div class="hdr">
+  <h2>${biz}</h2>
+  <div class="tp">${type}</div>
+  <div class="dt">${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</div>
+  <div class="dt" style="margin-top:1px;">Invoice: <b>${E(invId)}</b></div>
+</div>
+<div class="meta">
+  <div class="mr"><span>Payment Method:</span><span><b>${E(method)}</b></span></div>
+</div>
+<table>
+  <thead>
+    <tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+  </thead>
+  <tbody>
+    ${items.map(i=>`<tr>
+      <td>&#8226; ${E(i.name)}</td>
+      <td>${i.qty}</td>
+      <td>${GH(i.price)}</td>
+      <td>${GH(i.price*i.qty)}</td>
+    </tr>`).join('')}
+    ${cashRows}
+    <tr class="grandtot">
+      <td colspan="3">TOTAL DUE</td>
+      <td>${GH(tot)}</td>
+    </tr>
+  </tbody>
+</table>
+<div class="ft">&#9733; Thank you for your business! &#9733;<br>Powered by <b>NYANSATEK</b></div>
 </body></html>`;
-}
+}}
 
 function printIF(html){
   const old=document.getElementById('rif');if(old)old.remove();
@@ -1066,11 +1132,11 @@ function reprintSale(s){
 // ── ADMIN INVENTORY ──────────────────────────────────────────────
 function swInvTab(tab,ctx){
   const pref=ctx==='m'?'m-tp-':'a-tp-';
-  ['cr','as','lg'].forEach(t=>{
+  ['cr','as','ed','lg'].forEach(t=>{
     const p=document.getElementById(pref+t);if(p)p.classList.toggle('on',t===tab);
   });
   const bar=document.getElementById(ctx==='m'?'mtbar':'atbar');
-  if(bar)bar.querySelectorAll('.tb').forEach((b,i)=>b.classList.toggle('on',['cr','as','lg'][i]===tab));
+  if(bar)bar.querySelectorAll('.tb').forEach((b,i)=>b.classList.toggle('on',['cr','as','ed','lg'][i]===tab));
 }
 
 document.getElementById('apf').addEventListener('submit',async e=>{
@@ -1156,7 +1222,51 @@ async function loadLog(ctx){
   </tr>`).join('')}</tbody></table></div>`;
 }
 
-// ── LEDGER TABS ──────────────────────────────────────────────────
+// ── EDIT INVENTORY ───────────────────────────────────────────────
+let editProdId=null;
+function filterEditSearch(val,ctx){
+  const listId=ctx==='m'?'med-sdlist':'ed-sdlist';
+  const list=document.getElementById(listId);
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=inv.filter(i=>i.name.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const d=document.createElement('div');d.className='sdi';
+    d.innerText=`${p.name} | ${GH(p.price)} | Stock: ${p.stock}`;
+    d.onclick=()=>{
+      editProdId=p.id;
+      const pfx=ctx==='m'?'med-':'ed-';
+      document.getElementById(ctx==='m'?'med-srch':'ed-srch').value=p.name;
+      list.classList.remove('on');
+      document.getElementById(pfx+'name').value=p.name;
+      document.getElementById(pfx+'barcode').value=p.barcode||'';
+      document.getElementById(pfx+'sell').value=(p.price||0).toFixed(2);
+      document.getElementById(pfx+'cost').value=(p.cost_price||0).toFixed(2);
+      document.getElementById(pfx+'qty').value=p.stock;
+      document.getElementById(pfx+'form').style.display='block';
+    };
+    list.appendChild(d);
+  });
+  list.classList.toggle('on',ms.length>0);
+}
+
+async function saveProductEdit(ctx){
+  if(!editProdId){alert('No product selected.');return;}
+  const pfx=ctx==='m'?'med-':'ed-';
+  const name=document.getElementById(pfx+'name').value.trim();
+  const barcode=document.getElementById(pfx+'barcode').value.trim();
+  const price=parseFloat(document.getElementById(pfx+'sell').value)||0;
+  const cost_price=parseFloat(document.getElementById(pfx+'cost').value)||0;
+  const stock=parseInt(document.getElementById(pfx+'qty').value)||0;
+  if(!name){alert('Product name is required.');return;}
+  L(true);
+  const{error}=await sb.from('products').update({name,barcode:barcode||null,price,cost_price,stock}).eq('id',editProdId);
+  L(false);
+  if(error){alert('Error: '+error.message);return;}
+  const orgId=ctx==='m'?activeOrg:prof.org_id;
+  await loadInv(orgId);
+  alert('Product updated successfully!');
+}
 function swLedTab(tab){
   ['sh','pr','cs','cp','si','sp','is'].forEach(t=>{
     const p=document.getElementById('l-tp-'+t);if(p)p.classList.toggle('on',t===tab);
