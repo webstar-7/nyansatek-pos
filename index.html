@@ -168,8 +168,8 @@ footer strong{color:var(--a);}
     <p class="sub">Sign in to your business environment</p>
     <div class="aerr" id="le"></div>
     <form id="lf">
-      <div class="fg"><label>Business Name</label>
-        <input type="text" id="lb" placeholder="e.g. ALPHA HARDWARE LTD" required></div>
+      <div class="fg"><label>Business Name (or Staff Username)</label>
+        <input type="text" id="lb" placeholder="Business name, or your staff username" required></div>
       <div class="fg"><label>Password</label>
         <input type="password" id="lp" required></div>
       <button type="submit" class="btn ba bf" id="lbtn">Sign In</button>
@@ -220,6 +220,20 @@ footer strong{color:var(--a);}
     <div style="display:flex;gap:7px;margin-top:5px;">
       <button onclick="issueCreditFromCart()" class="btn ba" style="flex:1;">Issue Invoice &amp; Print</button>
       <button onclick="closeCreditModal()" class="btn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- QTY ENTRY MODAL -->
+<div class="mo" id="qm" style="display:none;">
+  <div class="mc2" style="width:280px;">
+    <h3 id="qm-name">Add to Cart</h3>
+    <p class="sub" id="qm-stock"></p>
+    <div class="fg"><label>Quantity</label>
+      <input type="number" id="qm-qty" min="1" value="1" style="font-size:1.1rem;text-align:center;"></div>
+    <div style="display:flex;gap:7px;margin-top:5px;">
+      <button onclick="confirmQtyAdd()" class="btn bg2" style="flex:1;">Add</button>
+      <button onclick="closeQtyModal()" class="btn" style="flex:1;">Cancel</button>
     </div>
   </div>
 </div>
@@ -310,6 +324,7 @@ footer strong{color:var(--a);}
             <button class="tb on" onclick="swInvTab('cr','a')">+ Create</button>
             <button class="tb" onclick="swInvTab('as','a')">+ Add Stock</button>
             <button class="tb" onclick="swInvTab('ed','a')">&#9998; Edit</button>
+            <button class="tb" onclick="swInvTab('rs','a')">&#128230; Received Supply</button>
             <button class="tb" onclick="swInvTab('lg','a')">&#128203; History</button>
           </div>
           <div class="tp on" id="a-tp-cr">
@@ -358,6 +373,37 @@ footer strong{color:var(--a);}
               <button class="btn bf ba" onclick="saveProductEdit('a')">Save Changes</button>
             </div>
           </div>
+          <div class="tp" id="a-tp-rs">
+            <div class="tbar" style="margin-bottom:8px;">
+              <button class="tb on" onclick="swRSTab('rec')">Record Received</button>
+              <button class="tb" onclick="swRSTab('rel')">Release to Stock</button>
+            </div>
+            <div class="tp on" id="rs-tp-rec">
+              <p class="hint">Log supply that has arrived without adding it to live stock yet.</p>
+              <div class="fg"><label>Supplier Name</label><input type="text" id="rs-sup"></div>
+              <div class="fg"><label>Reference (optional)</label><input type="text" id="rs-ref"></div>
+              <div class="fg"><label>Date Received</label><input type="date" id="rs-dt"></div>
+              <div class="fg"><label>Add Item</label>
+                <div style="display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:center;">
+                  <div class="sdrop"><input type="text" id="rs-psch" placeholder="Product name..."
+                    autocomplete="off" oninput="filterRSProd(this.value)">
+                    <div class="sdlist" id="rs-pdlist"></div>
+                  </div>
+                  <input type="number" id="rs-qty" placeholder="Qty" style="width:55px;padding:6px 5px;border:1px solid var(--b);border-radius:4px;font-size:.79rem;">
+                  <input type="number" id="rs-uc" placeholder="Cost" style="width:65px;padding:6px 5px;border:1px solid var(--b);border-radius:4px;font-size:.79rem;">
+                </div>
+                <button class="btn bsm" onclick="addRSItem()" style="margin-top:4px;">Add</button>
+              </div>
+              <div class="minicart" id="rscart"><div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div></div>
+              <div class="fg"><label>Notes</label><input type="text" id="rs-note"></div>
+              <button class="btn bf" onclick="recordReceipt()">Save Receipt (stock unchanged)</button>
+            </div>
+            <div class="tp" id="rs-tp-rel">
+              <p class="hint">Move received supply into live, sellable stock — in whatever quantity you're ready to shelve.</p>
+              <button class="btn bsm" onclick="loadReleasable()">Refresh List</button>
+              <div id="rs-rellist" style="margin-top:8px;"><div class="es">Click Refresh to load pending items.</div></div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="rp">
@@ -376,6 +422,30 @@ footer strong{color:var(--a);}
       </div>
     </div>
 
+    <!-- CASHIER MANAGEMENT (admin only) -->
+    <div id="chv" class="view">
+      <div class="card" style="max-width:1000px;margin:0 auto;">
+        <h2>Manage Cashiers</h2>
+        <p class="hint">Create login credentials for your cashiers. They'll sign in with the Staff Username + password you set below (instead of the business name).</p>
+        <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:16px;">
+          <div>
+            <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">+ New Cashier</h3>
+            <form id="chf">
+              <div class="fg"><label>Cashier Full Name</label><input type="text" id="ch-name" required></div>
+              <div class="fg"><label>Staff Username (used to log in)</label><input type="text" id="ch-user" placeholder="e.g. john or mary01" required></div>
+              <div class="fg"><label>Password (min 8 chars)</label><input type="password" id="ch-pass" minlength="8" required></div>
+              <button type="submit" class="btn bf ba">Create Cashier</button>
+            </form>
+          </div>
+          <div>
+            <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Current Cashiers</h3>
+            <table id="cht"><thead><tr><th>Name</th><th>Username</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+            <div id="ch-em" class="es" style="display:none;">No cashiers yet — create one on the left.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- LEDGER -->
     <div id="lv" class="view">
       <div class="card">
@@ -388,6 +458,7 @@ footer strong{color:var(--a);}
           <button class="tb" onclick="swLedTab('si')">Supplier Invoices</button>
           <button class="tb" onclick="swLedTab('sp')">Supplier Payments</button>
           <button class="tb" onclick="swLedTab('is')">Income Statement</button>
+          <button class="tb" onclick="swLedTab('vo')">Void / Return Sale</button>
         </div>
 
         <!-- TAB: SALES HISTORY -->
@@ -558,6 +629,19 @@ footer strong{color:var(--a);}
           <div id="is-em" class="es">Select a period and click Generate.</div>
         </div>
 
+        <!-- TAB: VOID / RETURN SALE -->
+        <div class="tp" id="l-tp-vo">
+          <p class="hint">Pick a cashier and a date to see every sale they made. Select any sale to void it for a warranty issue or a returned item — items are automatically put back into stock.</p>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+            <div class="fg" style="margin:0;flex:1.3;"><label>Cashier</label>
+              <select id="vo-cashier"><option value="">-- Select cashier --</option></select></div>
+            <div class="fg" style="margin:0;flex:1;"><label>Date</label><input type="date" id="vo-date"></div>
+            <button class="btn" onclick="loadCashierSales()">Find Sales</button>
+          </div>
+          <div id="vo-out"></div>
+          <div id="vo-em" class="es">Select a cashier and date, then click Find Sales.</div>
+        </div>
+
       </div><!-- /card -->
     </div><!-- /ledger view -->
 
@@ -673,7 +757,7 @@ footer strong{color:var(--a);}
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const CE={'Produce':'🥦','Dairy':'🥛','Bakery':'🍞','Meat':'🥩','Beverages':'🧃','Snacks':'🍪',
   'Household':'🧹','Personal Care':'🧴','Hardware':'🔧','Electronics':'🔌','Clothing':'👕','General':'📦'};
-const GHC='';
+const GHC='GH\u20B3';
 let sess=null,prof=null,inv=[],cart=[],cCart=[],sCart=[],suppInvList=[],credInvList=[];
 let orgList=[],activeOrg=null,selCreditSale=null,selSuppInv=null;
 let pendSale=null,selStkId=null,activeCat='';
@@ -695,10 +779,15 @@ document.getElementById('lf').addEventListener('submit',async e=>{
   const biz=document.getElementById('lb').value.trim(),pw=document.getElementById('lp').value;
   const btn=document.getElementById('lbtn');btn.disabled=true;btn.innerText='Signing in...';
   try{
-    const{data:row,error:le}=await sb.from('login_lookup').select('login_email').ilike('business_name',biz).maybeSingle();
-    if(le||!row)throw new Error('Business name or password is incorrect.');
-    const{error:ae}=await sb.auth.signInWithPassword({email:row.login_email,password:pw});
-    if(ae)throw new Error('Business name or password is incorrect.');
+    const{data:row}=await sb.from('login_lookup').select('login_email').ilike('business_name',biz).maybeSingle();
+    let loginEmail=row?.login_email;
+    if(!loginEmail){
+      const{data:staffRow}=await sb.from('staff_login_lookup').select('login_email').ilike('login_username',biz).maybeSingle();
+      loginEmail=staffRow?.login_email;
+    }
+    if(!loginEmail)throw new Error('Business name / username or password is incorrect.');
+    const{error:ae}=await sb.auth.signInWithPassword({email:loginEmail,password:pw});
+    if(ae)throw new Error('Business name / username or password is incorrect.');
     await boot2();
   }catch(err){eb.innerText=err.message;eb.classList.add('on');}
   finally{btn.disabled=false;btn.innerText='Sign In';}
@@ -732,13 +821,14 @@ async function boot2(){
   L(false);scr('a');
 }
 
-const VD={'cv':'grid','av':'grid','lv':'block','mv':'block','miv':'grid','mlv':'block'};
+const VD={'cv':'grid','av':'grid','chv':'block','lv':'block','mv':'block','miv':'grid','mlv':'block'};
 function swV(v){
   document.querySelectorAll('.view').forEach(el=>{el.style.display='none';el.classList.remove('on');});
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
   const el=document.getElementById(v);
   if(el){el.style.display=VD[v]||'block';el.classList.add('on');}
   const b=document.getElementById('t-'+v);if(b)b.classList.add('on');
+  if(v==='chv')loadCashiers();
 }
 
 function buildNav(role){
@@ -746,7 +836,7 @@ function buildNav(role){
   const tabs=role==='master'
     ?[['mv','Businesses'],['miv','Inv. Manager'],['mlv','Financial Ledger']]
     :role==='admin'
-    ?[['cv','Cashier'],['av','Admin Inventory'],['lv','SME Ledger']]
+    ?[['cv','Cashier'],['av','Admin Inventory'],['chv','Cashiers'],['lv','SME Ledger']]
     :[['cv','Cashier']];
   tabs.forEach(([k,l],i)=>{
     const b=document.createElement('button');b.id='t-'+k;b.innerText=l;
@@ -785,6 +875,56 @@ async function loadInv(orgId){
   inv=data||[];
   renderPG();
   renderInvTable(prof.role==='master'?'mit':'ait');
+}
+
+// ── CASHIER MANAGEMENT (admin) ───────────────────────────────────
+async function loadCashiers(){
+  const tb=document.querySelector('#cht tbody'),em=document.getElementById('ch-em');
+  if(!tb)return;
+  L(true);
+  const{data,error}=await sb.from('profiles').select('id,full_name,login_username,is_active,created_at')
+    .eq('org_id',prof.org_id).eq('role','cashier').order('full_name');
+  L(false);
+  tb.innerHTML='';
+  if(error){em.style.display='block';em.innerText='Could not load cashiers: '+error.message;return;}
+  if(!data||!data.length){em.style.display='block';return;}
+  em.style.display='none';
+  data.forEach(c=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><strong>${E(c.full_name||'—')}</strong></td>
+      <td style="font-family:monospace;">${E(c.login_username||'—')}</td>
+      <td><span class="badge ${c.is_active?'bg':'br'}">${c.is_active?'Active':'Inactive'}</span></td>
+      <td><button class="btn bsm bd">Delete</button></td>`;
+    tr.querySelector('button').onclick=()=>deleteCashier(c.id,c.full_name);
+    tb.appendChild(tr);
+  });
+}
+
+document.getElementById('chf').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=document.getElementById('ch-name').value.trim();
+  const username=document.getElementById('ch-user').value.trim().toLowerCase();
+  const password=document.getElementById('ch-pass').value;
+  if(!name||!username||password.length<8){alert('Fill in all fields — password must be at least 8 characters.');return;}
+  L(true);
+  const{data,error}=await sb.functions.invoke('create-cashier',{body:{
+    full_name:name,login_username:username,password,org_id:prof.org_id,
+    business_display_name:prof.display_name
+  }});
+  L(false);
+  if(error||data?.error){alert('Error creating cashier: '+(data?.error||error.message));return;}
+  document.getElementById('chf').reset();
+  await loadCashiers();
+  alert(`Cashier "${name}" created. They can log in with Staff Username "${username}" and the password you set.`);
+});
+
+async function deleteCashier(id,name){
+  if(!confirm(`Delete cashier "${name||''}"? They will no longer be able to log in. Their past sales stay on record with their name attached.`))return;
+  L(true);
+  const{data,error}=await sb.functions.invoke('delete-cashier',{body:{cashier_id:id,org_id:prof.org_id}});
+  L(false);
+  if(error||data?.error){alert('Error deleting cashier: '+(data?.error||error.message));return;}
+  await loadCashiers();
 }
 
 function sbadge(s){
@@ -849,18 +989,42 @@ function addByBarcode(bc){
   if(!p){alert('Item not found: '+bc);return;}addToCart(p.id);
 }
 
+let qmProdId=null;
 function addToCart(id){
   const p=inv.find(i=>i.id===id);if(!p)return;
+  qmProdId=id;
   const ci=cart.find(i=>i.id===id);
-  if((ci?ci.qty+1:1)>p.stock){alert('Only '+p.stock+' units available.');return;}
-  if(ci)ci.qty++;else cart.push({...p,qty:1});renderCart();
+  document.getElementById('qm-name').innerText='Add "'+p.name+'"';
+  document.getElementById('qm-stock').innerText=`In stock: ${p.stock}`+(ci?` • Already in cart: ${ci.qty}`:'');
+  const q=document.getElementById('qm-qty');q.value=1;q.max=p.stock;
+  document.getElementById('qm').style.display='flex';
+  setTimeout(()=>{q.focus();q.select();},50);
 }
+function closeQtyModal(){document.getElementById('qm').style.display='none';qmProdId=null;}
+function confirmQtyAdd(){
+  if(!qmProdId)return;
+  const p=inv.find(i=>i.id===qmProdId);if(!p)return;
+  const qty=parseInt(document.getElementById('qm-qty').value)||0;
+  if(qty<=0){alert('Enter a valid quantity.');return;}
+  const ci=cart.find(i=>i.id===qmProdId);
+  const already=ci?ci.qty:0;
+  if(already+qty>p.stock){alert('Only '+p.stock+' units available (already '+already+' in cart).');return;}
+  if(ci)ci.qty+=qty;else cart.push({...p,qty});
+  renderCart();closeQtyModal();
+}
+document.getElementById('qm-qty').addEventListener('keypress',e=>{if(e.key==='Enter'){e.preventDefault();confirmQtyAdd();}});
 function adjQ(id,d){
   const it=cart.find(i=>i.id===id),p=inv.find(i=>i.id===id);if(!it||!p)return;
   if(d>0&&(it.qty+d)>p.stock){alert('Max: '+p.stock);return;}
   it.qty+=d;if(it.qty<=0)cart=cart.filter(i=>i.id!==id);renderCart();
 }
 function rmCart(id){cart=cart.filter(i=>i.id!==id);renderCart();}
+function setQty(id,qty){
+  const it=cart.find(i=>i.id===id),p=inv.find(i=>i.id===id);if(!it||!p)return;
+  if(isNaN(qty)||qty<=0){cart=cart.filter(i=>i.id!==id);renderCart();return;}
+  if(qty>p.stock){alert('Only '+p.stock+' units available.');qty=p.stock;}
+  it.qty=qty;renderCart();
+}
 
 function renderCart(){
   const cl=document.getElementById('cl'),bd=document.getElementById('cbdg');
@@ -876,7 +1040,7 @@ function renderCart(){
     d.innerHTML=`<div class="cin">${E(it.name)}</div>
       <div style="display:flex;align-items:center;gap:2px;">
         <button class="qb" data-a="d">−</button>
-        <span style="min-width:18px;text-align:center;font-size:.78rem;font-weight:600;">${it.qty}</span>
+        <input type="number" min="1" class="qty-in" value="${it.qty}" style="width:34px;text-align:center;font-size:.78rem;font-weight:600;border:1px solid var(--b);border-radius:3px;padding:1px;">
         <button class="qb" data-a="i">+</button>
       </div>
       <div class="ct2">${GH(it.price*it.qty)}</div>
@@ -884,6 +1048,7 @@ function renderCart(){
     d.querySelector('[data-a="d"]').onclick=()=>adjQ(it.id,-1);
     d.querySelector('[data-a="i"]').onclick=()=>adjQ(it.id,1);
     d.querySelector('.rm').onclick=()=>rmCart(it.id);
+    d.querySelector('.qty-in').addEventListener('change',e=>setQty(it.id,parseInt(e.target.value)));
     cl.appendChild(d);
   });
   bd.innerText=cart.reduce((s,i)=>s+i.qty,0);
@@ -922,8 +1087,9 @@ async function finSale(mode,phone){
   L(true);
   const inv2=cart.toSpliced?cart.toSpliced():JSON.parse(JSON.stringify(cart));
   const invId='INV-'+Math.floor(10000+Math.random()*90000);
+  const cashierName=prof.full_name||prof.display_name||'—';
   const{data:sale,error:se}=await sb.from('sales').insert({
-    org_id:prof.org_id,invoice_id:invId,cashier_id:prof.id,
+    org_id:prof.org_id,invoice_id:invId,cashier_id:prof.id,cashier_name_snapshot:cashierName,
     payment_method:method,total:tot,
     amount_tendered:method==='Cash'?ten:null,
     change_due:method==='Cash'?ten-tot:null
@@ -939,7 +1105,7 @@ async function finSale(mode,phone){
   cart=[];document.getElementById('ten').value='';
   await loadInv(prof.org_id);renderCart();await refSales();L(false);
   if(mode==='print'||mode==='sms'){
-    const rh=buildRcpt(invId,method,tot,ten,cartSnap,'RECEIPT');
+    const rh=buildRcpt(invId,method,tot,ten,cartSnap,'RECEIPT','','','',cashierName);
     printIF(rh);
   }
   if(mode==='sms'&&phone)await sendSMS(phone,buildSMSMsg(invId,method,tot,cartSnap));
@@ -958,9 +1124,10 @@ async function issueCreditFromCart(){
   L(true);closeCreditModal();
   const cartSnap=JSON.parse(JSON.stringify(cart));
   const invId='CRD-'+Math.floor(10000+Math.random()*90000);
+  const cashierName=prof.full_name||prof.display_name||'—';
   const{data:cs,error}=await sb.from('credit_sales').insert({
     org_id:prof.org_id,invoice_id:invId,customer_name:cn,customer_phone:cp||null,
-    due_date:due,total:tot,status:'unpaid',notes:note||null,created_by:prof.id
+    due_date:due,total:tot,status:'unpaid',notes:note||null,created_by:prof.id,cashier_name_snapshot:cashierName
   }).select().single();
   if(error){L(false);alert('Error: '+error.message);return;}
   await sb.from('credit_sale_items').insert(cartSnap.map(it=>({
@@ -971,7 +1138,7 @@ async function issueCreditFromCart(){
   for(const it of cartSnap)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
   cart=[];document.getElementById('ten').value='';
   await loadInv(prof.org_id);renderCart();L(false);
-  const rh=buildRcpt(invId,'Credit',tot,0,cartSnap,'CREDIT INVOICE',cn,cp,due);
+  const rh=buildRcpt(invId,'Credit',tot,0,cartSnap,'CREDIT INVOICE',cn,cp,due,cashierName);
   printIF(rh);
 }
 
@@ -994,8 +1161,9 @@ async function sendSMS(ph,msg){
 }
 
 // ── PRINT ────────────────────────────────────────────────────────
-function buildRcpt(invId,method,tot,ten,items,type='RECEIPT',cname='',cphone='',dueDate=''){
+function buildRcpt(invId,method,tot,ten,items,type='RECEIPT',cname='',cphone='',dueDate='',cashierName=''){
   const biz=E(prof.display_name||'Business');
+  const cashierLine=cashierName?E(cashierName):'';
   const isCreditInv=type==='CREDIT INVOICE';
   let cashLines='';
   if(method==='Cash'&&!isCreditInv)cashLines=`<div class="rr"><span>Paid:</span><span>${GH(ten)}</span></div><div class="rr"><span>Change:</span><span>${GH(ten-tot)}</span></div>`;
@@ -1023,7 +1191,7 @@ td{padding:7px 9px;border-bottom:1px solid #ddd;font-size:9pt;}
 </style></head><body>
 <div class="hdr">
   <div><h1>${biz}</h1><p style="color:#555;font-size:9pt;margin-top:3px;">Date: ${new Date().toLocaleDateString()}</p></div>
-  <div class="inv-meta"><strong>CREDIT INVOICE</strong>Invoice No: <b>${E(invId)}</b><br>Due Date: <b style="color:#c00;">${dueDate||'—'}</b></div>
+  <div class="inv-meta"><strong>CREDIT INVOICE</strong>Invoice No: <b>${E(invId)}</b><br>Due Date: <b style="color:#c00;">${dueDate||'—'}</b>${cashierLine?`<br>Issued by: <b>${cashierLine}</b>`:''}</div>
 </div>
 <div class="cust"><p><b>Bill To:</b></p><p>${E(cname)}</p>${cphone?`<p>Phone: ${E(cphone)}</p>`:''}</div>
 <table><thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Unit Price</th><th style="text-align:right;">Total</th></tr></thead>
@@ -1072,6 +1240,7 @@ td:nth-child(2),td:nth-child(3),td:nth-child(4){text-align:right;white-space:now
 </div>
 <div class="meta">
   <div class="mr"><span>Payment Method:</span><span><b>${E(method)}</b></span></div>
+  ${cashierLine?`<div class="mr"><span>Served by:</span><span><b>${cashierLine}</b></span></div>`:''}
 </div>
 <table>
   <thead>
@@ -1113,10 +1282,11 @@ async function openRecentBillings(){
   L(false);
   const c=document.getElementById('rbcontent');
   if(!data||!data.length){c.innerHTML='<div class="es">No recent sales.</div>';return;}
-  c.innerHTML=`<table><thead><tr><th>Invoice</th><th>Date</th><th>Items</th><th>Total</th><th></th></tr></thead>
+  c.innerHTML=`<table><thead><tr><th>Invoice</th><th>Date</th><th>Cashier</th><th>Items</th><th>Total</th><th></th></tr></thead>
   <tbody>${data.map(s=>`<tr>
     <td style="font-family:monospace;font-weight:600;">${E(s.invoice_id)}</td>
     <td style="font-size:.75rem;">${new Date(s.created_at).toLocaleString()}</td>
+    <td style="font-size:.75rem;">${E(s.cashier_name_snapshot||'—')}</td>
     <td style="font-size:.75rem;color:var(--g);">${(s.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
     <td style="font-weight:600;">${GH(s.total)}</td>
     <td><button class="btn bsm ba" onclick='reprintSale(${JSON.stringify(s)})'>Reprint</button></td>
@@ -1125,18 +1295,87 @@ async function openRecentBillings(){
 
 function reprintSale(s){
   const items=(s.sale_items||[]).map(i=>({name:i.name_snapshot,qty:i.qty,price:i.price_snapshot}));
-  const rh=buildRcpt(s.invoice_id,s.payment_method,s.total,s.amount_tendered||s.total,items);
+  const rh=buildRcpt(s.invoice_id,s.payment_method,s.total,s.amount_tendered||s.total,items,'RECEIPT','','','',s.cashier_name_snapshot||'');
   printIF(rh);
+}
+
+// ── VOID / RETURN SALE (by cashier + date) ───────────────────────
+async function populateCashierDropdown(){
+  const sel=document.getElementById('vo-cashier');if(!sel)return;
+  const cur=sel.value;
+  L(true);
+  const{data}=await sb.from('sales').select('cashier_name_snapshot').eq('org_id',prof.org_id)
+    .not('cashier_name_snapshot','is',null).limit(500);
+  L(false);
+  const names=[...new Set((data||[]).map(r=>r.cashier_name_snapshot).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">-- Select cashier --</option>'+names.map(n=>`<option value="${E(n)}">${E(n)}</option>`).join('');
+  if(cur)sel.value=cur;
+  setDef('vo-date');
+}
+
+async function loadCashierSales(){
+  const name=document.getElementById('vo-cashier').value;
+  const dt=document.getElementById('vo-date').value;
+  if(!name||!dt){alert('Select a cashier and a date.');return;}
+  L(true);
+  const{data}=await sb.from('sales').select('*,sale_items(id,product_id,name_snapshot,qty,line_total)')
+    .eq('org_id',prof.org_id).eq('cashier_name_snapshot',name)
+    .gte('created_at',dt+'T00:00:00').lte('created_at',dt+'T23:59:59')
+    .order('created_at',{ascending:false});
+  L(false);
+  const out=document.getElementById('vo-out'),em=document.getElementById('vo-em');
+  if(!data||!data.length){out.innerHTML='';out.style.display='none';em.style.display='block';em.innerText='No sales found for that cashier on that date.';return;}
+  em.style.display='none';out.style.display='block';
+  out.innerHTML=`<table><thead><tr><th>Time</th><th>Invoice</th><th>Items</th><th>Method</th><th style="text-align:right;">Total</th><th></th></tr></thead>
+  <tbody>${data.map(s=>`<tr>
+    <td style="font-size:.73rem;">${new Date(s.created_at).toLocaleTimeString()}</td>
+    <td style="font-family:monospace;font-weight:600;">${E(s.invoice_id)}</td>
+    <td style="font-size:.73rem;color:var(--g);">${(s.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
+    <td>${E(s.payment_method)}</td>
+    <td style="text-align:right;font-weight:600;">${GH(s.total)}</td>
+    <td><button class="btn bsm bd" onclick="voidSale('${s.id}')">Void &amp; Restock</button></td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+async function voidSale(saleId){
+  if(!confirm('Void this sale? Items will be added back to stock and the sale will be permanently removed from records. This cannot be undone.'))return;
+  L(true);
+  const{data:items}=await sb.from('sale_items').select('*').eq('sale_id',saleId);
+  const{data:saleRow}=await sb.from('sales').select('*').eq('id',saleId).single();
+  for(const it of (items||[])){
+    if(!it.product_id)continue;
+    const prod=inv.find(i=>i.id===it.product_id);
+    const before=prod?prod.stock:0,after=before+it.qty;
+    await sb.from('products').update({stock:after}).eq('id',it.product_id);
+    await sb.from('inventory_log').insert({org_id:prof.org_id,product_id:it.product_id,
+      product_name_snapshot:it.name_snapshot,added_by:prof.id,qty_added:it.qty,
+      stock_before:before,stock_after:after,
+      note:'Restock from voided sale '+(saleRow?.invoice_id||saleId)});
+  }
+  await sb.from('sale_items').delete().eq('sale_id',saleId);
+  await sb.from('sales').delete().eq('id',saleId);
+  L(false);
+  await loadInv(prof.org_id);await refSales();await loadCashierSales();
+  alert('Sale voided and items restocked.');
 }
 
 // ── ADMIN INVENTORY ──────────────────────────────────────────────
 function swInvTab(tab,ctx){
   const pref=ctx==='m'?'m-tp-':'a-tp-';
-  ['cr','as','ed','lg'].forEach(t=>{
+  const order=ctx==='m'?['cr','as','ed','lg']:['cr','as','ed','rs','lg'];
+  order.forEach(t=>{
     const p=document.getElementById(pref+t);if(p)p.classList.toggle('on',t===tab);
   });
   const bar=document.getElementById(ctx==='m'?'mtbar':'atbar');
-  if(bar)bar.querySelectorAll('.tb').forEach((b,i)=>b.classList.toggle('on',['cr','as','ed','lg'][i]===tab));
+  if(bar)bar.querySelectorAll('.tb').forEach((b,i)=>b.classList.toggle('on',order[i]===tab));
+}
+
+function swRSTab(tab){
+  ['rec','rel'].forEach(t=>{
+    const p=document.getElementById('rs-tp-'+t);if(p)p.classList.toggle('on',t===tab);
+  });
+  document.querySelectorAll('#a-tp-rs .tbar .tb').forEach((b,i)=>b.classList.toggle('on',['rec','rel'][i]===tab));
+  if(tab==='rel')loadReleasable();
 }
 
 document.getElementById('apf').addEventListener('submit',async e=>{
@@ -1222,6 +1461,119 @@ async function loadLog(ctx){
   </tr>`).join('')}</tbody></table></div>`;
 }
 
+// ── RECEIVED SUPPLY (capture without auto-stocking, release gradually) ──
+let rsCart=[];
+function filterRSProd(val){
+  const list=document.getElementById('rs-pdlist');
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=inv.filter(i=>i.name.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const d=document.createElement('div');d.className='sdi';d.innerText=`${p.name} (Cost: ${GH(p.cost_price||0)})`;
+    d.onclick=()=>{
+      document.getElementById('rs-psch').value=p.name;
+      document.getElementById('rs-uc').value=(p.cost_price||0).toFixed(2);
+      document.getElementById('rs-psch').dataset.pid=p.id;
+      list.classList.remove('on');
+    };
+    list.appendChild(d);
+  });
+  list.classList.toggle('on',ms.length>0);
+}
+
+function addRSItem(){
+  const nm=document.getElementById('rs-psch').value.trim();
+  const qty=parseInt(document.getElementById('rs-qty').value)||0;
+  const uc=parseFloat(document.getElementById('rs-uc').value)||0;
+  const pid=document.getElementById('rs-psch').dataset.pid||null;
+  if(!nm||qty<=0){alert('Enter a product name and a valid quantity.');return;}
+  rsCart.push({pid,name:nm,qty,uc});
+  document.getElementById('rs-psch').value='';document.getElementById('rs-psch').dataset.pid='';
+  document.getElementById('rs-qty').value='';document.getElementById('rs-uc').value='';
+  renderRSCart();
+}
+
+function renderRSCart(){
+  const c=document.getElementById('rscart');
+  if(!rsCart.length){c.innerHTML='<div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div>';return;}
+  c.innerHTML='';
+  rsCart.forEach((it,idx)=>{
+    const d=document.createElement('div');d.className='mci';
+    d.innerHTML=`<span style="flex:1;">${E(it.name)} x${it.qty}${it.uc?' @ '+GH(it.uc):''}</span>
+      <button class="rm" onclick="rsCart.splice(${idx},1);renderRSCart()">×</button>`;
+    c.appendChild(d);
+  });
+}
+
+async function recordReceipt(){
+  const sup=document.getElementById('rs-sup').value.trim();
+  const ref=document.getElementById('rs-ref').value.trim();
+  const dt=document.getElementById('rs-dt').value||today();
+  const note=document.getElementById('rs-note').value.trim();
+  if(!rsCart.length){alert('Add at least one item.');return;}
+  L(true);
+  const{data:rec,error}=await sb.from('supply_receipts').insert({
+    org_id:prof.org_id,supplier_name:sup||null,reference:ref||null,
+    received_date:dt,notes:note||null,received_by:prof.id
+  }).select().single();
+  if(error){L(false);alert('Error: '+error.message);return;}
+  await sb.from('supply_receipt_items').insert(rsCart.map(it=>({
+    supply_receipt_id:rec.id,product_id:it.pid||null,name_snapshot:it.name,
+    qty_received:it.qty,qty_allocated:0,unit_cost:it.uc||null
+  })));
+  L(false);
+  rsCart=[];renderRSCart();
+  document.getElementById('rs-sup').value='';document.getElementById('rs-ref').value='';
+  document.getElementById('rs-note').value='';
+  alert('Supply receipt saved. Stock has NOT been changed — release items gradually from the "Release to Stock" tab.');
+}
+
+async function loadReleasable(){
+  L(true);
+  const{data}=await sb.from('supply_receipt_items').select('*,supply_receipts!inner(org_id,supplier_name,received_date)')
+    .eq('supply_receipts.org_id',prof.org_id).order('created_at',{ascending:false}).limit(60);
+  L(false);
+  const c=document.getElementById('rs-rellist');
+  const pending=(data||[]).filter(r=>r.qty_allocated<r.qty_received);
+  if(!pending.length){c.innerHTML='<div class="es">Nothing pending — all received supply has been released to stock.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Product</th><th>Supplier</th><th>Received</th><th>Released</th><th>Remaining</th><th>Release Qty</th><th></th></tr></thead>
+  <tbody>${pending.map(r=>{
+    const rem=r.qty_received-r.qty_allocated;
+    return `<tr>
+    <td>${E(r.name_snapshot)}</td>
+    <td style="font-size:.73rem;color:var(--g);">${E(r.supply_receipts?.supplier_name||'—')}</td>
+    <td>${r.qty_received}</td>
+    <td>${r.qty_allocated}</td>
+    <td style="font-weight:600;color:var(--s);">${rem}</td>
+    <td><input type="number" min="1" max="${rem}" id="rsq-${r.id}" style="width:60px;padding:3px 5px;border:1px solid var(--b);border-radius:3px;"></td>
+    <td><button class="btn bsm ba" onclick="releaseToStock('${r.id}',${rem})">Release</button></td>
+  </tr>`;}).join('')}</tbody></table>`;
+}
+
+async function releaseToStock(itemId,maxRem){
+  const inp=document.getElementById('rsq-'+itemId);
+  const qty=parseInt(inp.value)||0;
+  if(qty<=0||qty>maxRem){alert('Enter a quantity between 1 and '+maxRem+'.');return;}
+  L(true);
+  const{data:item}=await sb.from('supply_receipt_items').select('*').eq('id',itemId).single();
+  if(!item){L(false);return;}
+  await sb.from('supply_allocations').insert({supply_receipt_item_id:itemId,org_id:prof.org_id,
+    qty,allocated_by:prof.id,note:'Released to stock'});
+  await sb.from('supply_receipt_items').update({qty_allocated:item.qty_allocated+qty}).eq('id',itemId);
+  if(item.product_id){
+    const prod=inv.find(i=>i.id===item.product_id);
+    const before=prod?prod.stock:0,after=before+qty;
+    await sb.from('products').update({stock:after}).eq('id',item.product_id);
+    await sb.from('inventory_log').insert({org_id:prof.org_id,product_id:item.product_id,
+      product_name_snapshot:item.name_snapshot,added_by:prof.id,qty_added:qty,
+      stock_before:before,stock_after:after,note:'Released from received supply'});
+  }else{
+    alert('Note: this item was recorded without a matching catalog product, so stock could not be auto-updated. Add/select the product via barcode next time for automatic stock updates.');
+  }
+  L(false);
+  await loadInv(prof.org_id);await loadReleasable();
+}
+
 // ── EDIT INVENTORY ───────────────────────────────────────────────
 let editProdId=null;
 function filterEditSearch(val,ctx){
@@ -1268,10 +1620,11 @@ async function saveProductEdit(ctx){
   alert('Product updated successfully!');
 }
 function swLedTab(tab){
-  ['sh','pr','cs','cp','si','sp','is'].forEach(t=>{
+  ['sh','pr','cs','cp','si','sp','is','vo'].forEach(t=>{
     const p=document.getElementById('l-tp-'+t);if(p)p.classList.toggle('on',t===tab);
   });
-  document.querySelectorAll('#lv .tbar .tb').forEach((b,i)=>b.classList.toggle('on',['sh','pr','cs','cp','si','sp','is'][i]===tab));
+  document.querySelectorAll('#lv .tbar .tb').forEach((b,i)=>b.classList.toggle('on',['sh','pr','cs','cp','si','sp','is','vo'][i]===tab));
+  if(tab==='vo')populateCashierDropdown();
 }
 
 // Sales History
@@ -1288,6 +1641,7 @@ async function genSalesHist(){
   sales.forEach(s2=>{gr+=s2.total;if(s2.payment_method==='Cash')cs2+=s2.total;else if(s2.payment_method==='Mobile Money')mm+=s2.total;else cd+=s2.total;
     rows+=`<tr><td style="font-family:monospace;font-size:.75rem;">${new Date(s2.created_at).toLocaleString()}</td>
       <td style="font-weight:600;color:#3730a3;font-family:monospace;">${E(s2.invoice_id)}</td>
+      <td style="font-size:.75rem;">${E(s2.cashier_name_snapshot||'—')}</td>
       <td style="font-size:.75rem;color:var(--g);">${(s2.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
       <td>${E(s2.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(s2.total)}</td></tr>`;
   });
@@ -1298,7 +1652,7 @@ async function genSalesHist(){
     <div class="mc"><p>MoMo</p><h3>${GH(mm)}</h3></div>
     <div class="mc"><p>Card</p><h3>${GH(cd)}</h3></div>
   </div>
-  <table><thead><tr><th>Timestamp</th><th>Invoice</th><th>Items</th><th>Payment</th><th style="text-align:right;">Total</th></tr></thead>
+  <table><thead><tr><th>Timestamp</th><th>Invoice</th><th>Cashier</th><th>Items</th><th>Payment</th><th style="text-align:right;">Total</th></tr></thead>
   <tbody>${rows}</tbody></table>`;
   out.style.display='block';em.style.display='none';pb.style.display='inline-block';
 }
@@ -1393,9 +1747,10 @@ async function issueCredit(){
   const tot=cCart.reduce((s,i)=>s+i.price*i.qty,0);
   L(true);
   const invId='CRD-'+Math.floor(10000+Math.random()*90000);
+  const cashierName=prof.full_name||prof.display_name||'—';
   const{data:cs,error}=await sb.from('credit_sales').insert({
     org_id:prof.org_id,invoice_id:invId,customer_name:cn,customer_phone:cp2||null,
-    due_date:due,total:tot,status:'unpaid',notes:note||null,created_by:prof.id
+    due_date:due,total:tot,status:'unpaid',notes:note||null,created_by:prof.id,cashier_name_snapshot:cashierName
   }).select().single();
   if(error){L(false);alert('Error: '+error.message);return;}
   await sb.from('credit_sale_items').insert(cCart.map(it=>({
@@ -1409,7 +1764,7 @@ async function issueCredit(){
   document.getElementById('cs-cn').value='';document.getElementById('cs-cp').value='';
   document.getElementById('cs-due').value='';document.getElementById('cs-note').value='';
   await loadInv(prof.org_id);L(false);
-  const rh=buildRcpt(invId,'Credit',tot,0,snap,'CREDIT INVOICE',cn,cp2,due);
+  const rh=buildRcpt(invId,'Credit',tot,0,snap,'CREDIT INVOICE',cn,cp2,due,cashierName);
   printIF(rh);loadCreditList();
 }
 
@@ -1707,9 +2062,9 @@ async function loadHist(tab){
   L(true);
   let html='<div class="es">No entries found.</div>';
   if(tab==='sales'){
-    const{data}=await sb.from('sales').select('invoice_id,created_at,total,payment_method').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
-    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Invoice</th><th>Method</th><th style="text-align:right;">Total</th></tr></thead>
-    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${new Date(r.created_at).toLocaleString()}</td><td style="font-family:monospace;font-size:.73rem;">${E(r.invoice_id)}</td><td>${E(r.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(r.total)}</td></tr>`).join('')}</tbody></table>`;
+    const{data}=await sb.from('sales').select('invoice_id,created_at,total,payment_method,cashier_name_snapshot').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
+    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Invoice</th><th>Cashier</th><th>Method</th><th style="text-align:right;">Total</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${new Date(r.created_at).toLocaleString()}</td><td style="font-family:monospace;font-size:.73rem;">${E(r.invoice_id)}</td><td style="font-size:.73rem;">${E(r.cashier_name_snapshot||'—')}</td><td>${E(r.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(r.total)}</td></tr>`).join('')}</tbody></table>`;
   }else if(tab==='credit'){
     const{data}=await sb.from('credit_sales').select('*').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
     if(data&&data.length)html=`<table><thead><tr><th>Invoice</th><th>Customer</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
@@ -1799,12 +2154,13 @@ async function mGenStmt(){
   sales.forEach(s2=>{gr+=s2.total;
     rows+=`<tr><td style="font-size:.75rem;font-family:monospace;">${new Date(s2.created_at).toLocaleString()}</td>
       <td style="font-weight:600;color:#3730a3;font-family:monospace;">${E(s2.invoice_id)}</td>
+      <td style="font-size:.75rem;">${E(s2.cashier_name_snapshot||'—')}</td>
       <td style="font-size:.75rem;color:var(--g);">${(s2.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
       <td>${E(s2.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(s2.total)}</td></tr>`;
   });
   out.innerHTML=`<div class="sh"><h3>${E(bizName)}</h3><p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
   <div class="mg"><div class="mc hl"><p>Total Revenue</p><h3 style="color:#b45309;">${GH(gr)}</h3></div></div>
-  <table><thead><tr><th>Timestamp</th><th>Invoice</th><th>Items</th><th>Payment</th><th style="text-align:right;">Total</th></tr></thead>
+  <table><thead><tr><th>Timestamp</th><th>Invoice</th><th>Cashier</th><th>Items</th><th>Payment</th><th style="text-align:right;">Total</th></tr></thead>
   <tbody>${rows}</tbody></table>`;
   out.style.display='block';em.style.display='none';pb.style.display='inline-block';
 }
