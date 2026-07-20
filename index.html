@@ -764,7 +764,7 @@ let pendSale=null,selStkId=null,activeCat='';
 
 const L=on=>document.getElementById('lov').classList.toggle('on',on);
 const E=s=>!s?'':String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const GH=n=>GHC+(n||0).toFixed(2);
+const GH=n=>(n||0).toFixed(2);
 const today=()=>new Date().toISOString().split('T')[0];
 
 function scr(n){
