@@ -376,10 +376,11 @@ footer strong{color:var(--a);}
           <div class="tp" id="a-tp-rs">
             <div class="tbar" style="margin-bottom:8px;">
               <button class="tb on" onclick="swRSTab('rec')">Record Received</button>
+              <button class="tb" onclick="swRSTab('xfer')">Transfer to Store</button>
               <button class="tb" onclick="swRSTab('rel')">Release to Stock</button>
             </div>
             <div class="tp on" id="rs-tp-rec">
-              <p class="hint">Log supply that has arrived without adding it to live stock yet.</p>
+              <p class="hint">Log supply that has arrived from the supplier, into the warehouse — without adding it to live stock yet.</p>
               <div class="fg"><label>Supplier Name</label><input type="text" id="rs-sup"></div>
               <div class="fg"><label>Reference (optional)</label><input type="text" id="rs-ref"></div>
               <div class="fg"><label>Date Received</label><input type="date" id="rs-dt"></div>
@@ -398,8 +399,14 @@ footer strong{color:var(--a);}
               <div class="fg"><label>Notes</label><input type="text" id="rs-note"></div>
               <button class="btn bf" onclick="recordReceipt()">Save Receipt (stock unchanged)</button>
             </div>
+            <div class="tp" id="rs-tp-xfer">
+              <p class="hint">Move warehouse-held supply into one of your 3 stores' holding area — stock is still not live yet.</p>
+              <div id="xfer-storenames" style="margin-bottom:10px;"></div>
+              <button class="btn bsm" onclick="loadTransferable()">Refresh List</button>
+              <div id="rs-xferlist" style="margin-top:8px;"><div class="es">Click Refresh to load pending warehouse items.</div></div>
+            </div>
             <div class="tp" id="rs-tp-rel">
-              <p class="hint">Move received supply into live, sellable stock — in whatever quantity you're ready to shelve.</p>
+              <p class="hint">Move store-held supply into live, sellable stock — in whatever quantity you're ready to shelve.</p>
               <button class="btn bsm" onclick="loadReleasable()">Refresh List</button>
               <div id="rs-rellist" style="margin-top:8px;"><div class="es">Click Refresh to load pending items.</div></div>
             </div>
@@ -1371,10 +1378,11 @@ function swInvTab(tab,ctx){
 }
 
 function swRSTab(tab){
-  ['rec','rel'].forEach(t=>{
+  ['rec','xfer','rel'].forEach(t=>{
     const p=document.getElementById('rs-tp-'+t);if(p)p.classList.toggle('on',t===tab);
   });
-  document.querySelectorAll('#a-tp-rs .tbar .tb').forEach((b,i)=>b.classList.toggle('on',['rec','rel'][i]===tab));
+  document.querySelectorAll('#a-tp-rs .tbar .tb').forEach((b,i)=>b.classList.toggle('on',['rec','xfer','rel'][i]===tab));
+  if(tab==='xfer')loadTransferable();
   if(tab==='rel')loadReleasable();
 }
 
@@ -1525,18 +1533,54 @@ async function recordReceipt(){
   rsCart=[];renderRSCart();
   document.getElementById('rs-sup').value='';document.getElementById('rs-ref').value='';
   document.getElementById('rs-note').value='';
-  alert('Supply receipt saved. Stock has NOT been changed — release items gradually from the "Release to Stock" tab.');
+  alert('Supply receipt saved to the warehouse. Stock has NOT been changed — move it to a store from the "Transfer to Store" tab, then release it from there.');
 }
 
-async function loadReleasable(){
+// ── STORES (warehouse → store hold) ──────────────────────────────
+let storesList=[];
+async function ensureStores(){
+  const{data}=await sb.from('stores').select('*').eq('org_id',prof.org_id).order('created_at');
+  if(data&&data.length){storesList=data;return storesList;}
+  const{data:created,error}=await sb.from('stores').insert(
+    [{org_id:prof.org_id,name:'Store 1'},{org_id:prof.org_id,name:'Store 2'},{org_id:prof.org_id,name:'Store 3'}]
+  ).select();
+  if(error){alert('Error setting up stores: '+error.message);storesList=[];return storesList;}
+  storesList=created.sort((a,b)=>a.name.localeCompare(b.name));
+  return storesList;
+}
+
+function renderStoreNameEditor(){
+  const box=document.getElementById('xfer-storenames');
+  if(!box)return;
+  box.innerHTML=`<div class="fg"><label>Your 3 Stores (rename if you like)</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+      ${storesList.map(s=>`<input type="text" id="stn-${s.id}" value="${E(s.name)}" style="padding:6px 7px;border:1px solid var(--b);border-radius:4px;font-size:.79rem;">`).join('')}
+    </div></div>
+    <button class="btn bsm" onclick="saveStoreNames()">Save Store Names</button>`;
+}
+
+async function saveStoreNames(){
   L(true);
+  for(const s of storesList){
+    const val=document.getElementById('stn-'+s.id).value.trim()||s.name;
+    if(val!==s.name)await sb.from('stores').update({name:val}).eq('id',s.id);
+  }
+  L(false);
+  await ensureStores();renderStoreNameEditor();await loadTransferable();await loadReleasable();
+}
+
+async function loadTransferable(){
+  L(true);
+  await ensureStores();
+  renderStoreNameEditor();
   const{data}=await sb.from('supply_receipt_items').select('*,supply_receipts!inner(org_id,supplier_name,received_date)')
     .eq('supply_receipts.org_id',prof.org_id).order('created_at',{ascending:false}).limit(60);
   L(false);
-  const c=document.getElementById('rs-rellist');
+  const c=document.getElementById('rs-xferlist');
   const pending=(data||[]).filter(r=>r.qty_allocated<r.qty_received);
-  if(!pending.length){c.innerHTML='<div class="es">Nothing pending — all received supply has been released to stock.</div>';return;}
-  c.innerHTML=`<table><thead><tr><th>Product</th><th>Supplier</th><th>Received</th><th>Released</th><th>Remaining</th><th>Release Qty</th><th></th></tr></thead>
+  if(!pending.length){c.innerHTML='<div class="es">Nothing pending — all warehouse supply has been transferred to a store.</div>';return;}
+  const storeOpts=storesList.map(s=>`<option value="${s.id}">${E(s.name)}</option>`).join('');
+  c.innerHTML=`<table><thead><tr><th>Product</th><th>Supplier</th><th>Received</th><th>In Store</th><th>In Warehouse</th><th>Store</th><th>Transfer Qty</th><th></th></tr></thead>
   <tbody>${pending.map(r=>{
     const rem=r.qty_received-r.qty_allocated;
     return `<tr>
@@ -1545,28 +1589,70 @@ async function loadReleasable(){
     <td>${r.qty_received}</td>
     <td>${r.qty_allocated}</td>
     <td style="font-weight:600;color:var(--s);">${rem}</td>
+    <td><select id="xfs-${r.id}" style="padding:4px 5px;border:1px solid var(--b);border-radius:3px;font-size:.78rem;">${storeOpts}</select></td>
+    <td><input type="number" min="1" max="${rem}" id="xfq-${r.id}" style="width:60px;padding:3px 5px;border:1px solid var(--b);border-radius:3px;"></td>
+    <td><button class="btn bsm ba" onclick="transferToStore('${r.id}',${rem})">Transfer</button></td>
+  </tr>`;}).join('')}</tbody></table>`;
+}
+
+async function transferToStore(itemId,maxRem){
+  const qty=parseInt(document.getElementById('xfq-'+itemId).value)||0;
+  const storeId=document.getElementById('xfs-'+itemId).value;
+  if(qty<=0||qty>maxRem){alert('Enter a quantity between 1 and '+maxRem+'.');return;}
+  if(!storeId){alert('Choose a store.');return;}
+  L(true);
+  const{data:item}=await sb.from('supply_receipt_items').select('*').eq('id',itemId).single();
+  if(!item){L(false);return;}
+  await sb.from('store_transfers').insert({org_id:prof.org_id,supply_receipt_item_id:itemId,
+    store_id:storeId,product_id:item.product_id,name_snapshot:item.name_snapshot,
+    unit_cost:item.unit_cost,qty_transferred:qty,qty_released:0,transferred_by:prof.id,
+    note:'Transferred from warehouse'});
+  await sb.from('supply_receipt_items').update({qty_allocated:item.qty_allocated+qty}).eq('id',itemId);
+  L(false);
+  await loadTransferable();await loadReleasable();
+}
+
+// ── STORE HOLD → LIVE STOCK ───────────────────────────────────────
+async function loadReleasable(){
+  L(true);
+  await ensureStores();
+  const{data}=await sb.from('store_transfers').select('*,stores(name)')
+    .eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(60);
+  L(false);
+  const c=document.getElementById('rs-rellist');
+  const pending=(data||[]).filter(r=>r.qty_released<r.qty_transferred);
+  if(!pending.length){c.innerHTML='<div class="es">Nothing pending — all store-held supply has been released to stock.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Product</th><th>Store</th><th>In Store</th><th>Released</th><th>Remaining</th><th>Release Qty</th><th></th></tr></thead>
+  <tbody>${pending.map(r=>{
+    const rem=r.qty_transferred-r.qty_released;
+    return `<tr>
+    <td>${E(r.name_snapshot)}</td>
+    <td style="font-size:.73rem;color:var(--g);">${E(r.stores?.name||'—')}</td>
+    <td>${r.qty_transferred}</td>
+    <td>${r.qty_released}</td>
+    <td style="font-weight:600;color:var(--s);">${rem}</td>
     <td><input type="number" min="1" max="${rem}" id="rsq-${r.id}" style="width:60px;padding:3px 5px;border:1px solid var(--b);border-radius:3px;"></td>
     <td><button class="btn bsm ba" onclick="releaseToStock('${r.id}',${rem})">Release</button></td>
   </tr>`;}).join('')}</tbody></table>`;
 }
 
-async function releaseToStock(itemId,maxRem){
-  const inp=document.getElementById('rsq-'+itemId);
+async function releaseToStock(transferId,maxRem){
+  const inp=document.getElementById('rsq-'+transferId);
   const qty=parseInt(inp.value)||0;
   if(qty<=0||qty>maxRem){alert('Enter a quantity between 1 and '+maxRem+'.');return;}
   L(true);
-  const{data:item}=await sb.from('supply_receipt_items').select('*').eq('id',itemId).single();
+  const{data:item}=await sb.from('store_transfers').select('*,stores(name)').eq('id',transferId).single();
   if(!item){L(false);return;}
-  await sb.from('supply_allocations').insert({supply_receipt_item_id:itemId,org_id:prof.org_id,
-    qty,allocated_by:prof.id,note:'Released to stock'});
-  await sb.from('supply_receipt_items').update({qty_allocated:item.qty_allocated+qty}).eq('id',itemId);
+  await sb.from('store_stock_releases').insert({store_transfer_id:transferId,org_id:prof.org_id,
+    store_id:item.store_id,qty,released_by:prof.id,note:'Released to stock'});
+  await sb.from('store_transfers').update({qty_released:item.qty_released+qty}).eq('id',transferId);
   if(item.product_id){
     const prod=inv.find(i=>i.id===item.product_id);
     const before=prod?prod.stock:0,after=before+qty;
     await sb.from('products').update({stock:after}).eq('id',item.product_id);
     await sb.from('inventory_log').insert({org_id:prof.org_id,product_id:item.product_id,
       product_name_snapshot:item.name_snapshot,added_by:prof.id,qty_added:qty,
-      stock_before:before,stock_after:after,note:'Released from received supply'});
+      stock_before:before,stock_after:after,note:'Released from '+(item.stores?.name||'store')+' hold'});
   }else{
     alert('Note: this item was recorded without a matching catalog product, so stock could not be auto-updated. Add/select the product via barcode next time for automatic stock updates.');
   }
