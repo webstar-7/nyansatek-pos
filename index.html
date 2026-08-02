@@ -56,12 +56,12 @@ main{flex:1;overflow:hidden;}
 .pr{font-size:11.5px;font-weight:700;color:var(--bl);}
 .pcat{font-size:9.5px;color:var(--g);margin-top:1px;}
 /* CART */
-.cp{background:#fff;border-left:1px solid var(--b);display:flex;flex-direction:column;height:100%;}
+.cp{background:#fff;border-left:1px solid var(--b);display:flex;flex-direction:column;height:100%;min-height:0;}
 .ch{padding:9px 13px;border-bottom:1px solid var(--b);font-weight:700;font-size:.88rem;display:flex;align-items:center;gap:6px;}
 .cbdg{background:var(--bl);color:#fff;border-radius:11px;padding:1px 6px;font-size:.68rem;}
 .rb-btn{margin-left:auto;background:none;border:1px solid var(--b);border-radius:4px;padding:2px 7px;font-size:.72rem;cursor:pointer;color:var(--g);}
 .rb-btn:hover{border-color:var(--a);color:var(--a);}
-.cl{flex:1;overflow-y:auto;padding:7px;}
+.cl{flex:1;overflow-y:auto;padding:7px;min-height:0;}
 .ce{text-align:center;padding:28px 14px;color:var(--g);font-size:.82rem;}
 .ce .ei{font-size:2.2rem;margin-bottom:5px;}
 .ci{display:flex;align-items:center;gap:5px;padding:6px 3px;border-bottom:1px solid var(--b);font-size:.8rem;}
@@ -568,8 +568,11 @@ footer strong{color:var(--a);}
                   <input type="number" id="si-uc" placeholder="Cost" style="width:65px;padding:6px 5px;border:1px solid var(--b);border-radius:4px;font-size:.79rem;">
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-                  <input type="checkbox" id="si-us" checked>
-                  <label style="font-size:.75rem;cursor:pointer;">Update stock on save</label>
+                  <label style="font-size:.75rem;">Destination:</label>
+                  <select id="si-dest" style="padding:4px 6px;border:1px solid var(--b);border-radius:4px;font-size:.78rem;">
+                    <option value="stock">Add to Stock</option>
+                    <option value="warehouse">Add to Warehouse (hold)</option>
+                  </select>
                   <button class="btn bsm" onclick="addSuppItem()" style="margin-left:auto;">Add</button>
                 </div>
               </div>
@@ -757,7 +760,7 @@ footer strong{color:var(--a);}
     </div>
 
   </main>
-  <footer><span id="fbiz">—</span> Terminal Solutions &bull; Powered by <strong>NYANSATEK</strong></footer>
+  <footer><span id="fbiz">—</span> Terminal Solutions &bull; Powered by <strong>NYANSATEK</strong> &bull; 0536340578</footer>
 </div>
 
 <script>
@@ -1170,6 +1173,8 @@ async function sendSMS(ph,msg){
 // ── PRINT ────────────────────────────────────────────────────────
 function buildRcpt(invId,method,tot,ten,items,type='RECEIPT',cname='',cphone='',dueDate='',cashierName=''){
   const biz=E(prof.display_name||'Business');
+  const bizPhone=prof.phone?E(prof.phone):'';
+  const bizAddr=prof.address?E(prof.address):'';
   const cashierLine=cashierName?E(cashierName):'';
   const isCreditInv=type==='CREDIT INVOICE';
   let cashLines='';
@@ -1181,23 +1186,23 @@ function buildRcpt(invId,method,tot,ten,items,type='RECEIPT',cname='',cphone='',
     return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
 @page{size:A4;margin:18mm 20mm;}
-body{font-family:'Segoe UI',Arial,sans-serif;font-size:10.5pt;color:#000;}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:10.5pt;color:#000;font-weight:600;}
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #111827;padding-bottom:12px;margin-bottom:16px;}
 .hdr h1{font-size:20pt;color:#111827;margin:0;}
-.hdr .inv-meta{text-align:right;font-size:9pt;color:#555;}
+.hdr .inv-meta{text-align:right;font-size:9pt;color:#000;font-weight:700;}
 .inv-meta strong{color:#d4af37;font-size:12pt;display:block;margin-bottom:4px;}
 .cust{background:#f8f8f8;border-left:4px solid #d4af37;padding:10px 14px;margin-bottom:14px;border-radius:0 5px 5px 0;}
-.cust p{margin:2px 0;font-size:9.5pt;}
+.cust p{margin:2px 0;font-size:9.5pt;font-weight:700;}
 table{width:100%;border-collapse:collapse;margin-bottom:12px;}
 th{background:#111827;color:#fff;padding:7px 9px;text-align:left;font-size:9pt;}
-td{padding:7px 9px;border-bottom:1px solid #ddd;font-size:9pt;}
+td{padding:7px 9px;border-bottom:1px solid #ddd;font-size:9pt;font-weight:700;color:#000;}
 .tot-blk{max-width:260px;margin-left:auto;border:2px solid #111827;border-radius:4px;}
-.trow{display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #ddd;font-size:9.5pt;}
+.trow{display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #ddd;font-size:9.5pt;font-weight:700;}
 .trow.grand{background:#111827;color:#fff;font-weight:700;font-size:11pt;border:none;}
-.footer{text-align:center;margin-top:24px;font-size:8.5pt;color:#888;border-top:1px solid #ddd;padding-top:10px;}
+.footer{text-align:center;margin-top:24px;font-size:8.5pt;color:#333;border-top:1px solid #ddd;padding-top:10px;font-weight:700;}
 </style></head><body>
 <div class="hdr">
-  <div><h1>${biz}</h1><p style="color:#555;font-size:9pt;margin-top:3px;">Date: ${new Date().toLocaleDateString()}</p></div>
+  <div><h1>${biz}</h1>${bizAddr?`<p style="color:#000;font-size:9pt;margin-top:3px;font-weight:700;">${bizAddr}</p>`:''}${bizPhone?`<p style="color:#000;font-size:9pt;font-weight:700;">${bizPhone}</p>`:''}<p style="color:#000;font-size:9pt;margin-top:3px;font-weight:700;">Date: ${new Date().toLocaleDateString()}</p></div>
   <div class="inv-meta"><strong>CREDIT INVOICE</strong>Invoice No: <b>${E(invId)}</b><br>Due Date: <b style="color:#c00;">${dueDate||'—'}</b>${cashierLine?`<br>Issued by: <b>${cashierLine}</b>`:''}</div>
 </div>
 <div class="cust"><p><b>Bill To:</b></p><p>${E(cname)}</p>${cphone?`<p>Phone: ${E(cphone)}</p>`:''}</div>
@@ -1208,7 +1213,7 @@ td{padding:7px 9px;border-bottom:1px solid #ddd;font-size:9pt;}
   <div class="trow grand"><span>TOTAL DUE</span><span>${GH(tot)}</span></div>
 </div>
 <p style="font-size:8.5pt;color:#555;margin-top:10px;">Payment due by: <strong>${dueDate||'—'}</strong>. Please present this invoice when making payment.</p>
-<div class="footer">Thank you for your business! &bull; Powered by <strong>NYANSATEK</strong></div>
+<div class="footer">Thank you for your business! &bull; Powered by <strong>NYANSATEK</strong> &bull; 0536340578</div>
 </body></html>`;
   }
 
@@ -1222,25 +1227,27 @@ td{padding:7px 9px;border-bottom:1px solid #ddd;font-size:9pt;}
 <style>
 @page{size:80mm auto;margin:2mm 2mm;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Courier New',Courier,monospace;font-size:11px;width:76mm;color:#000;background:#fff;}
+body{font-family:'Courier New',Courier,monospace;font-size:11px;width:76mm;color:#000;background:#fff;font-weight:700;}
 .hdr{text-align:center;border-bottom:2px solid #000;padding:5px 0 6px;}
 .hdr h2{font-size:14px;font-weight:bold;letter-spacing:1px;margin-bottom:1px;}
 .hdr .tp{font-size:9px;font-weight:bold;letter-spacing:3px;margin-bottom:2px;}
-.hdr .dt{font-size:9px;color:#333;}
+.hdr .dt{font-size:9px;color:#000;font-weight:700;}
 .meta{padding:4px 0;border-bottom:1px dashed #000;margin-bottom:3px;}
-.meta .mr{display:flex;justify-content:space-between;font-size:10px;padding:1px 0;}
+.meta .mr{display:flex;justify-content:space-between;font-size:10px;padding:1px 0;font-weight:700;}
 tbl{width:100%;border-collapse:collapse;}
 table{width:100%;border-collapse:collapse;}
 th{border-top:1px solid #000;border-bottom:1px solid #000;font-size:9px;padding:3px 3px;text-align:left;font-weight:bold;}
 th:nth-child(2),th:nth-child(3),th:nth-child(4){text-align:right;}
-td{font-size:10px;padding:3px 3px;border-bottom:1px dotted #bbb;vertical-align:top;}
+td{font-size:10px;padding:3px 3px;border-bottom:1px dotted #bbb;vertical-align:top;font-weight:700;color:#000;}
 td:nth-child(2),td:nth-child(3),td:nth-child(4){text-align:right;white-space:nowrap;}
 .subtot td{border-top:1px solid #000;border-bottom:none;font-size:10px;padding:3px 3px;}
 .grandtot td{border-top:2px solid #000;border-bottom:2px solid #000;font-size:12px;font-weight:bold;padding:4px 3px;}
-.ft{text-align:center;border-top:1px solid #000;margin-top:5px;padding-top:5px;font-size:9px;color:#444;}
+.ft{text-align:center;border-top:1px solid #000;margin-top:5px;padding-top:5px;font-size:9px;color:#000;font-weight:700;}
 </style></head><body>
 <div class="hdr">
   <h2>${biz}</h2>
+  ${bizAddr?`<div class="dt">${bizAddr}</div>`:''}
+  ${bizPhone?`<div class="dt">${bizPhone}</div>`:''}
   <div class="tp">${type}</div>
   <div class="dt">${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</div>
   <div class="dt" style="margin-top:1px;">Invoice: <b>${E(invId)}</b></div>
@@ -1267,7 +1274,7 @@ td:nth-child(2),td:nth-child(3),td:nth-child(4){text-align:right;white-space:now
     </tr>
   </tbody>
 </table>
-<div class="ft">&#9733; Thank you for your business! &#9733;<br>Powered by <b>NYANSATEK</b></div>
+<div class="ft">&#9733; Thank you for your business! &#9733;<br>Powered by <b>NYANSATEK</b> &bull; 0536340578</div>
 </body></html>`;
 }
 
@@ -1955,9 +1962,9 @@ function addSuppItem(){
   const qty=parseInt(document.getElementById('si-qty').value)||0;
   const uc=parseFloat(document.getElementById('si-uc').value)||0;
   const pid=document.getElementById('si-psch').dataset.pid||null;
-  const us=document.getElementById('si-us').checked;
+  const dest=document.getElementById('si-dest').value;
   if(!nm||qty<=0||uc<=0){alert('Fill in item name, quantity and unit cost.');return;}
-  sCart2.push({pid,name:nm,qty,uc,total:qty*uc,update_stock:us});
+  sCart2.push({pid,name:nm,qty,uc,total:qty*uc,dest});
   document.getElementById('si-psch').value='';document.getElementById('si-psch').dataset.pid='';
   document.getElementById('si-qty').value='';document.getElementById('si-uc').value='';
   renderSCart();
@@ -1972,7 +1979,7 @@ function renderSCart(){
   sCart2.forEach((it,idx)=>{
     const d=document.createElement('div');d.className='mci';
     d.innerHTML=`<span style="flex:1;">${E(it.name)} x${it.qty} @ ${GH(it.uc)}</span>
-      <span style="font-size:.76rem;color:var(--g);">${it.update_stock?'(+stock)':''}</span>
+      <span style="font-size:.76rem;color:var(--g);">${it.dest==='warehouse'?'(&rarr;warehouse)':'(+stock)'}</span>
       <span style="min-width:60px;text-align:right;font-size:.78rem;">${GH(it.total)}</span>
       <button class="rm" onclick="sCart2.splice(${idx},1);renderSCart()">×</button>`;
     c.appendChild(d);
@@ -1996,12 +2003,26 @@ async function recordSuppInv(){
   if(error){L(false);alert('Error: '+error.message);return;}
   await sb.from('supplier_invoice_items').insert(sCart2.map(it=>({
     supplier_invoice_id:si.id,product_id:it.pid||null,name_snapshot:it.name,
-    qty:it.qty,unit_cost:it.uc,line_total:it.total,update_stock:it.update_stock
+    qty:it.qty,unit_cost:it.uc,line_total:it.total,update_stock:it.dest==='stock'
   })));
   for(const it of sCart2){
-    if(it.update_stock&&it.pid){
+    if(it.dest==='stock'&&it.pid){
       const prod=inv.find(i=>i.id===it.pid);
       if(prod)await sb.from('products').update({stock:prod.stock+it.qty}).eq('id',it.pid);
+    }
+  }
+  const whItems=sCart2.filter(it=>it.dest==='warehouse');
+  if(whItems.length){
+    const{data:whrec,error:whErr}=await sb.from('supply_receipts').insert({
+      org_id:prof.org_id,supplier_name:sn,reference:ref||null,received_date:dt,
+      notes:(note?note+' — ':'')+'Auto-created from Supplier Invoice'+(ref?' '+ref:''),
+      received_by:prof.id
+    }).select().single();
+    if(!whErr&&whrec){
+      await sb.from('supply_receipt_items').insert(whItems.map(it=>({
+        supply_receipt_id:whrec.id,product_id:it.pid||null,name_snapshot:it.name,
+        qty_received:it.qty,qty_allocated:0,unit_cost:it.uc||null
+      })));
     }
   }
   suppInvList=[];sCart2=[];renderSCart();
