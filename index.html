@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NYANSATEK Elite POS</title>
+
+<!-- PWA: makes the site installable as an app -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NYANSATEK POS">
 <script>
      const SUPABASE_URL = "https://kqwqbohoeltlbwcopeug.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_T6oCd3aRO0OPheQXEkmvRA_nvIhEPcv";
@@ -2283,6 +2292,13 @@ document.addEventListener('click',e=>{
   const{data:{session:s}}=await sb.auth.getSession();L(false);
   if(s)await boot2();else scr('l');
 })();
+
+// PWA: register service worker so the app is installable
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(err=>console.warn('SW registration failed:',err));
+  });
+}
 </script>
 </body>
 </html>
