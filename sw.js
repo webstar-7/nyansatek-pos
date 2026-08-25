@@ -1,53 +1,2332 @@
-const CACHE_NAME = 'nyansatek-pos-v1';
-const APP_SHELL = [
-  './pos.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
-];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NYANSATEK Elite POS</title>
 
-// Install: pre-cache the app shell
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
-  );
-  self.skipWaiting();
+<!-- PWA: makes the site installable as an app -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111827">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NYANSATEK POS">
+<script>
+     const SUPABASE_URL = "https://kqwqbohoeltlbwcopeug.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_T6oCd3aRO0OPheQXEkmvRA_nvIhEPcv";
+// SMS is sent via /.netlify/functions/send-receipt-sms, which holds the
+// Hubtel Client ID/Secret server-side -- see sendSMS() below. No SMS
+// credentials belong in this file; anything here is visible in page source.
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{--p:#111827;--a:#d4af37;--bg:#f3f4f6;--b:#e5e7eb;--g:#9ca3af;--s:#10b981;--d:#ef4444;--bl:#2563eb;--t:#1f2937;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif;}
+body{background:var(--bg);color:var(--t);display:flex;flex-direction:column;min-height:100vh;}
+/* AUTH */
+.as{flex:1;display:flex;align-items:center;justify-content:center;background:var(--p);}
+.ac{background:#fff;border-radius:10px;padding:36px;width:380px;box-shadow:0 10px 30px rgba(0,0,0,.3);border-top:4px solid var(--a);}
+.ac h1{font-size:1.25rem;color:var(--p);margin-bottom:5px;}
+.sub{color:var(--g);font-size:.83rem;margin-bottom:20px;}
+.aerr{background:#fee2e2;color:#991b1b;padding:9px 12px;border-radius:5px;font-size:.82rem;margin-bottom:14px;display:none;}
+.aerr.on{display:block;}
+/* HEADER */
+header{background:var(--p);color:#fff;padding:0 18px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--a);flex-shrink:0;}
+.brand{font-size:.95rem;font-weight:700;color:var(--a);}
+.brand em{color:var(--g);font-size:.72rem;font-weight:400;font-style:normal;margin-left:7px;}
+.hr{display:flex;align-items:center;gap:8px;}
+.sbadge{background:rgba(212,175,55,.1);border:1px solid var(--a);border-radius:5px;padding:2px 9px;font-size:.7rem;color:var(--g);text-align:center;}
+.sbadge strong{color:var(--s);display:block;font-size:.84rem;}
+nav button{background:transparent;border:1px solid transparent;color:var(--g);padding:4px 10px;font-weight:600;cursor:pointer;border-radius:4px;font-size:.78rem;transition:all .15s;}
+nav button.on{border-color:var(--a);color:#fff;background:rgba(212,175,55,.12);}
+nav .lo{color:#fca5a5!important;}
+nav .hist-btn{color:var(--a)!important;font-size:1rem;padding:4px 8px;}
+/* LAYOUT */
+main{flex:1;overflow:hidden;}
+.view{display:none;}
+/* CASHIER */
+#cv{height:calc(100vh - 92px);}
+#cv.on{display:grid;grid-template-columns:1fr 288px;}
+.pp{overflow-y:auto;height:100%;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.srow{display:grid;grid-template-columns:1fr 160px;gap:7px;}
+.srow input{padding:8px 11px;border:1px solid var(--b);border-radius:5px;font-size:.85rem;width:100%;background:#fff;}
+.srow input:focus{outline:none;border-color:var(--a);}
+.cats{display:flex;flex-wrap:wrap;gap:5px;}
+.cb{background:#fff;border:1px solid var(--b);border-radius:18px;padding:3px 11px;font-size:.76rem;font-weight:600;cursor:pointer;color:var(--t);transition:all .12s;}
+.cb.on{background:var(--bl);border-color:var(--bl);color:#fff;}
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:7px;flex:1;}
+.pgm{display:flex;align-items:center;justify-content:center;color:var(--g);flex:1;font-size:.85rem;text-align:center;padding:24px;}
+.pc{background:#fff;border:1.5px solid var(--b);border-radius:7px;padding:9px 5px 7px;cursor:pointer;text-align:center;transition:all .12s;user-select:none;}
+.pc:hover{border-color:var(--bl);box-shadow:0 2px 7px rgba(37,99,235,.14);transform:translateY(-1px);}
+.pc:active{transform:scale(.95);}
+.pc.oos{opacity:.4;cursor:not-allowed;}
+.pn{font-size:10.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.pr{font-size:11.5px;font-weight:700;color:var(--bl);}
+.pcat{font-size:9.5px;color:var(--g);margin-top:1px;}
+/* CART */
+.cp{background:#fff;border-left:1px solid var(--b);display:flex;flex-direction:column;height:100%;min-height:0;}
+.ch{padding:9px 13px;border-bottom:1px solid var(--b);font-weight:700;font-size:.88rem;display:flex;align-items:center;gap:6px;}
+.cbdg{background:var(--bl);color:#fff;border-radius:11px;padding:1px 6px;font-size:.68rem;}
+.rb-btn{margin-left:auto;background:none;border:1px solid var(--b);border-radius:4px;padding:2px 7px;font-size:.72rem;cursor:pointer;color:var(--g);}
+.rb-btn:hover{border-color:var(--a);color:var(--a);}
+.cl{flex:1;overflow-y:auto;padding:7px;min-height:0;}
+.ce{text-align:center;padding:28px 14px;color:var(--g);font-size:.82rem;}
+.ce .ei{font-size:2.2rem;margin-bottom:5px;}
+.ci{display:flex;align-items:center;gap:5px;padding:6px 3px;border-bottom:1px solid var(--b);font-size:.8rem;}
+.cin{flex:1;font-weight:500;font-size:.75rem;}
+.qb{width:19px;height:19px;border:1px solid var(--b);border-radius:3px;cursor:pointer;font-weight:700;font-size:.82rem;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:0;}
+.ct2{font-weight:600;font-size:.75rem;min-width:46px;text-align:right;}
+.rm{color:var(--d);background:none;border:none;cursor:pointer;font-size:.95rem;padding:0 2px;}
+.ck{border-top:2px solid var(--b);padding:9px;}
+.gt{display:flex;justify-content:space-between;font-size:1rem;font-weight:700;color:var(--p);border-top:2px dashed var(--b);padding-top:6px;margin:4px 0 8px;}
+.sbs{display:flex;flex-direction:column;gap:4px;}
+/* SHARED */
+.fg{margin-bottom:8px;}
+.fg label{display:block;font-size:.71rem;font-weight:600;margin-bottom:2px;color:#4b5563;}
+.fg input,.fg select,.fg textarea{width:100%;padding:6px 8px;border:1px solid var(--b);border-radius:4px;font-size:.81rem;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--a);}
+.card{background:#fff;border-radius:7px;border:1px solid var(--b);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.card h2{font-size:1rem;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--bg);color:var(--p);}
+.btn{background:var(--p);color:#fff;padding:7px 14px;border:none;border-radius:4px;font-weight:600;cursor:pointer;font-size:.83rem;transition:all .15s;}
+.btn:hover{opacity:.84;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.ba{background:var(--a);color:var(--p);}
+.bg2{background:var(--s);color:#fff;}
+.bd{background:var(--d);color:#fff;}
+.bf{width:100%;padding:9px;font-size:.85rem;}
+.bsm{padding:4px 10px;font-size:.76rem;}
+.hint{font-size:.76rem;color:var(--g);margin-bottom:8px;}
+.es{text-align:center;padding:28px;color:var(--g);border:1px dashed var(--b);border-radius:5px;margin-top:10px;}
+.badge{padding:2px 7px;border-radius:11px;font-size:.7rem;font-weight:600;}
+.bg{background:#d1fae5;color:#065f46;}
+.by{background:#fef3c7;color:#92400e;}
+.br{background:#fee2e2;color:#991b1b;}
+.bpurp{background:#ede9fe;color:#5b21b6;}
+/* ADMIN */
+#av{height:calc(100vh - 92px);overflow:hidden;}
+#av.on{display:grid;grid-template-columns:310px 1fr;gap:16px;padding:16px;}
+#av .lp{overflow-y:auto;height:100%;}
+#av .rp{overflow-y:auto;height:100%;}
+/* MASTER INV */
+#miv{height:calc(100vh - 92px);overflow:hidden;}
+#miv.on{display:grid;grid-template-columns:310px 1fr;gap:16px;padding:16px;}
+#miv .lp{overflow-y:auto;height:100%;}
+#miv .rp{overflow-y:auto;height:100%;}
+/* LEDGER */
+#lv.on,#mlv.on,#mv.on{display:block;padding:16px;overflow-y:auto;height:calc(100vh - 92px);}
+/* TABS */
+.tbar{display:flex;flex-wrap:wrap;border-bottom:2px solid var(--b);margin-bottom:12px;gap:2px;}
+.tb{background:none;border:none;padding:6px 11px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--g);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .12s;white-space:nowrap;}
+.tb.on{color:var(--p);border-bottom-color:var(--a);}
+.tp{display:none;}
+.tp.on{display:block;}
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:.8rem;}
+th{background:var(--bg);padding:8px 10px;font-weight:600;border-bottom:2px solid var(--b);text-align:left;font-size:.74rem;}
+td{padding:8px 10px;border-bottom:1px solid var(--b);vertical-align:middle;}
+.ip{width:75px;padding:3px 5px;border:1px solid var(--b);border-radius:3px;font-weight:600;text-align:right;font-size:.79rem;}
+/* SEARCH DROP */
+.sdrop{position:relative;}
+.sdrop input{width:100%;padding:6px 8px;border:1px solid var(--b);border-radius:4px;font-size:.81rem;}
+.sdrop input:focus{outline:none;border-color:var(--a);}
+.sdlist{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--b);border-radius:4px;max-height:180px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.1);display:none;}
+.sdlist.on{display:block;}
+.sdi{padding:6px 9px;cursor:pointer;font-size:.8rem;border-bottom:1px solid var(--b);}
+.sdi:hover{background:var(--bg);}
+/* METRICS */
+.mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin-bottom:12px;}
+.mc{background:#fff;border:1px solid var(--b);border-radius:5px;padding:12px;text-align:center;}
+.mc.hl{background:#fefcbf;border-color:var(--a);}
+.mc p{font-size:.7rem;text-transform:uppercase;color:var(--g);margin-bottom:2px;font-weight:600;}
+.mc h3{font-size:1.2rem;color:var(--p);}
+.sh{border-left:4px solid var(--a);background:var(--bg);padding:12px;margin-bottom:12px;border-radius:0 5px 5px 0;}
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(17,24,39,.74);display:flex;align-items:center;justify-content:center;z-index:900;}
+.mc2{background:#fff;border-radius:9px;padding:24px;width:420px;border-top:4px solid var(--a);max-height:85vh;overflow-y:auto;}
+.mc2 h3{font-size:1rem;margin-bottom:4px;}
+.mc2 .sub{font-size:.8rem;color:var(--g);margin-bottom:14px;}
+.mc2-wide{width:600px;}
+/* CART MINI (credit/supplier) */
+.minicart{border:1px solid var(--b);border-radius:5px;margin-bottom:10px;max-height:160px;overflow-y:auto;}
+.mci{display:flex;align-items:center;gap:5px;padding:5px 8px;border-bottom:1px solid var(--b);font-size:.78rem;}
+.mci:last-child{border-bottom:none;}
+/* LOADING */
+.lov{position:fixed;inset:0;background:rgba(17,24,39,.6);display:none;align-items:center;justify-content:center;color:#fff;font-weight:600;z-index:999;}
+.lov.on{display:flex;}
+/* FOOTER */
+footer{background:var(--p);color:var(--g);text-align:center;padding:9px;font-size:.75rem;flex-shrink:0;}
+footer strong{color:var(--a);}
+/* PRINT A4 */
+@media print{
+  header,footer,nav,.sbs,.tbar,.lov,.mo,
+  .rb-btn,.btn,#av .lp,#cv .pp,#cv .ck{display:none!important;}
+  body{background:#fff!important;display:block!important;}
+  body.pr-receipt #app,body.pr-stmt #app{display:none!important;}
+  body.pr-receipt #pframe,body.pr-stmt #pframe{display:block!important;position:absolute;top:0;left:0;width:100%;}
+}
+</style>
+</head>
+<body>
+<div class="lov" id="lov">Working...</div>
+
+<!-- AUTH -->
+<div class="as" id="ls">
+  <div class="ac">
+    <h1>NYANSATEK Elite POS</h1>
+    <p class="sub">Sign in to your business environment</p>
+    <div class="aerr" id="le"></div>
+    <form id="lf">
+      <div class="fg"><label>Business Name (or Staff Username)</label>
+        <input type="text" id="lb" placeholder="Business name, or your staff username" required></div>
+      <div class="fg"><label>Password</label>
+        <div style="position:relative;">
+          <input type="password" id="lp" required style="padding-right:56px;">
+          <button type="button" onclick="const i=document.getElementById('lp');const b=this;if(i.type==='password'){i.type='text';b.innerText='Hide';}else{i.type='password';b.innerText='Show';}" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--bl);font-size:.72rem;font-weight:600;cursor:pointer;">Show</button>
+        </div></div>
+      <button type="submit" class="btn ba bf" id="lbtn">Sign In</button>
+    </form>
+  </div>
+</div>
+
+<div class="as" id="fps" style="display:none;">
+  <div class="ac">
+    <h1>Set a New Password</h1>
+    <p class="sub">First login — choose a private password.</p>
+    <div class="aerr" id="fpe"></div>
+    <form id="fpf">
+      <div class="fg"><label>New Password (min 8 chars)</label>
+        <div style="position:relative;">
+          <input type="password" id="np" minlength="8" required style="padding-right:56px;">
+          <button type="button" onclick="const i=document.getElementById('np');const b=this;if(i.type==='password'){i.type='text';b.innerText='Hide';}else{i.type='password';b.innerText='Show';}" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--bl);font-size:.72rem;font-weight:600;cursor:pointer;">Show</button>
+        </div></div>
+      <div class="fg"><label>Confirm Password</label>
+        <div style="position:relative;">
+          <input type="password" id="cp2" minlength="8" required style="padding-right:56px;">
+          <button type="button" onclick="const i=document.getElementById('cp2');const b=this;if(i.type==='password'){i.type='text';b.innerText='Hide';}else{i.type='password';b.innerText='Show';}" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--bl);font-size:.72rem;font-weight:600;cursor:pointer;">Show</button>
+        </div></div>
+      <button type="submit" class="btn ba bf">Save &amp; Continue</button>
+    </form>
+  </div>
+</div>
+
+<!-- SMS MODAL -->
+<div class="mo" id="smsm" style="display:none;">
+  <div class="mc2">
+    <h3>Send Purchase SMS</h3>
+    <p class="sub">Enter the customer's phone number.</p>
+    <div class="fg"><label>Phone Number</label>
+      <input type="tel" id="smsp" placeholder="e.g. 0541234567"></div>
+    <div style="display:flex;gap:7px;margin-top:5px;">
+      <button onclick="confirmSms()" class="btn bg2" style="flex:1;">Send &amp; Complete</button>
+      <button onclick="closeSms()" class="btn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREDIT INVOICE MODAL -->
+<div class="mo" id="cim" style="display:none;">
+  <div class="mc2 mc2-wide">
+    <h3>Issue Credit Invoice</h3>
+    <p class="sub">Items from current cart will be assigned to this customer.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="fg"><label>Customer Name *</label><input type="text" id="ci-cname" required></div>
+      <div class="fg"><label>Phone (optional)</label><input type="tel" id="ci-cphone"></div>
+      <div class="fg"><label>Due Date *</label><input type="date" id="ci-due" required></div>
+      <div class="fg"><label>Notes</label><input type="text" id="ci-note"></div>
+    </div>
+    <div style="display:flex;gap:7px;margin-top:5px;">
+      <button onclick="issueCreditFromCart()" class="btn ba" style="flex:1;">Issue Invoice &amp; Print</button>
+      <button onclick="closeCreditModal()" class="btn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- QTY ENTRY MODAL -->
+<div class="mo" id="qm" style="display:none;">
+  <div class="mc2" style="width:280px;">
+    <h3 id="qm-name">Add to Cart</h3>
+    <p class="sub" id="qm-stock"></p>
+    <div class="fg"><label>Quantity</label>
+      <input type="number" id="qm-qty" min="1" value="1" style="font-size:1.1rem;text-align:center;"></div>
+    <div style="display:flex;gap:7px;margin-top:5px;">
+      <button onclick="confirmQtyAdd()" class="btn bg2" style="flex:1;">Add</button>
+      <button onclick="closeQtyModal()" class="btn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECENT BILLINGS MODAL -->
+<div class="mo" id="rbm" style="display:none;">
+  <div class="mc2 mc2-wide">
+    <h3>Recent Billings</h3>
+    <p class="sub">Last 10 sales — tap Reprint to reissue any receipt.</p>
+    <div id="rbcontent"><div class="es">Loading...</div></div>
+    <button onclick="document.getElementById('rbm').style.display='none'" class="btn bf" style="margin-top:10px;">Close</button>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="mo" id="hm" style="display:none;">
+  <div class="mc2 mc2-wide">
+    <h3>&#128203; Activity History</h3>
+    <p class="sub">Recent entries across all areas of the system.</p>
+    <div class="tbar" id="htbar">
+      <button class="tb on" onclick="loadHist('sales')">Sales</button>
+      <button class="tb" onclick="loadHist('credit')">Credit Sales</button>
+      <button class="tb" onclick="loadHist('inv')">Inventory</button>
+      <button class="tb" onclick="loadHist('exp')">Expenses</button>
+      <button class="tb" onclick="loadHist('supp')">Supplier</button>
+    </div>
+    <div id="hcontent"><div class="es">Select a tab above.</div></div>
+    <button onclick="document.getElementById('hm').style.display='none'" class="btn bf" style="margin-top:10px;">Close</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;flex-direction:column;min-height:100vh;">
+  <header>
+    <div class="brand"><span id="hbiz">—</span><em>| System Matrix</em></div>
+    <div class="hr">
+      <div class="sbadge" id="sb" style="display:none;">Today<strong id="tsal">GH&#8373;0.00</strong></div>
+      <nav id="nav"></nav>
+    </div>
+  </header>
+  <main>
+
+    <!-- CASHIER -->
+    <div id="cv" class="view">
+      <div class="pp">
+        <div class="srow">
+          <input type="text" id="psch" placeholder="&#128269; Search products...">
+          <input type="text" id="bci" placeholder="&#128247; Scan barcode...">
+        </div>
+        <div id="pg2" class="pg"></div>
+      </div>
+      <div class="cp">
+        <div class="ch">&#128722; Cart <span class="cbdg" id="cbdg">0</span>
+          <button class="rb-btn" onclick="openRecentBillings()">&#128338; Recent</button>
+        </div>
+        <div class="cl" id="cl"></div>
+        <div class="ck">
+          <div class="fg"><label>Payment Method</label>
+            <select id="pm" onchange="toggleTen()">
+              <option value="Cash">Cash Tender</option>
+              <option value="Mobile Money">Mobile Money (MoMo)</option>
+              <option value="Card">Card / POS Terminal</option>
+            </select></div>
+          <div id="tw" class="fg"><label>Amount Tendered (GH&#8373;)</label>
+            <input type="number" id="ten" placeholder="0.00" oninput="calcCh()"></div>
+          <div style="font-size:.75rem;color:#4b5563;margin-bottom:5px;">
+            <div style="display:flex;justify-content:space-between;"><span>Subtotal</span><span id="stot">GH&#8373;0.00</span></div>
+            <div style="display:flex;justify-content:space-between;color:var(--s);font-weight:600;" id="chrow">
+              <span>Change</span><span id="chd">GH&#8373;0.00</span></div>
+          </div>
+          <div class="gt"><span>TOTAL</span><span id="gtot">GH&#8373;0.00</span></div>
+          <div class="sbs">
+            <button class="btn bf" style="background:var(--p);" onclick="doSale('complete')">COMPLETE</button>
+            <button class="btn bf ba" onclick="doSale('print')">PRINT &amp; COMPLETE</button>
+            <button class="btn bf bg2" onclick="doSale('sms')">SEND SMS &amp; COMPLETE</button>
+            <button class="btn bf" style="background:#7c3aed;" onclick="doSale('credit')">ISSUE CREDIT INVOICE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN INVENTORY -->
+    <div id="av" class="view">
+      <div class="lp">
+        <div class="card">
+          <h2>Inventory Management</h2>
+          <div class="tbar" id="atbar">
+            <button class="tb on" onclick="swInvTab('cr','a')">+ Create</button>
+            <button class="tb" onclick="swInvTab('as','a')">+ Add Stock</button>
+            <button class="tb" onclick="swInvTab('ed','a')">&#9998; Edit</button>
+            <button class="tb" onclick="swInvTab('rs','a')">&#128230; Received Supply</button>
+            <button class="tb" onclick="swInvTab('lg','a')">&#128203; History</button>
+          </div>
+          <div class="tp on" id="a-tp-cr">
+            <form id="apf">
+              <div class="fg"><label>Product Name</label><input type="text" id="an" required></div>
+
+              <div class="fg"><label>Barcode (optional)</label><input type="text" id="abr"></div>
+              <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="asp" required></div>
+              <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="acp" value="0"></div>
+              <div class="fg"><label>Initial Stock</label><input type="number" id="astk" min="0" required></div>
+              <div class="fg"><label>Note</label><input type="text" id="anote" placeholder="e.g. Opening stock"></div>
+              <button type="submit" class="btn bf">Save Product</button>
+            </form>
+          </div>
+          <div class="tp" id="a-tp-as">
+            <div class="fg"><label>Search Product</label>
+              <div class="sdrop" id="asdrop">
+                <input type="text" id="asrch" placeholder="Type product name..." autocomplete="off"
+                       oninput="filterStockSearch(this.value,'a')">
+                <div class="sdlist" id="asdlist"></div>
+              </div>
+              <div id="ascur" class="hint" style="margin-top:4px;"></div>
+            </div>
+            <div class="fg"><label>Quantity to Add</label><input type="number" id="asqty" min="1"></div>
+            <div class="fg"><label>Note</label><input type="text" id="asnote" placeholder="e.g. Supplier delivery"></div>
+            <button class="btn bf ba" onclick="addStk('a')">Add to Stock</button>
+          </div>
+          <div class="tp" id="a-tp-lg">
+            <div id="algc"><div class="es">Click Load to see history.</div></div>
+            <button class="btn bsm" style="margin-top:8px;" onclick="loadLog('a')">Load Log</button>
+          </div>
+          <div class="tp" id="a-tp-ed">
+            <div class="fg"><label>Search Product to Edit</label>
+              <div class="sdrop">
+                <input type="text" id="ed-srch" placeholder="Type product name..."
+                       autocomplete="off" oninput="filterEditSearch(this.value,'a')">
+                <div class="sdlist" id="ed-sdlist"></div>
+              </div>
+            </div>
+            <div id="ed-form" style="display:none;">
+              <div class="fg"><label>Product Name</label><input type="text" id="ed-name"></div>
+              <div class="fg"><label>Barcode</label><input type="text" id="ed-barcode"></div>
+              <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="ed-sell"></div>
+              <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="ed-cost"></div>
+              <div class="fg"><label>Quantity</label><input type="number" id="ed-qty" min="0"></div>
+              <button class="btn bf ba" onclick="saveProductEdit('a')">Save Changes</button>
+            </div>
+          </div>
+          <div class="tp" id="a-tp-rs">
+            <div class="tbar" style="margin-bottom:8px;">
+              <button class="tb on" onclick="swRSTab('rec')">Record Received</button>
+              <button class="tb" onclick="swRSTab('xfer')">Transfer to Store</button>
+              <button class="tb" onclick="swRSTab('rel')">Release to Stock</button>
+            </div>
+            <div class="tp on" id="rs-tp-rec">
+              <p class="hint">Log supply that has arrived from the supplier, into the warehouse — without adding it to live stock yet.</p>
+              <div class="fg"><label>Supplier Name</label><input type="text" id="rs-sup"></div>
+              <div class="fg"><label>Reference (optional)</label><input type="text" id="rs-ref"></div>
+              <div class="fg"><label>Date Received</label><input type="date" id="rs-dt"></div>
+              <div class="fg"><label>Add Item</label>
+                <div style="display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:center;">
+                  <div class="sdrop"><input type="text" id="rs-psch" placeholder="Product name..."
+                    autocomplete="off" oninput="filterRSProd(this.value)">
+                    <div class="sdlist" id="rs-pdlist"></div>
+                  </div>
+                  <input type="number" id="rs-qty" placeholder="Qty" style="width:55px;padding:6px 5px;border:1px solid var(--b);border-radius:4px;font-size:.79rem;">
+                  <input type="number" id="rs-uc" placeholder="Cost" style="width:65px;padding:6px 5px;border:1px solid var(--b);border-radius:4px;font-size:.79rem;">
+                </div>
+                <button class="btn bsm" onclick="addRSItem()" style="margin-top:4px;">Add</button>
+              </div>
+              <div class="minicart" id="rscart"><div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div></div>
+              <div class="fg"><label>Notes</label><input type="text" id="rs-note"></div>
+              <button class="btn bf" onclick="recordReceipt()">Save Receipt (stock unchanged)</button>
+            </div>
+            <div class="tp" id="rs-tp-xfer">
+              <p class="hint">Move warehouse-held supply into one of your 3 stores' holding area — stock is still not live yet.</p>
+              <div id="xfer-storenames" style="margin-bottom:10px;"></div>
+              <button class="btn bsm" onclick="loadTransferable()">Refresh List</button>
+              <div id="rs-xferlist" style="margin-top:8px;"><div class="es">Click Refresh to load pending warehouse items.</div></div>
+            </div>
+            <div class="tp" id="rs-tp-rel">
+              <p class="hint">Move store-held supply into live, sellable stock — in whatever quantity you're ready to shelve.</p>
+              <button class="btn bsm" onclick="loadReleasable()">Refresh List</button>
+              <div id="rs-rellist" style="margin-top:8px;"><div class="es">Click Refresh to load pending items.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rp">
+        <div class="card">
+          <h2>Current Inventory</h2>
+          <p class="hint">Edit selling price &amp; cost price inline — press Enter to save.</p>
+          <table id="ait">
+            <thead><tr><th>Product</th>
+              <th style="text-align:right;">Cost (GH&#8373;)</th>
+              <th style="text-align:right;">Sell (GH&#8373;)</th>
+              <th style="text-align:right;">Profit</th>
+              <th style="text-align:center;">Stock</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASHIER MANAGEMENT (admin only) -->
+    <div id="chv" class="view">
+      <div class="card" style="max-width:1000px;margin:0 auto;">
+        <h2>Manage Cashiers</h2>
+        <p class="hint">Create login credentials for your cashiers. They'll sign in with the Staff Username + password you set below (instead of the business name).</p>
+        <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:16px;">
+          <div>
+            <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">+ New Cashier</h3>
+            <form id="chf">
+              <div class="fg"><label>Cashier Full Name</label><input type="text" id="ch-name" required></div>
+              <div class="fg"><label>Staff Username (used to log in)</label><input type="text" id="ch-user" placeholder="e.g. john or mary01" required></div>
+              <div class="fg"><label>Password (min 8 chars)</label>
+                <div style="position:relative;">
+                  <input type="password" id="ch-pass" minlength="8" required style="padding-right:56px;">
+                  <button type="button" onclick="const i=document.getElementById('ch-pass');const b=this;if(i.type==='password'){i.type='text';b.innerText='Hide';}else{i.type='password';b.innerText='Show';}" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--bl);font-size:.72rem;font-weight:600;cursor:pointer;">Show</button>
+                </div></div>
+              <button type="submit" class="btn bf ba">Create Cashier</button>
+            </form>
+          </div>
+          <div>
+            <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Current Cashiers</h3>
+            <table id="cht"><thead><tr><th>Name</th><th>Username</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+            <div id="ch-em" class="es" style="display:none;">No cashiers yet — create one on the left.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEDGER -->
+    <div id="lv" class="view">
+      <div class="card">
+        <h2>SME Financial Tracker</h2>
+        <div class="tbar">
+          <button class="tb on" onclick="swLedTab('sh')">Sales History</button>
+          <button class="tb" onclick="swLedTab('pr')">Profit Report</button>
+          <button class="tb" onclick="swLedTab('cs')">Credit Sales</button>
+          <button class="tb" onclick="swLedTab('cp')">Credit Payments</button>
+          <button class="tb" onclick="swLedTab('si')">Supplier Invoices</button>
+          <button class="tb" onclick="swLedTab('sp')">Supplier Payments</button>
+          <button class="tb" onclick="swLedTab('is')">Income Statement</button>
+          <button class="tb" onclick="swLedTab('vo')">Void / Return Sale</button>
+        </div>
+
+        <!-- TAB: SALES HISTORY -->
+        <div class="tp on" id="l-tp-sh">
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+            <div class="fg" style="margin:0;flex:1;"><label>Start Date</label><input type="date" id="sh-s"></div>
+            <div class="fg" style="margin:0;flex:1;"><label>End Date</label><input type="date" id="sh-e"></div>
+            <button class="btn" onclick="genSalesHist()">Extract</button>
+            <button id="sh-pb" class="btn ba" style="display:none;" onclick="printStmt('lv')">Print</button>
+          </div>
+          <div id="sh-out" style="display:none;"></div>
+          <div id="sh-em" class="es">Select a date range and click Extract.</div>
+        </div>
+
+        <!-- TAB: PROFIT REPORT -->
+        <div class="tp" id="l-tp-pr">
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+            <div class="fg" style="margin:0;flex:1;"><label>Start Date</label><input type="date" id="pr-s"></div>
+            <div class="fg" style="margin:0;flex:1;"><label>End Date</label><input type="date" id="pr-e"></div>
+            <button class="btn" onclick="genProfitReport()">Extract</button>
+            <button id="pr-pb" class="btn ba" style="display:none;" onclick="printStmt('lv')">Print</button>
+          </div>
+          <div id="pr-out" style="display:none;"></div>
+          <div id="pr-em" class="es">Select a date range and click Extract.</div>
+        </div>
+
+        <!-- TAB: CREDIT SALES -->
+        <div class="tp" id="l-tp-cs">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Issue New Credit Invoice</h3>
+              <div class="fg"><label>Customer Name *</label><input type="text" id="cs-cn" required></div>
+              <div class="fg"><label>Customer Phone</label><input type="tel" id="cs-cp"></div>
+              <div class="fg"><label>Due Date *</label><input type="date" id="cs-due"></div>
+              <div class="fg"><label>Notes</label><input type="text" id="cs-note"></div>
+              <div class="fg"><label>Search &amp; Add Product</label>
+                <div class="sdrop"><input type="text" id="cs-psch" placeholder="Type product name..."
+                  autocomplete="off" oninput="filterCredProd(this.value)">
+                  <div class="sdlist" id="cs-pdlist"></div>
+                </div>
+              </div>
+              <div class="minicart" id="cscart"><div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div></div>
+              <div style="display:flex;justify-content:space-between;font-weight:600;font-size:.82rem;margin-bottom:8px;">
+                <span>Total:</span><span id="cstot">GH&#8373;0.00</span>
+              </div>
+              <button class="btn bf ba" onclick="issueCredit()">Issue Invoice &amp; Print</button>
+            </div>
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Outstanding Credit Sales</h3>
+              <button class="btn bsm" onclick="loadCreditList()">Refresh List</button>
+              <div id="cslist" style="margin-top:8px;"><div class="es">Click Refresh to load.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: CREDIT PAYMENTS -->
+        <div class="tp" id="l-tp-cp">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Receive Credit Payment</h3>
+              <div class="fg"><label>Search Credit Invoice</label>
+                <div class="sdrop"><input type="text" id="cp-sch" placeholder="Customer name or invoice ID..."
+                  autocomplete="off" oninput="filterCreditInv(this.value)">
+                  <div class="sdlist" id="cp-dlist"></div>
+                </div>
+                <div id="cp-sel" class="hint" style="margin-top:4px;"></div>
+              </div>
+              <div class="fg"><label>Amount Received (GH&#8373;)</label><input type="number" id="cp-amt"></div>
+              <div class="fg"><label>Payment Method</label>
+                <select id="cp-pm">
+                  <option>Cash</option><option>Mobile Money</option><option>Card</option>
+                </select></div>
+              <div class="fg"><label>Notes</label><input type="text" id="cp-note"></div>
+              <button class="btn bf ba" onclick="recvCreditPay()">Record Payment</button>
+            </div>
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Recent Credit Payments</h3>
+              <button class="btn bsm" onclick="loadCPHistory()">Refresh</button>
+              <div id="cplist" style="margin-top:8px;"><div class="es">Click Refresh to load.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: SUPPLIER INVOICES -->
+        <div class="tp" id="l-tp-si">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Record Supplies Received</h3>
+              <div class="fg"><label>Supplier Name *</label><input type="text" id="si-sn"></div>
+              <div class="fg"><label>Invoice Ref (optional)</label><input type="text" id="si-ref"></div>
+              <div class="fg"><label>Date Received *</label><input type="date" id="si-dt"></div>
+              <div class="fg"><label>Due Date</label><input type="date" id="si-due"></div>
+              <div class="fg"><label>Add Item</label>
+                <div style="display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:center;">
+                  <div class="sdrop"><input type="text" id="si-psch" placeholder="Product name..."
+                    autocomplete="off" oninput="filterSuppProd(this.value)">
+                    <div class="sdlist" id="si-pdlist"></div>
+                  </div>
+                  <input type="number" id="si-qty" placeholder="Qty" style="width:55px;padding:6px 5px;border:1px solid var(--b);border-radius:4px;font-size:.79rem;">
+                  <input type="number" id="si-uc" placeholder="Cost" style="width:65px;padding:6px 5px;border:1px solid var(--b);border-radius:4px;font-size:.79rem;">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                  <label style="font-size:.75rem;">Destination:</label>
+                  <select id="si-dest" style="padding:4px 6px;border:1px solid var(--b);border-radius:4px;font-size:.78rem;">
+                    <option value="stock">Add to Stock</option>
+                    <option value="warehouse">Add to Warehouse (hold)</option>
+                  </select>
+                  <button class="btn bsm" onclick="addSuppItem()" style="margin-left:auto;">Add</button>
+                </div>
+              </div>
+              <div class="minicart" id="sicart"><div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div></div>
+              <div style="display:flex;justify-content:space-between;font-weight:600;font-size:.82rem;margin-bottom:8px;">
+                <span>Total:</span><span id="sitot">GH&#8373;0.00</span>
+              </div>
+              <div class="fg"><label>Notes</label><input type="text" id="si-note"></div>
+              <button class="btn bf" onclick="recordSuppInv()">Record Supplier Invoice</button>
+            </div>
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Outstanding Payables</h3>
+              <button class="btn bsm" onclick="loadSuppInvList()">Refresh</button>
+              <div id="silist" style="margin-top:8px;"><div class="es">Click Refresh to load.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: SUPPLIER PAYMENTS -->
+        <div class="tp" id="l-tp-sp">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Pay a Supplier</h3>
+              <div class="fg"><label>Search Supplier Invoice</label>
+                <div class="sdrop"><input type="text" id="sp-sch" placeholder="Supplier name..."
+                  autocomplete="off" oninput="filterSuppInv(this.value)">
+                  <div class="sdlist" id="sp-dlist"></div>
+                  <div id="sp-sel" class="hint" style="margin-top:4px;"></div>
+                </div>
+              </div>
+              <div class="fg"><label>Amount Paid (GH&#8373;)</label><input type="number" id="sp-amt"></div>
+              <div class="fg"><label>Payment Method</label>
+                <select id="sp-pm"><option>Cash</option><option>Mobile Money</option><option>Card</option></select></div>
+              <div class="fg"><label>Notes</label><input type="text" id="sp-note"></div>
+              <button class="btn bf bg2" onclick="makeSuppPay()">Record Payment</button>
+            </div>
+            <div>
+              <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Recent Supplier Payments</h3>
+              <button class="btn bsm" onclick="loadSPHistory()">Refresh</button>
+              <div id="splist" style="margin-top:8px;"><div class="es">Click Refresh to load.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: INCOME STATEMENT -->
+        <div class="tp" id="l-tp-is">
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+            <div class="fg" style="margin:0;flex:1;"><label>Start Date</label><input type="date" id="is-s"></div>
+            <div class="fg" style="margin:0;flex:1;"><label>End Date</label><input type="date" id="is-e"></div>
+            <button class="btn" onclick="genIncomeSt()">Generate</button>
+            <button id="is-pb" class="btn ba" style="display:none;" onclick="printStmt('lv')">Print</button>
+          </div>
+          <div style="border:1px solid var(--b);border-radius:5px;padding:12px;margin-bottom:12px;">
+            <div class="fg"><label>Add Expense</label>
+              <div style="display:grid;grid-template-columns:1fr auto auto;gap:5px;align-items:center;">
+                <input type="text" id="ex-desc" placeholder="Description">
+                <input type="number" id="ex-amt" placeholder="Amount" style="width:90px;padding:6px 7px;border:1px solid var(--b);border-radius:4px;font-size:.8rem;">
+                <input type="date" id="ex-dt" style="width:130px;padding:6px 7px;border:1px solid var(--b);border-radius:4px;font-size:.8rem;">
+              </div>
+              <button class="btn bsm ba" style="margin-top:5px;" onclick="addExp()">+ Add Expense</button>
+            </div>
+          </div>
+          <div id="is-out" style="display:none;"></div>
+          <div id="is-em" class="es">Select a period and click Generate.</div>
+        </div>
+
+        <!-- TAB: VOID / RETURN SALE -->
+        <div class="tp" id="l-tp-vo">
+          <p class="hint">Pick a cashier and a date to see every sale they made. Select any sale to void it for a warranty issue or a returned item — items are automatically put back into stock.</p>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+            <div class="fg" style="margin:0;flex:1.3;"><label>Cashier</label>
+              <select id="vo-cashier"><option value="">-- Select cashier --</option></select></div>
+            <div class="fg" style="margin:0;flex:1;"><label>Date</label><input type="date" id="vo-date"></div>
+            <button class="btn" onclick="loadCashierSales()">Find Sales</button>
+          </div>
+          <div id="vo-out"></div>
+          <div id="vo-em" class="es">Select a cashier and date, then click Find Sales.</div>
+        </div>
+
+      </div><!-- /card -->
+    </div><!-- /ledger view -->
+
+    <!-- MASTER VIEWS -->
+    <div id="mv" class="view">
+      <div class="card">
+        <h2>Registered Businesses</h2>
+        <p class="hint">Add businesses via Supabase — see tenant-onboarding-template.sql.</p>
+        <table id="ot"><thead><tr><th>Business</th><th>Email</th><th>Status</th><th>Since</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+
+    <div id="miv" class="view">
+      <div class="lp">
+        <div class="card">
+          <h2>Inventory Management</h2>
+          <div class="fg"><label>Select Business</label>
+            <select id="morg" onchange="mLoadInv(this.value)">
+              <option value="">-- Select --</option>
+            </select></div>
+          <div id="minvform" style="display:none;">
+            <div class="tbar" id="mtbar">
+              <button class="tb on" onclick="swInvTab('cr','m')">+ Create</button>
+              <button class="tb" onclick="swInvTab('as','m')">+ Add Stock</button>
+              <button class="tb" onclick="swInvTab('ed','m')">&#9998; Edit</button>
+              <button class="tb" onclick="swInvTab('lg','m')">&#128203; History</button>
+            </div>
+            <div class="tp on" id="m-tp-cr">
+              <form id="mpf">
+                <div class="fg"><label>Product Name</label><input type="text" id="mn" required></div>
+
+                <div class="fg"><label>Barcode (optional)</label><input type="text" id="mbr"></div>
+                <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="msp2" required></div>
+                <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="mcp2" value="0"></div>
+                <div class="fg"><label>Initial Stock</label><input type="number" id="mstk" min="0" required></div>
+                <div class="fg"><label>Note</label><input type="text" id="mnote"></div>
+                <button type="submit" class="btn bf">Save Product</button>
+              </form>
+            </div>
+            <div class="tp" id="m-tp-as">
+              <div class="fg"><label>Search Product</label>
+                <div class="sdrop" id="msdrop">
+                  <input type="text" id="msrch" placeholder="Type product name..."
+                         autocomplete="off" oninput="filterStockSearch(this.value,'m')">
+                  <div class="sdlist" id="msdlist"></div>
+                </div>
+                <div id="mscur" class="hint" style="margin-top:4px;"></div>
+              </div>
+              <div class="fg"><label>Quantity to Add</label><input type="number" id="msqty" min="1"></div>
+              <div class="fg"><label>Note</label><input type="text" id="msnote"></div>
+              <button class="btn bf ba" onclick="addStk('m')">Add to Stock</button>
+            </div>
+            <div class="tp" id="m-tp-lg">
+              <div id="mlgc"><div class="es">Click Load.</div></div>
+              <button class="btn bsm" style="margin-top:8px;" onclick="loadLog('m')">Load Log</button>
+            </div>
+            <div class="tp" id="m-tp-ed">
+              <div class="fg"><label>Search Product to Edit</label>
+                <div class="sdrop">
+                  <input type="text" id="med-srch" placeholder="Type product name..."
+                         autocomplete="off" oninput="filterEditSearch(this.value,'m')">
+                  <div class="sdlist" id="med-sdlist"></div>
+                </div>
+              </div>
+              <div id="med-form" style="display:none;">
+                <div class="fg"><label>Product Name</label><input type="text" id="med-name"></div>
+                <div class="fg"><label>Barcode</label><input type="text" id="med-barcode"></div>
+                <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="med-sell"></div>
+                <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="med-cost"></div>
+                <div class="fg"><label>Quantity</label><input type="number" id="med-qty" min="0"></div>
+                <button class="btn bf ba" onclick="saveProductEdit('m')">Save Changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rp">
+        <div class="card">
+          <h2 id="minvtitle">Inventory</h2>
+          <table id="mit">
+            <thead><tr><th>Product</th>
+              <th style="text-align:right;">Cost</th>
+              <th style="text-align:right;">Sell</th>
+              <th style="text-align:right;">Profit</th>
+              <th style="text-align:center;">Stock</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="mlv" class="view">
+      <div class="card">
+        <h2>Financial Ledger — All Businesses</h2>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+          <div class="fg" style="margin:0;flex:1.5;"><label>Business</label>
+            <select id="mlo"><option value="">-- Select --</option></select></div>
+          <div class="fg" style="margin:0;flex:1;"><label>Start</label><input type="date" id="mls"></div>
+          <div class="fg" style="margin:0;flex:1;"><label>End</label><input type="date" id="mle"></div>
+          <button class="btn" onclick="mGenStmt()">Extract</button>
+          <button id="ml-pb" class="btn ba" style="display:none;" onclick="printStmt('mlv')">Print</button>
+        </div>
+        <div id="mlo2" style="display:none;"></div>
+        <div id="mle2" class="es">Select a business and date range.</div>
+      </div>
+    </div>
+
+  </main>
+  <footer><span id="fbiz">—</span> Terminal Solutions &bull; Powered by <strong>NYANSATEK</strong> &bull; 0536340578</footer>
+</div>
+
+<script>
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const CE={'Produce':'🥦','Dairy':'🥛','Bakery':'🍞','Meat':'🥩','Beverages':'🧃','Snacks':'🍪',
+  'Household':'🧹','Personal Care':'🧴','Hardware':'🔧','Electronics':'🔌','Clothing':'👕','General':'📦'};
+const GHC='GH\u20B3';
+let sess=null,prof=null,inv=[],cart=[],cCart=[],sCart=[],suppInvList=[],credInvList=[];
+let orgList=[],activeOrg=null,selCreditSale=null,selSuppInv=null;
+let pendSale=null,selStkId=null,activeCat='';
+
+const L=on=>document.getElementById('lov').classList.toggle('on',on);
+const E=s=>!s?'':String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const GH=n=>(n||0).toFixed(2);
+const today=()=>new Date().toISOString().split('T')[0];
+
+function scr(n){
+  document.getElementById('ls').style.display=n==='l'?'flex':'none';
+  document.getElementById('fps').style.display=n==='f'?'flex':'none';
+  document.getElementById('app').style.display=n==='a'?'flex':'none';
+}
+
+document.getElementById('lf').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const eb=document.getElementById('le');eb.classList.remove('on');
+  const biz=document.getElementById('lb').value.trim(),pw=document.getElementById('lp').value;
+  const btn=document.getElementById('lbtn');btn.disabled=true;btn.innerText='Signing in...';
+  try{
+    const{data:row}=await sb.from('login_lookup').select('login_email').ilike('business_name',biz).maybeSingle();
+    let loginEmail=row?.login_email;
+    if(!loginEmail){
+      const{data:staffRow}=await sb.from('staff_login_lookup').select('login_email').ilike('login_username',biz).maybeSingle();
+      loginEmail=staffRow?.login_email;
+    }
+    if(!loginEmail)throw new Error('Business name / username or password is incorrect.');
+    const{error:ae}=await sb.auth.signInWithPassword({email:loginEmail,password:pw});
+    if(ae)throw new Error('Business name / username or password is incorrect.');
+    await boot2();
+  }catch(err){eb.innerText=err.message;eb.classList.add('on');}
+  finally{btn.disabled=false;btn.innerText='Sign In';}
 });
 
-// Activate: clean up old caches
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
+document.getElementById('fpf').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const eb=document.getElementById('fpe');eb.classList.remove('on');
+  const np=document.getElementById('np').value,cp=document.getElementById('cp2').value;
+  if(np!==cp){eb.innerText='Passwords do not match.';eb.classList.add('on');return;}
+  L(true);
+  const{error}=await sb.auth.updateUser({password:np});
+  if(error){L(false);eb.innerText=error.message;eb.classList.add('on');return;}
+  await sb.from('profiles').update({must_change_password:false}).eq('id',sess.user.id);
+  L(false);await boot2();
 });
 
-// Fetch: only handle same-origin GET requests for the app shell.
-// Everything else (Supabase API calls, CDN scripts, etc.) goes straight to the network
-// so your live sales/inventory data is never served from a stale cache.
-self.addEventListener('fetch', event => {
-  const req = event.request;
-  const url = new URL(req.url);
+async function handleLogout(){
+  await sb.auth.signOut();sess=null;prof=null;inv=[];cart=[];scr('l');
+}
 
-  if (req.method !== 'GET' || url.origin !== self.location.origin) {
-    return; // let the browser handle it normally
+async function boot2(){
+  L(true);
+  const{data:{session:s}}=await sb.auth.getSession();sess=s;
+  if(!sess){L(false);scr('l');return;}
+  const{data:p}=await sb.from('profiles').select('*').eq('id',sess.user.id).single();
+  if(!p){L(false);scr('l');return;}
+  prof=p;
+  if(prof.role!=='master'&&prof.org_id){
+    const{data:org}=await sb.from('organizations').select('business_name').eq('id',prof.org_id).single();
+    prof.businessName=org?.business_name||prof.display_name||'Business';
+  }
+  if(prof.must_change_password){L(false);scr('f');return;}
+  if(prof.role==='master')await initMaster();else await initTenant();
+  L(false);scr('a');
+}
+
+const VD={'cv':'grid','av':'grid','chv':'block','lv':'block','mv':'block','miv':'grid','mlv':'block'};
+function swV(v){
+  document.querySelectorAll('.view').forEach(el=>{el.style.display='none';el.classList.remove('on');});
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
+  const el=document.getElementById(v);
+  if(el){el.style.display=VD[v]||'block';el.classList.add('on');}
+  const b=document.getElementById('t-'+v);if(b)b.classList.add('on');
+  if(v==='chv')loadCashiers();
+}
+
+function buildNav(role){
+  const nav=document.getElementById('nav');nav.innerHTML='';
+  const tabs=role==='master'
+    ?[['mv','Businesses'],['miv','Inv. Manager'],['mlv','Financial Ledger']]
+    :role==='admin'
+    ?[['cv','Cashier'],['av','Admin Inventory'],['chv','Cashiers'],['lv','SME Ledger']]
+    :[['cv','Cashier']];
+  tabs.forEach(([k,l],i)=>{
+    const b=document.createElement('button');b.id='t-'+k;b.innerText=l;
+    if(i===0)b.classList.add('on');b.onclick=()=>swV(k);nav.appendChild(b);
+  });
+  const hb=document.createElement('button');hb.className='hist-btn';hb.title='Activity History';
+  hb.innerHTML='&#128203;';hb.onclick=()=>{document.getElementById('hm').style.display='flex';loadHist('sales');};
+  nav.appendChild(hb);
+  const lo=document.createElement('button');lo.innerText='Log Out';lo.className='lo';lo.onclick=handleLogout;nav.appendChild(lo);
+}
+
+async function initTenant(){
+  buildNav(prof.role);
+  const biz=prof.businessName||prof.display_name||'Business';
+  document.getElementById('hbiz').innerText=biz;
+  document.getElementById('fbiz').innerText=biz;
+  document.getElementById('sb').style.display='block';
+  activeOrg=prof.org_id;
+  swV('cv');toggleTen();
+  setDef('sh-s','sh-e','pr-s','pr-e','is-s','is-e','ex-dt','si-dt');
+  await loadInv(prof.org_id);await refSales();
+}
+
+function setDef(...ids){const t=today();ids.forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=t;});}
+
+async function refSales(){
+  const t=today();
+  const{data}=await sb.from('sales').select('total').eq('org_id',prof.org_id)
+    .gte('created_at',t+'T00:00:00').lte('created_at',t+'T23:59:59');
+  const tot=(data||[]).reduce((s,r)=>s+r.total,0);
+  const el=document.getElementById('tsal');if(el)el.innerText=GH(tot);
+}
+
+async function loadInv(orgId){
+  const{data}=await sb.from('products').select('*').eq('org_id',orgId).order('name');
+  inv=data||[];
+  renderPG();
+  renderInvTable(prof.role==='master'?'mit':'ait');
+}
+
+// ── CASHIER MANAGEMENT (admin) ───────────────────────────────────
+async function loadCashiers(){
+  const tb=document.querySelector('#cht tbody'),em=document.getElementById('ch-em');
+  if(!tb)return;
+  L(true);
+  const{data,error}=await sb.from('profiles').select('id,full_name,login_username,is_active,created_at')
+    .eq('org_id',prof.org_id).eq('role','cashier').order('full_name');
+  L(false);
+  tb.innerHTML='';
+  if(error){em.style.display='block';em.innerText='Could not load cashiers: '+error.message;return;}
+  if(!data||!data.length){em.style.display='block';return;}
+  em.style.display='none';
+  data.forEach(c=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><strong>${E(c.full_name||'—')}</strong></td>
+      <td style="font-family:monospace;">${E(c.login_username||'—')}</td>
+      <td><span class="badge ${c.is_active?'bg':'br'}">${c.is_active?'Active':'Inactive'}</span></td>
+      <td><button class="btn bsm bd">Delete</button></td>`;
+    tr.querySelector('button').onclick=()=>deleteCashier(c.id,c.full_name);
+    tb.appendChild(tr);
+  });
+}
+
+document.getElementById('chf').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=document.getElementById('ch-name').value.trim();
+  const username=document.getElementById('ch-user').value.trim().toLowerCase();
+  const password=document.getElementById('ch-pass').value;
+  if(!name||!username||password.length<8){alert('Fill in all fields — password must be at least 8 characters.');return;}
+  L(true);
+  const{data,error}=await sb.functions.invoke('create-cashier',{body:{
+    full_name:name,login_username:username,password,org_id:prof.org_id,
+    business_display_name:prof.display_name
+  }});
+  L(false);
+  if(error||data?.error){alert('Error creating cashier: '+(data?.error||error.message));return;}
+  document.getElementById('chf').reset();
+  await loadCashiers();
+  alert(`Cashier "${name}" created. They can log in with Staff Username "${username}" and the password you set.`);
+});
+
+async function deleteCashier(id,name){
+  if(!confirm(`Delete cashier "${name||''}"? They will no longer be able to log in. Their past sales stay on record with their name attached.`))return;
+  L(true);
+  const{data,error}=await sb.functions.invoke('delete-cashier',{body:{cashier_id:id,org_id:prof.org_id}});
+  L(false);
+  if(error||data?.error){alert('Error deleting cashier: '+(data?.error||error.message));return;}
+  await loadCashiers();
+}
+
+function sbadge(s){
+  if(s===0)return '<span class="badge br">Out of Stock</span>';
+  if(s<=10)return `<span class="badge by">${s} units</span>`;
+  return `<span class="badge bg">${s} units</span>`;
+}
+
+function renderInvTable(tid){
+  const tb=document.querySelector('#'+tid+' tbody');if(!tb)return;
+  tb.innerHTML='';
+  if(!inv.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--g);padding:20px;">No products yet.</td></tr>';return;}
+  inv.forEach(it=>{
+    const profit=(it.price||0)-(it.cost_price||0);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><strong>${E(it.name)}</strong><br><span style="font-size:.68rem;color:var(--g);font-family:monospace;">${E(it.barcode||'')}</span></td>
+      <td style="text-align:right;"><input type="number" step="0.01" min="0" class="ip" data-id="${it.id}" data-field="cost" value="${(it.cost_price||0).toFixed(2)}"></td>
+      <td style="text-align:right;"><input type="number" step="0.01" min="0" class="ip" data-id="${it.id}" data-field="sell" value="${(it.price||0).toFixed(2)}"></td>
+      <td style="text-align:right;font-weight:600;color:${profit>=0?'var(--s)':'var(--d)'};">${GH(profit)}</td>
+      <td style="text-align:center;">${sbadge(it.stock)}</td>`;
+    tr.querySelectorAll('.ip').forEach(inp=>inp.addEventListener('change',e=>updatePriceField(it.id,e.target.dataset.field,e.target.value)));
+    tb.appendChild(tr);
+  });
+}
+
+async function updatePriceField(id,field,val){
+  const v=parseFloat(val);if(isNaN(v)||v<0)return;
+  const upd=field==='cost'?{cost_price:v}:{price:v};
+  await sb.from('products').update(upd).eq('id',id);
+  await loadInv(activeOrg);
+}
+
+// ── PRODUCT GRID ────────────────────────────────────────────────
+function renderPG(){
+  const grid=document.getElementById('pg2');
+  if(!grid)return;
+  const search=(document.getElementById('psch')?.value||'').toLowerCase();
+  if(!search){
+    grid.innerHTML='<div class="pgm">Type a product name above to search.</div>';
+    return;
+  }
+  const shown=inv.filter(p=>p.name.toLowerCase().includes(search));
+  if(!shown.length){grid.innerHTML='<div class="pgm">No products found.</div>';return;}
+  grid.innerHTML='';
+  shown.forEach(it=>{
+    const card=document.createElement('div');card.className='pc'+(it.stock<=0?' oos':'');
+    card.innerHTML=`<div class="pn" style="white-space:normal;font-size:12px;margin-bottom:3px;">${E(it.name)}</div>
+      <div class="pr">${GH(it.price)}</div>
+      <div style="font-size:9.5px;color:var(--g);margin-top:2px;">${it.stock<=0?'Out of stock':it.stock+' in stock'}</div>`;
+    if(it.stock>0)card.onclick=()=>addToCart(it.id);else card.title='Out of stock';
+    grid.appendChild(card);
+  });
+}
+
+document.getElementById('psch').addEventListener('input',()=>renderPG());
+document.getElementById('bci').addEventListener('keypress',e=>{
+  if(e.key==='Enter'){const c=e.target.value.trim();if(c){addByBarcode(c);e.target.value='';}}
+});
+
+function addByBarcode(bc){
+  const p=inv.find(i=>i.barcode&&i.barcode.toLowerCase()===bc.toLowerCase());
+  if(!p){alert('Item not found: '+bc);return;}addToCart(p.id);
+}
+
+let qmProdId=null;
+function addToCart(id){
+  const p=inv.find(i=>i.id===id);if(!p)return;
+  qmProdId=id;
+  const ci=cart.find(i=>i.id===id);
+  document.getElementById('qm-name').innerText='Add "'+p.name+'"';
+  document.getElementById('qm-stock').innerText=`In stock: ${p.stock}`+(ci?` • Already in cart: ${ci.qty}`:'');
+  const q=document.getElementById('qm-qty');q.value=1;q.max=p.stock;
+  document.getElementById('qm').style.display='flex';
+  setTimeout(()=>{q.focus();q.select();},50);
+}
+function closeQtyModal(){document.getElementById('qm').style.display='none';qmProdId=null;}
+function confirmQtyAdd(){
+  if(!qmProdId)return;
+  const p=inv.find(i=>i.id===qmProdId);if(!p)return;
+  const qty=parseInt(document.getElementById('qm-qty').value)||0;
+  if(qty<=0){alert('Enter a valid quantity.');return;}
+  const ci=cart.find(i=>i.id===qmProdId);
+  const already=ci?ci.qty:0;
+  if(already+qty>p.stock){alert('Only '+p.stock+' units available (already '+already+' in cart).');return;}
+  if(ci)ci.qty+=qty;else cart.push({...p,qty});
+  renderCart();closeQtyModal();
+}
+document.getElementById('qm-qty').addEventListener('keypress',e=>{if(e.key==='Enter'){e.preventDefault();confirmQtyAdd();}});
+function adjQ(id,d){
+  const it=cart.find(i=>i.id===id),p=inv.find(i=>i.id===id);if(!it||!p)return;
+  if(d>0&&(it.qty+d)>p.stock){alert('Max: '+p.stock);return;}
+  it.qty+=d;if(it.qty<=0)cart=cart.filter(i=>i.id!==id);renderCart();
+}
+function rmCart(id){cart=cart.filter(i=>i.id!==id);renderCart();}
+function setQty(id,qty){
+  const it=cart.find(i=>i.id===id),p=inv.find(i=>i.id===id);if(!it||!p)return;
+  if(isNaN(qty)||qty<=0){cart=cart.filter(i=>i.id!==id);renderCart();return;}
+  if(qty>p.stock){alert('Only '+p.stock+' units available.');qty=p.stock;}
+  it.qty=qty;renderCart();
+}
+
+function renderCart(){
+  const cl=document.getElementById('cl'),bd=document.getElementById('cbdg');
+  const tot=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  if(!cart.length){
+    cl.innerHTML='<div class="ce"><div class="ei">🛒</div>Cart is empty<br><span style="font-size:.75rem;">Tap a product to add</span></div>';
+    bd.innerText='0';document.getElementById('gtot').innerText=GH(0);
+    document.getElementById('stot').innerText=GH(0);calcCh();return;
+  }
+  cl.innerHTML='';
+  cart.forEach(it=>{
+    const d=document.createElement('div');d.className='ci';
+    d.innerHTML=`<div class="cin">${E(it.name)}</div>
+      <div style="display:flex;align-items:center;gap:2px;">
+        <button class="qb" data-a="d">−</button>
+        <input type="number" min="1" class="qty-in" value="${it.qty}" style="width:34px;text-align:center;font-size:.78rem;font-weight:600;border:1px solid var(--b);border-radius:3px;padding:1px;">
+        <button class="qb" data-a="i">+</button>
+      </div>
+      <div class="ct2">${GH(it.price*it.qty)}</div>
+      <button class="rm">×</button>`;
+    d.querySelector('[data-a="d"]').onclick=()=>adjQ(it.id,-1);
+    d.querySelector('[data-a="i"]').onclick=()=>adjQ(it.id,1);
+    d.querySelector('.rm').onclick=()=>rmCart(it.id);
+    d.querySelector('.qty-in').addEventListener('change',e=>setQty(it.id,parseInt(e.target.value)));
+    cl.appendChild(d);
+  });
+  bd.innerText=cart.reduce((s,i)=>s+i.qty,0);
+  document.getElementById('gtot').innerText=GH(tot);
+  document.getElementById('stot').innerText=GH(tot);calcCh();
+}
+
+function toggleTen(){
+  const c=document.getElementById('pm').value==='Cash';
+  document.getElementById('tw').style.display=c?'block':'none';
+  document.getElementById('chrow').style.display=c?'flex':'none';calcCh();
+}
+function calcCh(){
+  const tot=parseFloat(document.getElementById('gtot').innerText.replace(GHC,''))||0;
+  if(document.getElementById('pm').value!=='Cash'){document.getElementById('chd').innerText=GH(0);return;}
+  const ten=parseFloat(document.getElementById('ten').value)||0;
+  document.getElementById('chd').innerText=ten>=tot?GH(ten-tot):GH(0);
+}
+
+// ── SALES ────────────────────────────────────────────────────────
+async function doSale(mode){
+  if(!cart.length){alert('Cart is empty.');return;}
+  const tot=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const method=document.getElementById('pm').value;
+  let ten=tot;
+  if(method==='Cash'){ten=parseFloat(document.getElementById('ten').value)||0;
+    if(ten<tot){alert('Amount tendered is less than total.');return;}}
+  pendSale={tot,method,ten};
+  if(mode==='credit'){document.getElementById('cim').style.display='flex';return;}
+  if(mode==='sms'){document.getElementById('smsm').style.display='flex';return;}
+  await finSale(mode,null);pendSale=null;
+}
+
+async function finSale(mode,phone){
+  const{tot,method,ten}=pendSale;
+  L(true);
+  const inv2=cart.toSpliced?cart.toSpliced():JSON.parse(JSON.stringify(cart));
+  const invId='INV-'+Math.floor(10000+Math.random()*90000);
+  const cashierName=prof.full_name||prof.display_name||'—';
+  const{data:sale,error:se}=await sb.from('sales').insert({
+    org_id:prof.org_id,invoice_id:invId,cashier_id:prof.id,cashier_name_snapshot:cashierName,
+    payment_method:method,total:tot,
+    amount_tendered:method==='Cash'?ten:null,
+    change_due:method==='Cash'?ten-tot:null
+  }).select().single();
+  if(se){L(false);alert('Sale error: '+se.message);return;}
+  await sb.from('sale_items').insert(cart.map(it=>({
+    sale_id:sale.id,product_id:it.id,name_snapshot:it.name,
+    cost_price_snapshot:it.cost_price||0,price_snapshot:it.price,
+    qty:it.qty,line_total:it.price*it.qty
+  })));
+  for(const it of cart)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
+  const cartSnap=JSON.parse(JSON.stringify(cart));
+  cart=[];document.getElementById('ten').value='';
+  await loadInv(prof.org_id);renderCart();await refSales();L(false);
+  if(mode==='print'||mode==='sms'){
+    const rh=buildRcpt(invId,method,tot,ten,cartSnap,'RECEIPT','','','',cashierName);
+    printIF(rh);
+  }
+  if(mode==='sms'&&phone)await sendSMS(phone,buildSMSMsg(invId,method,tot,cartSnap));
+  if(mode==='complete')alert('Sale recorded. Invoice: '+invId);
+}
+
+// Credit invoice from cashier cart
+function closeCreditModal(){document.getElementById('cim').style.display='none';}
+async function issueCreditFromCart(){
+  const cn=document.getElementById('ci-cname').value.trim();
+  const cp=document.getElementById('ci-cphone').value.trim();
+  const due=document.getElementById('ci-due').value;
+  const note=document.getElementById('ci-note').value.trim();
+  if(!cn||!due){alert('Customer name and due date are required.');return;}
+  const tot=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  L(true);closeCreditModal();
+  const cartSnap=JSON.parse(JSON.stringify(cart));
+  const invId='CRD-'+Math.floor(10000+Math.random()*90000);
+  const cashierName=prof.full_name||prof.display_name||'—';
+  const{data:cs,error}=await sb.from('credit_sales').insert({
+    org_id:prof.org_id,invoice_id:invId,customer_name:cn,customer_phone:cp||null,
+    due_date:due,total:tot,status:'unpaid',notes:note||null,created_by:prof.id,cashier_name_snapshot:cashierName
+  }).select().single();
+  if(error){L(false);alert('Error: '+error.message);return;}
+  await sb.from('credit_sale_items').insert(cartSnap.map(it=>({
+    credit_sale_id:cs.id,product_id:it.id,name_snapshot:it.name,
+    cost_price_snapshot:it.cost_price||0,selling_price_snapshot:it.price,
+    qty:it.qty,line_total:it.price*it.qty
+  })));
+  for(const it of cartSnap)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
+  cart=[];document.getElementById('ten').value='';
+  await loadInv(prof.org_id);renderCart();L(false);
+  const rh=buildRcpt(invId,'Credit',tot,0,cartSnap,'CREDIT INVOICE',cn,cp,due,cashierName);
+  printIF(rh);
+}
+
+function closeSms(){document.getElementById('smsm').style.display='none';document.getElementById('smsp').value='';}
+async function confirmSms(){
+  const ph=document.getElementById('smsp').value.trim();
+  if(!ph){alert('Please enter a phone number.');return;}
+  document.getElementById('smsm').style.display='none';
+  await finSale('sms',ph);pendSale=null;
+  document.getElementById('smsp').value='';
+}
+
+function buildSMSMsg(invId,method,tot,items){
+  const biz=(prof.businessName||prof.display_name||'Business').toUpperCase();
+  const addr=prof.address?`\n${prof.address}`:'';
+  const phoneLine=prof.phone?`\n${prof.phone}`:'';
+  const dt=new Date();
+  const dateStr=dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const itemLines=items.map(i=>`${i.name} x${i.qty} = GH\u20B3${GH(i.price*i.qty)}`).join('\n');
+  return `${biz}${addr}${phoneLine}\n------------------------\nRECEIPT | Inv: ${invId}\n${dateStr}\n------------------------\n${itemLines}\n------------------------\nTOTAL: GH\u20B3${GH(tot)}\nPaid via: ${method}\n------------------------\nThank you for your business!\nPowered by NYANSATEK`;
+}
+async function sendSMS(ph,msg){
+  try{
+    const res=await fetch('/.netlify/functions/send-receipt-sms',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({phone:ph,message:msg})
+    });
+    if(!res.ok){console.error('SMS failed:',await res.text());alert('Sale complete, but the SMS could not be sent. You can print or share the receipt manually.');}
+  }catch(e){console.error(e);alert('Sale complete, but the SMS could not be sent. You can print or share the receipt manually.');}
+}
+
+// ── PRINT ────────────────────────────────────────────────────────
+function buildRcpt(invId,method,tot,ten,items,type='RECEIPT',cname='',cphone='',dueDate='',cashierName=''){
+  const biz=E(prof.businessName||prof.display_name||'Business');
+  const bizPhone=prof.phone?E(prof.phone):'';
+  const bizAddr=prof.address?E(prof.address):'';
+  const cashierLine=cashierName?E(cashierName):'';
+  const isCreditInv=type==='CREDIT INVOICE';
+  let cashLines='';
+  if(method==='Cash'&&!isCreditInv)cashLines=`<div class="rr"><span>Paid:</span><span>${GH(ten)}</span></div><div class="rr"><span>Change:</span><span>${GH(ten-tot)}</span></div>`;
+  const custInfo=cname?`<div class="rr"><span>Customer:</span><span>${E(cname)}</span></div>${cphone?`<div class="rr"><span>Phone:</span><span>${E(cphone)}</span></div>`:''}${dueDate?`<div class="rr bold" style="color:#c00;"><span>DUE DATE:</span><span>${dueDate}</span></div>`:''}`:'' ;
+
+  if(isCreditInv){
+    // A4 formal invoice layout for credit sales
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@page{size:A4;margin:18mm 20mm;}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:10.5pt;color:#000;font-weight:600;}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #111827;padding-bottom:12px;margin-bottom:16px;}
+.hdr h1{font-size:20pt;color:#111827;margin:0;}
+.hdr .inv-meta{text-align:right;font-size:9pt;color:#000;font-weight:700;}
+.inv-meta strong{color:#d4af37;font-size:12pt;display:block;margin-bottom:4px;}
+.cust{background:#f8f8f8;border-left:4px solid #d4af37;padding:10px 14px;margin-bottom:14px;border-radius:0 5px 5px 0;}
+.cust p{margin:2px 0;font-size:9.5pt;font-weight:700;}
+table{width:100%;border-collapse:collapse;margin-bottom:12px;}
+th{background:#111827;color:#fff;padding:7px 9px;text-align:left;font-size:9pt;}
+td{padding:7px 9px;border-bottom:1px solid #ddd;font-size:9pt;font-weight:700;color:#000;}
+.tot-blk{max-width:260px;margin-left:auto;border:2px solid #111827;border-radius:4px;}
+.trow{display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #ddd;font-size:9.5pt;font-weight:700;}
+.trow.grand{background:#111827;color:#fff;font-weight:700;font-size:11pt;border:none;}
+.footer{text-align:center;margin-top:24px;font-size:8.5pt;color:#333;border-top:1px solid #ddd;padding-top:10px;font-weight:700;}
+</style></head><body>
+<div class="hdr">
+  <div><h1>${biz}</h1>${bizAddr?`<p style="color:#000;font-size:9pt;margin-top:3px;font-weight:700;">${bizAddr}</p>`:''}${bizPhone?`<p style="color:#000;font-size:9pt;font-weight:700;">${bizPhone}</p>`:''}<p style="color:#000;font-size:9pt;margin-top:3px;font-weight:700;">Date: ${new Date().toLocaleDateString()}</p></div>
+  <div class="inv-meta"><strong>CREDIT INVOICE</strong>Invoice No: <b>${E(invId)}</b><br>Due Date: <b style="color:#c00;">${dueDate||'—'}</b>${cashierLine?`<br>Issued by: <b>${cashierLine}</b>`:''}</div>
+</div>
+<div class="cust"><p><b>Bill To:</b></p><p>${E(cname)}</p>${cphone?`<p>Phone: ${E(cphone)}</p>`:''}</div>
+<table><thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Unit Price</th><th style="text-align:right;">Total</th></tr></thead>
+<tbody>${items.map(i=>`<tr><td>${E(i.name)}</td><td style="text-align:center;">${i.qty}</td><td style="text-align:right;">${GH(i.price)}</td><td style="text-align:right;font-weight:600;">${GH(i.price*i.qty)}</td></tr>`).join('')}
+</tbody></table>
+<div class="tot-blk">
+  <div class="trow grand"><span>TOTAL DUE</span><span>${GH(tot)}</span></div>
+</div>
+<p style="font-size:8.5pt;color:#555;margin-top:10px;">Payment due by: <strong>${dueDate||'—'}</strong>. Please present this invoice when making payment.</p>
+<div class="footer">Thank you for your business! &bull; Powered by <strong>NYANSATEK</strong> &bull; 0536340578</div>
+</body></html>`;
   }
 
-  event.respondWith(
-    caches.match(req).then(cached => {
-      const network = fetch(req)
-        .then(res => {
-          if (res && res.status === 200) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
-          }
-          return res;
-        })
-        .catch(() => cached); // offline fallback
+  // Thermal receipt (80mm) — styled with table layout
+  const cashRows=method==='Cash'?`
+    <tr><td colspan="3" style="text-align:right;font-size:10px;padding:2px 3px;">Amount Paid</td>
+        <td style="text-align:right;font-size:10px;padding:2px 3px;">${GH(ten)}</td></tr>
+    <tr><td colspan="3" style="text-align:right;font-size:10px;padding:2px 3px;">Change</td>
+        <td style="text-align:right;font-size:10px;padding:2px 3px;">${GH(ten-tot)}</td></tr>`:'';
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@page{size:80mm auto;margin:2mm 2mm;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Courier New',Courier,monospace;font-size:11px;width:76mm;color:#000;background:#fff;font-weight:700;}
+.hdr{text-align:center;border-bottom:2px solid #000;padding:5px 0 6px;}
+.hdr h2{font-size:14px;font-weight:bold;letter-spacing:1px;margin-bottom:1px;}
+.hdr .tp{font-size:9px;font-weight:bold;letter-spacing:3px;margin-bottom:2px;}
+.hdr .dt{font-size:9px;color:#000;font-weight:700;}
+.meta{padding:4px 0;border-bottom:1px dashed #000;margin-bottom:3px;}
+.meta .mr{display:flex;justify-content:space-between;font-size:10px;padding:1px 0;font-weight:700;}
+tbl{width:100%;border-collapse:collapse;}
+table{width:100%;border-collapse:collapse;}
+th{border-top:1px solid #000;border-bottom:1px solid #000;font-size:9px;padding:3px 3px;text-align:left;font-weight:bold;}
+th:nth-child(2),th:nth-child(3),th:nth-child(4){text-align:right;}
+td{font-size:10px;padding:3px 3px;border-bottom:1px dotted #bbb;vertical-align:top;font-weight:700;color:#000;}
+td:nth-child(2),td:nth-child(3),td:nth-child(4){text-align:right;white-space:nowrap;}
+.subtot td{border-top:1px solid #000;border-bottom:none;font-size:10px;padding:3px 3px;}
+.grandtot td{border-top:2px solid #000;border-bottom:2px solid #000;font-size:12px;font-weight:bold;padding:4px 3px;}
+.ft{text-align:center;border-top:1px solid #000;margin-top:5px;padding-top:5px;font-size:9px;color:#000;font-weight:700;}
+</style></head><body>
+<div class="hdr">
+  <h2>${biz}</h2>
+  ${bizAddr?`<div class="dt">${bizAddr}</div>`:''}
+  ${bizPhone?`<div class="dt">${bizPhone}</div>`:''}
+  <div class="tp">${type}</div>
+  <div class="dt">${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</div>
+  <div class="dt" style="margin-top:1px;">Invoice: <b>${E(invId)}</b></div>
+</div>
+<div class="meta">
+  <div class="mr"><span>Payment Method:</span><span><b>${E(method)}</b></span></div>
+  ${cashierLine?`<div class="mr"><span>Served by:</span><span><b>${cashierLine}</b></span></div>`:''}
+</div>
+<table>
+  <thead>
+    <tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+  </thead>
+  <tbody>
+    ${items.map(i=>`<tr>
+      <td>&#8226; ${E(i.name)}</td>
+      <td>${i.qty}</td>
+      <td>${GH(i.price)}</td>
+      <td>${GH(i.price*i.qty)}</td>
+    </tr>`).join('')}
+    ${cashRows}
+    <tr class="grandtot">
+      <td colspan="3">TOTAL DUE</td>
+      <td>${GH(tot)}</td>
+    </tr>
+  </tbody>
+</table>
+<div class="ft">&#9733; Thank you for your business! &#9733;<br>Powered by <b>NYANSATEK</b> &bull; 0536340578</div>
+</body></html>`;
+}
 
-      return cached || network;
-    })
-  );
+function printIF(html){
+  const old=document.getElementById('rif');if(old)old.remove();
+  const f=document.createElement('iframe');f.id='rif';
+  f.style.cssText='position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;';
+  document.body.appendChild(f);
+  f.onload=()=>setTimeout(()=>{f.contentWindow.focus();f.contentWindow.print();},350);
+  f.srcdoc=html;
+}
+
+// ── RECENT BILLINGS ──────────────────────────────────────────────
+async function openRecentBillings(){
+  document.getElementById('rbm').style.display='flex';
+  L(true);
+  const{data}=await sb.from('sales').select('*,sale_items(name_snapshot,qty,price_snapshot)')
+    .eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(10);
+  L(false);
+  const c=document.getElementById('rbcontent');
+  if(!data||!data.length){c.innerHTML='<div class="es">No recent sales.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Invoice</th><th>Date</th><th>Cashier</th><th>Items</th><th>Total</th><th></th></tr></thead>
+  <tbody>${data.map(s=>`<tr>
+    <td style="font-family:monospace;font-weight:600;">${E(s.invoice_id)}</td>
+    <td style="font-size:.75rem;">${new Date(s.created_at).toLocaleString()}</td>
+    <td style="font-size:.75rem;">${E(s.cashier_name_snapshot||'—')}</td>
+    <td style="font-size:.75rem;color:var(--g);">${(s.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
+    <td style="font-weight:600;">${GH(s.total)}</td>
+    <td><button class="btn bsm ba" onclick='reprintSale(${JSON.stringify(s)})'>Reprint</button></td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+function reprintSale(s){
+  const items=(s.sale_items||[]).map(i=>({name:i.name_snapshot,qty:i.qty,price:i.price_snapshot}));
+  const rh=buildRcpt(s.invoice_id,s.payment_method,s.total,s.amount_tendered||s.total,items,'RECEIPT','','','',s.cashier_name_snapshot||'');
+  printIF(rh);
+}
+
+// ── VOID / RETURN SALE (by cashier + date) ───────────────────────
+async function populateCashierDropdown(){
+  const sel=document.getElementById('vo-cashier');if(!sel)return;
+  const cur=sel.value;
+  L(true);
+  const{data}=await sb.from('sales').select('cashier_name_snapshot').eq('org_id',prof.org_id)
+    .not('cashier_name_snapshot','is',null).limit(500);
+  L(false);
+  const names=[...new Set((data||[]).map(r=>r.cashier_name_snapshot).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">-- Select cashier --</option>'+names.map(n=>`<option value="${E(n)}">${E(n)}</option>`).join('');
+  if(cur)sel.value=cur;
+  setDef('vo-date');
+}
+
+async function loadCashierSales(){
+  const name=document.getElementById('vo-cashier').value;
+  const dt=document.getElementById('vo-date').value;
+  if(!name||!dt){alert('Select a cashier and a date.');return;}
+  L(true);
+  const{data}=await sb.from('sales').select('*,sale_items(id,product_id,name_snapshot,qty,line_total)')
+    .eq('org_id',prof.org_id).eq('cashier_name_snapshot',name)
+    .gte('created_at',dt+'T00:00:00').lte('created_at',dt+'T23:59:59')
+    .order('created_at',{ascending:false});
+  L(false);
+  const out=document.getElementById('vo-out'),em=document.getElementById('vo-em');
+  if(!data||!data.length){out.innerHTML='';out.style.display='none';em.style.display='block';em.innerText='No sales found for that cashier on that date.';return;}
+  em.style.display='none';out.style.display='block';
+  out.innerHTML=`<table><thead><tr><th>Time</th><th>Invoice</th><th>Items</th><th>Method</th><th style="text-align:right;">Total</th><th></th></tr></thead>
+  <tbody>${data.map(s=>`<tr>
+    <td style="font-size:.73rem;">${new Date(s.created_at).toLocaleTimeString()}</td>
+    <td style="font-family:monospace;font-weight:600;">${E(s.invoice_id)}</td>
+    <td style="font-size:.73rem;color:var(--g);">${(s.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
+    <td>${E(s.payment_method)}</td>
+    <td style="text-align:right;font-weight:600;">${GH(s.total)}</td>
+    <td><button class="btn bsm bd" onclick="voidSale('${s.id}')">Void &amp; Restock</button></td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+async function voidSale(saleId){
+  if(!confirm('Void this sale? Items will be added back to stock and the sale will be permanently removed from records. This cannot be undone.'))return;
+  L(true);
+  const{data:items}=await sb.from('sale_items').select('*').eq('sale_id',saleId);
+  const{data:saleRow}=await sb.from('sales').select('*').eq('id',saleId).single();
+  for(const it of (items||[])){
+    if(!it.product_id)continue;
+    const prod=inv.find(i=>i.id===it.product_id);
+    const before=prod?prod.stock:0,after=before+it.qty;
+    await sb.from('products').update({stock:after}).eq('id',it.product_id);
+    await sb.from('inventory_log').insert({org_id:prof.org_id,product_id:it.product_id,
+      product_name_snapshot:it.name_snapshot,added_by:prof.id,qty_added:it.qty,
+      stock_before:before,stock_after:after,
+      note:'Restock from voided sale '+(saleRow?.invoice_id||saleId)});
+  }
+  await sb.from('sale_items').delete().eq('sale_id',saleId);
+  await sb.from('sales').delete().eq('id',saleId);
+  L(false);
+  await loadInv(prof.org_id);await refSales();await loadCashierSales();
+  alert('Sale voided and items restocked.');
+}
+
+// ── ADMIN INVENTORY ──────────────────────────────────────────────
+function swInvTab(tab,ctx){
+  const pref=ctx==='m'?'m-tp-':'a-tp-';
+  const order=ctx==='m'?['cr','as','ed','lg']:['cr','as','ed','rs','lg'];
+  order.forEach(t=>{
+    const p=document.getElementById(pref+t);if(p)p.classList.toggle('on',t===tab);
+  });
+  const bar=document.getElementById(ctx==='m'?'mtbar':'atbar');
+  if(bar)bar.querySelectorAll('.tb').forEach((b,i)=>b.classList.toggle('on',order[i]===tab));
+}
+
+function swRSTab(tab){
+  ['rec','xfer','rel'].forEach(t=>{
+    const p=document.getElementById('rs-tp-'+t);if(p)p.classList.toggle('on',t===tab);
+  });
+  document.querySelectorAll('#a-tp-rs .tbar .tb').forEach((b,i)=>b.classList.toggle('on',['rec','xfer','rel'][i]===tab));
+  if(tab==='xfer')loadTransferable();
+  if(tab==='rel')loadReleasable();
+}
+
+document.getElementById('apf').addEventListener('submit',async e=>{
+  e.preventDefault();
+  let br=document.getElementById('abr').value.trim()||'NT-'+Date.now();
+  const nm=document.getElementById('an').value.trim();
+  const sp=parseFloat(document.getElementById('asp').value)||0;
+  const cp=parseFloat(document.getElementById('acp').value)||0;
+  const stk=parseInt(document.getElementById('astk').value)||0;
+  const note=document.getElementById('anote').value.trim();
+  L(true);
+  const{data:prod,error}=await sb.from('products').upsert(
+    {org_id:prof.org_id,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk},
+    {onConflict:'org_id,barcode'}).select().single();
+  if(!error&&prod)await sb.from('inventory_log').insert({org_id:prof.org_id,product_id:prod.id,
+    product_name_snapshot:nm,added_by:prof.id,qty_added:stk,stock_before:0,stock_after:stk,note:note||'Initial stock'});
+  L(false);if(error){alert('Error: '+error.message);return;}
+  e.target.reset();await loadInv(prof.org_id);alert('Product saved!');
 });
+
+// Searchable stock dropdown
+let selStkPId=null;
+function filterStockSearch(val,ctx){
+  const listId=ctx==='m'?'msdlist':'asdlist';
+  const list=document.getElementById(listId);
+  if(!val.trim()){list.classList.remove('on');return;}
+  const matches=inv.filter(i=>i.name.toLowerCase().includes(val.toLowerCase()));
+  if(!matches.length){list.classList.remove('on');return;}
+  list.innerHTML='';
+  matches.slice(0,8).forEach(p=>{
+    const d=document.createElement('div');d.className='sdi';
+    d.innerText=`${p.name} (Stock: ${p.stock})`;
+    d.onclick=()=>{
+      selStkPId=p.id;
+      const inp=document.getElementById(ctx==='m'?'msrch':'asrch');
+      inp.value=p.name;list.classList.remove('on');
+      const cur=document.getElementById(ctx==='m'?'mscur':'ascur');
+      if(cur)cur.innerText=`Current stock: ${p.stock} units`;
+    };
+    list.appendChild(d);
+  });
+  list.classList.add('on');
+}
+
+async function addStk(ctx){
+  const orgId=ctx==='m'?activeOrg:prof.org_id;
+  if(!orgId){alert('Select a business first.');return;}
+  if(!selStkPId){alert('Please search and select a product.');return;}
+  const qty=parseInt(document.getElementById(ctx==='m'?'msqty':'asqty').value)||0;
+  const note=document.getElementById(ctx==='m'?'msnote':'asnote').value.trim();
+  if(qty<=0){alert('Enter a valid quantity.');return;}
+  const prod=inv.find(i=>i.id===selStkPId);if(!prod)return;
+  const ns=prod.stock+qty;
+  L(true);
+  await sb.from('products').update({stock:ns}).eq('id',selStkPId);
+  await sb.from('inventory_log').insert({org_id:orgId,product_id:selStkPId,product_name_snapshot:prod.name,
+    added_by:prof.id,qty_added:qty,stock_before:prod.stock,stock_after:ns,
+    note:note||(ctx==='m'?'Added by NYANSATEK':null)});
+  L(false);selStkPId=null;
+  document.getElementById(ctx==='m'?'msrch':'asrch').value='';
+  document.getElementById(ctx==='m'?'msqty':'asqty').value='';
+  document.getElementById(ctx==='m'?'msnote':'asnote').value='';
+  const cur=document.getElementById(ctx==='m'?'mscur':'ascur');if(cur)cur.innerText='';
+  await loadInv(orgId);alert(`Added ${qty} units. New stock: ${ns}`);
+}
+
+async function loadLog(ctx){
+  const orgId=ctx==='m'?activeOrg:prof.org_id;
+  const cid=ctx==='m'?'mlgc':'algc';
+  L(true);
+  let q=sb.from('inventory_log').select('*').order('created_at',{ascending:false}).limit(100);
+  if(orgId)q=q.eq('org_id',orgId);
+  const{data}=await q;L(false);
+  const c=document.getElementById(cid);
+  if(!data||!data.length){c.innerHTML='<div class="es">No history.</div>';return;}
+  c.innerHTML=`<div style="overflow-x:auto;"><table><thead><tr><th>Date</th><th>Product</th><th>Added</th><th>Before</th><th>After</th><th>Note</th></tr></thead>
+  <tbody>${data.map(r=>`<tr>
+    <td style="font-size:.7rem;font-family:monospace;">${new Date(r.created_at).toLocaleString()}</td>
+    <td>${E(r.product_name_snapshot)}</td>
+    <td style="color:var(--s);font-weight:600;">+${r.qty_added}</td>
+    <td>${r.stock_before??'—'}</td><td>${r.stock_after??'—'}</td>
+    <td style="color:var(--g);font-size:.73rem;">${E(r.note||'—')}</td>
+  </tr>`).join('')}</tbody></table></div>`;
+}
+
+// ── RECEIVED SUPPLY (capture without auto-stocking, release gradually) ──
+let rsCart=[];
+function filterRSProd(val){
+  const list=document.getElementById('rs-pdlist');
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=inv.filter(i=>i.name.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const d=document.createElement('div');d.className='sdi';d.innerText=`${p.name} (Cost: ${GH(p.cost_price||0)})`;
+    d.onclick=()=>{
+      document.getElementById('rs-psch').value=p.name;
+      document.getElementById('rs-uc').value=(p.cost_price||0).toFixed(2);
+      document.getElementById('rs-psch').dataset.pid=p.id;
+      list.classList.remove('on');
+    };
+    list.appendChild(d);
+  });
+  list.classList.toggle('on',ms.length>0);
+}
+
+function addRSItem(){
+  const nm=document.getElementById('rs-psch').value.trim();
+  const qty=parseInt(document.getElementById('rs-qty').value)||0;
+  const uc=parseFloat(document.getElementById('rs-uc').value)||0;
+  const pid=document.getElementById('rs-psch').dataset.pid||null;
+  if(!nm||qty<=0){alert('Enter a product name and a valid quantity.');return;}
+  rsCart.push({pid,name:nm,qty,uc});
+  document.getElementById('rs-psch').value='';document.getElementById('rs-psch').dataset.pid='';
+  document.getElementById('rs-qty').value='';document.getElementById('rs-uc').value='';
+  renderRSCart();
+}
+
+function renderRSCart(){
+  const c=document.getElementById('rscart');
+  if(!rsCart.length){c.innerHTML='<div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div>';return;}
+  c.innerHTML='';
+  rsCart.forEach((it,idx)=>{
+    const d=document.createElement('div');d.className='mci';
+    d.innerHTML=`<span style="flex:1;">${E(it.name)} x${it.qty}${it.uc?' @ '+GH(it.uc):''}</span>
+      <button class="rm" onclick="rsCart.splice(${idx},1);renderRSCart()">×</button>`;
+    c.appendChild(d);
+  });
+}
+
+async function recordReceipt(){
+  const sup=document.getElementById('rs-sup').value.trim();
+  const ref=document.getElementById('rs-ref').value.trim();
+  const dt=document.getElementById('rs-dt').value||today();
+  const note=document.getElementById('rs-note').value.trim();
+  if(!rsCart.length){alert('Add at least one item.');return;}
+  L(true);
+  const{data:rec,error}=await sb.from('supply_receipts').insert({
+    org_id:prof.org_id,supplier_name:sup||null,reference:ref||null,
+    received_date:dt,notes:note||null,received_by:prof.id
+  }).select().single();
+  if(error){L(false);alert('Error: '+error.message);return;}
+  await sb.from('supply_receipt_items').insert(rsCart.map(it=>({
+    supply_receipt_id:rec.id,product_id:it.pid||null,name_snapshot:it.name,
+    qty_received:it.qty,qty_allocated:0,unit_cost:it.uc||null
+  })));
+  L(false);
+  rsCart=[];renderRSCart();
+  document.getElementById('rs-sup').value='';document.getElementById('rs-ref').value='';
+  document.getElementById('rs-note').value='';
+  alert('Supply receipt saved to the warehouse. Stock has NOT been changed — move it to a store from the "Transfer to Store" tab, then release it from there.');
+}
+
+// ── STORES (warehouse → store hold) ──────────────────────────────
+let storesList=[];
+async function ensureStores(){
+  const{data}=await sb.from('stores').select('*').eq('org_id',prof.org_id).order('created_at');
+  if(data&&data.length){storesList=data;return storesList;}
+  const{data:created,error}=await sb.from('stores').insert(
+    [{org_id:prof.org_id,name:'Store 1'},{org_id:prof.org_id,name:'Store 2'},{org_id:prof.org_id,name:'Store 3'}]
+  ).select();
+  if(error){alert('Error setting up stores: '+error.message);storesList=[];return storesList;}
+  storesList=created.sort((a,b)=>a.name.localeCompare(b.name));
+  return storesList;
+}
+
+function renderStoreNameEditor(){
+  const box=document.getElementById('xfer-storenames');
+  if(!box)return;
+  box.innerHTML=`<div class="fg"><label>Your 3 Stores (rename if you like)</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+      ${storesList.map(s=>`<input type="text" id="stn-${s.id}" value="${E(s.name)}" style="padding:6px 7px;border:1px solid var(--b);border-radius:4px;font-size:.79rem;">`).join('')}
+    </div></div>
+    <button class="btn bsm" onclick="saveStoreNames()">Save Store Names</button>`;
+}
+
+async function saveStoreNames(){
+  L(true);
+  for(const s of storesList){
+    const val=document.getElementById('stn-'+s.id).value.trim()||s.name;
+    if(val!==s.name)await sb.from('stores').update({name:val}).eq('id',s.id);
+  }
+  L(false);
+  await ensureStores();renderStoreNameEditor();await loadTransferable();await loadReleasable();
+}
+
+async function loadTransferable(){
+  L(true);
+  await ensureStores();
+  renderStoreNameEditor();
+  const{data}=await sb.from('supply_receipt_items').select('*,supply_receipts!inner(org_id,supplier_name,received_date)')
+    .eq('supply_receipts.org_id',prof.org_id).order('created_at',{ascending:false}).limit(60);
+  L(false);
+  const c=document.getElementById('rs-xferlist');
+  const pending=(data||[]).filter(r=>r.qty_allocated<r.qty_received);
+  if(!pending.length){c.innerHTML='<div class="es">Nothing pending — all warehouse supply has been transferred to a store.</div>';return;}
+  const storeOpts=storesList.map(s=>`<option value="${s.id}">${E(s.name)}</option>`).join('');
+  c.innerHTML=`<table><thead><tr><th>Product</th><th>Supplier</th><th>Received</th><th>In Store</th><th>In Warehouse</th><th>Store</th><th>Transfer Qty</th><th></th></tr></thead>
+  <tbody>${pending.map(r=>{
+    const rem=r.qty_received-r.qty_allocated;
+    return `<tr>
+    <td>${E(r.name_snapshot)}</td>
+    <td style="font-size:.73rem;color:var(--g);">${E(r.supply_receipts?.supplier_name||'—')}</td>
+    <td>${r.qty_received}</td>
+    <td>${r.qty_allocated}</td>
+    <td style="font-weight:600;color:var(--s);">${rem}</td>
+    <td><select id="xfs-${r.id}" style="padding:4px 5px;border:1px solid var(--b);border-radius:3px;font-size:.78rem;">${storeOpts}</select></td>
+    <td><input type="number" min="1" max="${rem}" id="xfq-${r.id}" style="width:60px;padding:3px 5px;border:1px solid var(--b);border-radius:3px;"></td>
+    <td><button class="btn bsm ba" onclick="transferToStore('${r.id}',${rem})">Transfer</button></td>
+  </tr>`;}).join('')}</tbody></table>`;
+}
+
+async function transferToStore(itemId,maxRem){
+  const qty=parseInt(document.getElementById('xfq-'+itemId).value)||0;
+  const storeId=document.getElementById('xfs-'+itemId).value;
+  if(qty<=0||qty>maxRem){alert('Enter a quantity between 1 and '+maxRem+'.');return;}
+  if(!storeId){alert('Choose a store.');return;}
+  L(true);
+  const{data:item}=await sb.from('supply_receipt_items').select('*').eq('id',itemId).single();
+  if(!item){L(false);return;}
+  await sb.from('store_transfers').insert({org_id:prof.org_id,supply_receipt_item_id:itemId,
+    store_id:storeId,product_id:item.product_id,name_snapshot:item.name_snapshot,
+    unit_cost:item.unit_cost,qty_transferred:qty,qty_released:0,transferred_by:prof.id,
+    note:'Transferred from warehouse'});
+  await sb.from('supply_receipt_items').update({qty_allocated:item.qty_allocated+qty}).eq('id',itemId);
+  L(false);
+  await loadTransferable();await loadReleasable();
+}
+
+// ── STORE HOLD → LIVE STOCK ───────────────────────────────────────
+async function loadReleasable(){
+  L(true);
+  await ensureStores();
+  const{data}=await sb.from('store_transfers').select('*,stores(name)')
+    .eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(60);
+  L(false);
+  const c=document.getElementById('rs-rellist');
+  const pending=(data||[]).filter(r=>r.qty_released<r.qty_transferred);
+  if(!pending.length){c.innerHTML='<div class="es">Nothing pending — all store-held supply has been released to stock.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Product</th><th>Store</th><th>In Store</th><th>Released</th><th>Remaining</th><th>Release Qty</th><th></th></tr></thead>
+  <tbody>${pending.map(r=>{
+    const rem=r.qty_transferred-r.qty_released;
+    return `<tr>
+    <td>${E(r.name_snapshot)}</td>
+    <td style="font-size:.73rem;color:var(--g);">${E(r.stores?.name||'—')}</td>
+    <td>${r.qty_transferred}</td>
+    <td>${r.qty_released}</td>
+    <td style="font-weight:600;color:var(--s);">${rem}</td>
+    <td><input type="number" min="1" max="${rem}" id="rsq-${r.id}" style="width:60px;padding:3px 5px;border:1px solid var(--b);border-radius:3px;"></td>
+    <td><button class="btn bsm ba" onclick="releaseToStock('${r.id}',${rem})">Release</button></td>
+  </tr>`;}).join('')}</tbody></table>`;
+}
+
+async function releaseToStock(transferId,maxRem){
+  const inp=document.getElementById('rsq-'+transferId);
+  const qty=parseInt(inp.value)||0;
+  if(qty<=0||qty>maxRem){alert('Enter a quantity between 1 and '+maxRem+'.');return;}
+  L(true);
+  const{data:item}=await sb.from('store_transfers').select('*,stores(name)').eq('id',transferId).single();
+  if(!item){L(false);return;}
+  await sb.from('store_stock_releases').insert({store_transfer_id:transferId,org_id:prof.org_id,
+    store_id:item.store_id,qty,released_by:prof.id,note:'Released to stock'});
+  await sb.from('store_transfers').update({qty_released:item.qty_released+qty}).eq('id',transferId);
+  if(item.product_id){
+    const prod=inv.find(i=>i.id===item.product_id);
+    const before=prod?prod.stock:0,after=before+qty;
+    await sb.from('products').update({stock:after}).eq('id',item.product_id);
+    await sb.from('inventory_log').insert({org_id:prof.org_id,product_id:item.product_id,
+      product_name_snapshot:item.name_snapshot,added_by:prof.id,qty_added:qty,
+      stock_before:before,stock_after:after,note:'Released from '+(item.stores?.name||'store')+' hold'});
+  }else{
+    alert('Note: this item was recorded without a matching catalog product, so stock could not be auto-updated. Add/select the product via barcode next time for automatic stock updates.');
+  }
+  L(false);
+  await loadInv(prof.org_id);await loadReleasable();
+}
+
+// ── EDIT INVENTORY ───────────────────────────────────────────────
+let editProdId=null;
+function filterEditSearch(val,ctx){
+  const listId=ctx==='m'?'med-sdlist':'ed-sdlist';
+  const list=document.getElementById(listId);
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=inv.filter(i=>i.name.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const d=document.createElement('div');d.className='sdi';
+    d.innerText=`${p.name} | ${GH(p.price)} | Stock: ${p.stock}`;
+    d.onclick=()=>{
+      editProdId=p.id;
+      const pfx=ctx==='m'?'med-':'ed-';
+      document.getElementById(ctx==='m'?'med-srch':'ed-srch').value=p.name;
+      list.classList.remove('on');
+      document.getElementById(pfx+'name').value=p.name;
+      document.getElementById(pfx+'barcode').value=p.barcode||'';
+      document.getElementById(pfx+'sell').value=(p.price||0).toFixed(2);
+      document.getElementById(pfx+'cost').value=(p.cost_price||0).toFixed(2);
+      document.getElementById(pfx+'qty').value=p.stock;
+      document.getElementById(pfx+'form').style.display='block';
+    };
+    list.appendChild(d);
+  });
+  list.classList.toggle('on',ms.length>0);
+}
+
+async function saveProductEdit(ctx){
+  if(!editProdId){alert('No product selected.');return;}
+  const pfx=ctx==='m'?'med-':'ed-';
+  const name=document.getElementById(pfx+'name').value.trim();
+  const barcode=document.getElementById(pfx+'barcode').value.trim();
+  const price=parseFloat(document.getElementById(pfx+'sell').value)||0;
+  const cost_price=parseFloat(document.getElementById(pfx+'cost').value)||0;
+  const stock=parseInt(document.getElementById(pfx+'qty').value)||0;
+  if(!name){alert('Product name is required.');return;}
+  L(true);
+  const{error}=await sb.from('products').update({name,barcode:barcode||null,price,cost_price,stock}).eq('id',editProdId);
+  L(false);
+  if(error){alert('Error: '+error.message);return;}
+  const orgId=ctx==='m'?activeOrg:prof.org_id;
+  await loadInv(orgId);
+  alert('Product updated successfully!');
+}
+function swLedTab(tab){
+  ['sh','pr','cs','cp','si','sp','is','vo'].forEach(t=>{
+    const p=document.getElementById('l-tp-'+t);if(p)p.classList.toggle('on',t===tab);
+  });
+  document.querySelectorAll('#lv .tbar .tb').forEach((b,i)=>b.classList.toggle('on',['sh','pr','cs','cp','si','sp','is','vo'][i]===tab));
+  if(tab==='vo')populateCashierDropdown();
+}
+
+// Sales History
+async function genSalesHist(){
+  const s=document.getElementById('sh-s').value,e=document.getElementById('sh-e').value;
+  if(!s||!e){alert('Select both dates.');return;}
+  L(true);
+  const{data:sales}=await sb.from('sales').select('*,sale_items(name_snapshot,qty)')
+    .eq('org_id',prof.org_id).gte('created_at',s+'T00:00:00').lte('created_at',e+'T23:59:59').order('created_at');
+  L(false);
+  const out=document.getElementById('sh-out'),em=document.getElementById('sh-em'),pb=document.getElementById('sh-pb');
+  if(!sales||!sales.length){out.style.display='none';em.style.display='block';em.innerText='No sales in this period.';pb.style.display='none';return;}
+  let gr=0,cs2=0,mm=0,cd=0,rows='';
+  sales.forEach(s2=>{gr+=s2.total;if(s2.payment_method==='Cash')cs2+=s2.total;else if(s2.payment_method==='Mobile Money')mm+=s2.total;else cd+=s2.total;
+    rows+=`<tr><td style="font-family:monospace;font-size:.75rem;">${new Date(s2.created_at).toLocaleString()}</td>
+      <td style="font-weight:600;color:#3730a3;font-family:monospace;">${E(s2.invoice_id)}</td>
+      <td style="font-size:.75rem;">${E(s2.cashier_name_snapshot||'—')}</td>
+      <td style="font-size:.75rem;color:var(--g);">${(s2.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
+      <td>${E(s2.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(s2.total)}</td></tr>`;
+  });
+  out.innerHTML=`<div class="sh"><h3>${E(prof.businessName||prof.display_name||'')}</h3><p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
+  <div class="mg">
+    <div class="mc hl"><p>Total Revenue</p><h3 style="color:#b45309;">${GH(gr)}</h3></div>
+    <div class="mc"><p>Cash</p><h3>${GH(cs2)}</h3></div>
+    <div class="mc"><p>MoMo</p><h3>${GH(mm)}</h3></div>
+    <div class="mc"><p>Card</p><h3>${GH(cd)}</h3></div>
+  </div>
+  <table><thead><tr><th>Timestamp</th><th>Invoice</th><th>Cashier</th><th>Items</th><th>Payment</th><th style="text-align:right;">Total</th></tr></thead>
+  <tbody>${rows}</tbody></table>`;
+  out.style.display='block';em.style.display='none';pb.style.display='inline-block';
+}
+
+// Profit Report
+async function genProfitReport(){
+  const s=document.getElementById('pr-s').value,e=document.getElementById('pr-e').value;
+  if(!s||!e){alert('Select both dates.');return;}
+  L(true);
+  const{data:sales}=await sb.from('sales').select('*,sale_items(name_snapshot,qty,price_snapshot,cost_price_snapshot)')
+    .eq('org_id',prof.org_id).gte('created_at',s+'T00:00:00').lte('created_at',e+'T23:59:59').order('created_at');
+  L(false);
+  const out=document.getElementById('pr-out'),em=document.getElementById('pr-em'),pb=document.getElementById('pr-pb');
+  if(!sales||!sales.length){out.style.display='none';em.style.display='block';em.innerText='No sales in this period.';pb.style.display='none';return;}
+  let rev=0,cogs=0,rows='';
+  sales.forEach(s2=>{
+    rev+=s2.total;
+    let saleCost=0;
+    (s2.sale_items||[]).forEach(i=>{saleCost+=(i.cost_price_snapshot||0)*i.qty;});
+    cogs+=saleCost;
+    const gp=s2.total-saleCost;
+    rows+=`<tr><td style="font-family:monospace;font-size:.75rem;">${new Date(s2.created_at).toLocaleString()}</td>
+      <td style="font-family:monospace;font-weight:600;color:#3730a3;">${E(s2.invoice_id)}</td>
+      <td style="text-align:right;">${GH(saleCost)}</td>
+      <td style="text-align:right;font-weight:600;">${GH(s2.total)}</td>
+      <td style="text-align:right;font-weight:600;color:${gp>=0?'var(--s)':'var(--d)'};">${GH(gp)}</td></tr>`;
+  });
+  const gProfit=rev-cogs;
+  out.innerHTML=`<div class="sh"><h3>${E(prof.businessName||prof.display_name||'')}</h3><p style="font-size:.8rem;color:#4b5563;">Profit Report: <strong>${s} to ${e}</strong></p></div>
+  <div class="mg">
+    <div class="mc"><p>Total Revenue</p><h3>${GH(rev)}</h3></div>
+    <div class="mc"><p>Cost of Goods Sold</p><h3>${GH(cogs)}</h3></div>
+    <div class="mc hl"><p>Gross Profit</p><h3 style="color:${gProfit>=0?'var(--s)':'var(--d)'};">${GH(gProfit)}</h3></div>
+    <div class="mc"><p>Profit Margin</p><h3>${rev>0?((gProfit/rev)*100).toFixed(1)+'%':'0%'}</h3></div>
+  </div>
+  <table><thead><tr><th>Timestamp</th><th>Invoice</th><th style="text-align:right;">COGS</th>
+    <th style="text-align:right;">Revenue</th><th style="text-align:right;">Gross Profit</th></tr></thead>
+  <tbody>${rows}</tbody></table>`;
+  out.style.display='block';em.style.display='none';pb.style.display='inline-block';
+}
+
+// ── CREDIT SALES ─────────────────────────────────────────────────
+function filterCredProd(val){
+  const list=document.getElementById('cs-pdlist');
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=inv.filter(i=>i.name.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const d=document.createElement('div');d.className='sdi';d.innerText=`${p.name} — ${GH(p.price)} (Stock:${p.stock})`;
+    d.onclick=()=>{addToCCart(p.id);document.getElementById('cs-psch').value='';list.classList.remove('on');};
+    list.appendChild(d);
+  });
+  list.classList.toggle('on',ms.length>0);
+}
+
+function addToCCart(id){
+  const p=inv.find(i=>i.id===id);if(!p)return;
+  const ci=cCart.find(i=>i.id===id);
+  if((ci?ci.qty+1:1)>p.stock){alert('Only '+p.stock+' available.');return;}
+  if(ci)ci.qty++;else cCart.push({...p,qty:1});renderCCart();
+}
+function adjCC(id,d){
+  const it=cCart.find(i=>i.id===id),p=inv.find(i=>i.id===id);if(!it||!p)return;
+  if(d>0&&(it.qty+d)>p.stock){alert('Max '+p.stock);return;}
+  it.qty+=d;if(it.qty<=0)cCart=cCart.filter(i=>i.id!==id);renderCCart();
+}
+
+function renderCCart(){
+  const c=document.getElementById('cscart');
+  const tot=cCart.reduce((s,i)=>s+i.price*i.qty,0);
+  document.getElementById('cstot').innerText=GH(tot);
+  if(!cCart.length){c.innerHTML='<div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div>';return;}
+  c.innerHTML='';
+  cCart.forEach(it=>{
+    const d=document.createElement('div');d.className='mci';
+    d.innerHTML=`<span style="flex:1;">${E(it.name)}</span>
+      <button class="qb" onclick="adjCC('${it.id}',-1)">−</button>
+      <span style="min-width:18px;text-align:center;font-size:.78rem;font-weight:600;">${it.qty}</span>
+      <button class="qb" onclick="adjCC('${it.id}',1)">+</button>
+      <span style="min-width:56px;text-align:right;font-size:.78rem;">${GH(it.price*it.qty)}</span>`;
+    c.appendChild(d);
+  });
+}
+
+async function issueCredit(){
+  const cn=document.getElementById('cs-cn').value.trim();
+  const cp2=document.getElementById('cs-cp').value.trim();
+  const due=document.getElementById('cs-due').value;
+  const note=document.getElementById('cs-note').value.trim();
+  if(!cn||!due){alert('Customer name and due date are required.');return;}
+  if(!cCart.length){alert('Add at least one item.');return;}
+  const tot=cCart.reduce((s,i)=>s+i.price*i.qty,0);
+  L(true);
+  const invId='CRD-'+Math.floor(10000+Math.random()*90000);
+  const cashierName=prof.full_name||prof.display_name||'—';
+  const{data:cs,error}=await sb.from('credit_sales').insert({
+    org_id:prof.org_id,invoice_id:invId,customer_name:cn,customer_phone:cp2||null,
+    due_date:due,total:tot,status:'unpaid',notes:note||null,created_by:prof.id,cashier_name_snapshot:cashierName
+  }).select().single();
+  if(error){L(false);alert('Error: '+error.message);return;}
+  await sb.from('credit_sale_items').insert(cCart.map(it=>({
+    credit_sale_id:cs.id,product_id:it.id,name_snapshot:it.name,
+    cost_price_snapshot:it.cost_price||0,selling_price_snapshot:it.price,
+    qty:it.qty,line_total:it.price*it.qty
+  })));
+  for(const it of cCart)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
+  const snap=JSON.parse(JSON.stringify(cCart));
+  cCart=[];renderCCart();
+  document.getElementById('cs-cn').value='';document.getElementById('cs-cp').value='';
+  document.getElementById('cs-due').value='';document.getElementById('cs-note').value='';
+  await loadInv(prof.org_id);L(false);
+  const rh=buildRcpt(invId,'Credit',tot,0,snap,'CREDIT INVOICE',cn,cp2,due,cashierName);
+  printIF(rh);loadCreditList();
+}
+
+async function loadCreditList(){
+  L(true);
+  const{data}=await sb.from('credit_sales').select('*').eq('org_id',prof.org_id)
+    .order('created_at',{ascending:false}).limit(30);
+  L(false);credInvList=data||[];
+  const c=document.getElementById('cslist');
+  if(!data||!data.length){c.innerHTML='<div class="es">No credit sales yet.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Invoice</th><th>Customer</th><th>Total</th><th>Paid</th><th>Due</th><th>Status</th></tr></thead>
+  <tbody>${data.map(r=>`<tr>
+    <td style="font-family:monospace;font-size:.75rem;">${E(r.invoice_id)}</td>
+    <td>${E(r.customer_name)}</td>
+    <td>${GH(r.total)}</td>
+    <td style="color:var(--s);">${GH(r.amount_paid)}</td>
+    <td style="font-size:.75rem;">${r.due_date||'—'}</td>
+    <td><span class="badge ${r.status==='paid'?'bg':r.status==='partial'?'by':'br'}">${r.status}</span></td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+// ── CREDIT PAYMENTS ──────────────────────────────────────────────
+let selCPId=null,selCPSale=null;
+function filterCreditInv(val){
+  const list=document.getElementById('cp-dlist');
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=(credInvList||[]).filter(i=>i.customer_name.toLowerCase().includes(val.toLowerCase())||i.invoice_id.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const bal=p.total-p.amount_paid;
+    const d=document.createElement('div');d.className='sdi';
+    d.innerText=`${p.invoice_id} — ${p.customer_name} | Bal: ${GH(bal)}`;
+    d.onclick=()=>{
+      selCPId=p.id;selCPSale=p;
+      document.getElementById('cp-sch').value=p.customer_name+' ('+p.invoice_id+')';
+      document.getElementById('cp-sel').innerText=`Balance: ${GH(p.total-p.amount_paid)}`;
+      list.classList.remove('on');
+    };
+    list.appendChild(d);
+  });
+  list.classList.toggle('on',ms.length>0);
+}
+
+async function recvCreditPay(){
+  if(!selCPId){alert('Search and select a credit invoice first.');return;}
+  const amt=parseFloat(document.getElementById('cp-amt').value)||0;
+  const pm=document.getElementById('cp-pm').value;
+  const note=document.getElementById('cp-note').value.trim();
+  if(amt<=0){alert('Enter a valid amount.');return;}
+  const bal=selCPSale.total-selCPSale.amount_paid;
+  if(amt>bal+0.01){alert(`Amount exceeds balance of ${GH(bal)}`);return;}
+  L(true);
+  await sb.from('credit_payments').insert({org_id:prof.org_id,credit_sale_id:selCPId,amount:amt,payment_method:pm,notes:note||null,received_by:prof.id});
+  const newPaid=selCPSale.amount_paid+amt;
+  const newSt=newPaid>=selCPSale.total-0.01?'paid':newPaid>0?'partial':'unpaid';
+  await sb.from('credit_sales').update({amount_paid:newPaid,status:newSt}).eq('id',selCPId);
+  L(false);selCPId=null;selCPSale=null;
+  document.getElementById('cp-sch').value='';document.getElementById('cp-sel').innerText='';
+  document.getElementById('cp-amt').value='';document.getElementById('cp-note').value='';
+  await loadCreditList();await loadCPHistory();alert('Payment recorded!');
+}
+
+async function loadCPHistory(){
+  L(true);
+  const{data}=await sb.from('credit_payments').select('*,credit_sales(invoice_id,customer_name)')
+    .eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
+  L(false);
+  const c=document.getElementById('cplist');
+  if(!data||!data.length){c.innerHTML='<div class="es">No payments recorded yet.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Date</th><th>Customer</th><th>Invoice</th><th>Amount</th><th>Method</th></tr></thead>
+  <tbody>${data.map(r=>`<tr>
+    <td style="font-size:.75rem;">${new Date(r.created_at).toLocaleString()}</td>
+    <td>${E(r.credit_sales?.customer_name||'—')}</td>
+    <td style="font-family:monospace;font-size:.75rem;">${E(r.credit_sales?.invoice_id||'—')}</td>
+    <td style="font-weight:600;color:var(--s);">${GH(r.amount)}</td>
+    <td>${E(r.payment_method)}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+// ── SUPPLIER INVOICES ────────────────────────────────────────────
+let sCart2=[];
+function filterSuppProd(val){
+  const list=document.getElementById('si-pdlist');
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=inv.filter(i=>i.name.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const d=document.createElement('div');d.className='sdi';d.innerText=`${p.name} (Cost: ${GH(p.cost_price||0)})`;
+    d.onclick=()=>{
+      document.getElementById('si-psch').value=p.name;
+      document.getElementById('si-uc').value=(p.cost_price||0).toFixed(2);
+      document.getElementById('si-psch').dataset.pid=p.id;
+      list.classList.remove('on');
+    };
+    list.appendChild(d);
+  });
+  list.classList.toggle('on',ms.length>0);
+}
+
+function addSuppItem(){
+  const nm=document.getElementById('si-psch').value.trim();
+  const qty=parseInt(document.getElementById('si-qty').value)||0;
+  const uc=parseFloat(document.getElementById('si-uc').value)||0;
+  const pid=document.getElementById('si-psch').dataset.pid||null;
+  const dest=document.getElementById('si-dest').value;
+  if(!nm||qty<=0||uc<=0){alert('Fill in item name, quantity and unit cost.');return;}
+  sCart2.push({pid,name:nm,qty,uc,total:qty*uc,dest});
+  document.getElementById('si-psch').value='';document.getElementById('si-psch').dataset.pid='';
+  document.getElementById('si-qty').value='';document.getElementById('si-uc').value='';
+  renderSCart();
+}
+
+function renderSCart(){
+  const c=document.getElementById('sicart');
+  const tot=sCart2.reduce((s,i)=>s+i.total,0);
+  document.getElementById('sitot').innerText=GH(tot);
+  if(!sCart2.length){c.innerHTML='<div style="padding:8px;color:var(--g);font-size:.78rem;">No items added yet.</div>';return;}
+  c.innerHTML='';
+  sCart2.forEach((it,idx)=>{
+    const d=document.createElement('div');d.className='mci';
+    d.innerHTML=`<span style="flex:1;">${E(it.name)} x${it.qty} @ ${GH(it.uc)}</span>
+      <span style="font-size:.76rem;color:var(--g);">${it.dest==='warehouse'?'(&rarr;warehouse)':'(+stock)'}</span>
+      <span style="min-width:60px;text-align:right;font-size:.78rem;">${GH(it.total)}</span>
+      <button class="rm" onclick="sCart2.splice(${idx},1);renderSCart()">×</button>`;
+    c.appendChild(d);
+  });
+}
+
+async function recordSuppInv(){
+  const sn=document.getElementById('si-sn').value.trim();
+  const ref=document.getElementById('si-ref').value.trim();
+  const dt=document.getElementById('si-dt').value;
+  const due=document.getElementById('si-due').value;
+  const note=document.getElementById('si-note').value.trim();
+  if(!sn||!dt){alert('Supplier name and date are required.');return;}
+  if(!sCart2.length){alert('Add at least one item.');return;}
+  const tot=sCart2.reduce((s,i)=>s+i.total,0);
+  L(true);
+  const{data:si,error}=await sb.from('supplier_invoices').insert({
+    org_id:prof.org_id,invoice_ref:ref||null,supplier_name:sn,total:tot,
+    received_date:dt,due_date:due||null,notes:note||null,created_by:prof.id
+  }).select().single();
+  if(error){L(false);alert('Error: '+error.message);return;}
+  await sb.from('supplier_invoice_items').insert(sCart2.map(it=>({
+    supplier_invoice_id:si.id,product_id:it.pid||null,name_snapshot:it.name,
+    qty:it.qty,unit_cost:it.uc,line_total:it.total,update_stock:it.dest==='stock'
+  })));
+  for(const it of sCart2){
+    if(it.dest==='stock'&&it.pid){
+      const prod=inv.find(i=>i.id===it.pid);
+      if(prod)await sb.from('products').update({stock:prod.stock+it.qty}).eq('id',it.pid);
+    }
+  }
+  const whItems=sCart2.filter(it=>it.dest==='warehouse');
+  if(whItems.length){
+    const{data:whrec,error:whErr}=await sb.from('supply_receipts').insert({
+      org_id:prof.org_id,supplier_name:sn,reference:ref||null,received_date:dt,
+      notes:(note?note+' — ':'')+'Auto-created from Supplier Invoice'+(ref?' '+ref:''),
+      received_by:prof.id
+    }).select().single();
+    if(!whErr&&whrec){
+      await sb.from('supply_receipt_items').insert(whItems.map(it=>({
+        supply_receipt_id:whrec.id,product_id:it.pid||null,name_snapshot:it.name,
+        qty_received:it.qty,qty_allocated:0,unit_cost:it.uc||null
+      })));
+    }
+  }
+  suppInvList=[];sCart2=[];renderSCart();
+  document.getElementById('si-sn').value='';document.getElementById('si-ref').value='';
+  document.getElementById('si-dt').value='';document.getElementById('si-due').value='';
+  document.getElementById('si-note').value='';
+  await loadInv(prof.org_id);L(false);loadSuppInvList();alert('Supplier invoice recorded!');
+}
+
+async function loadSuppInvList(){
+  L(true);
+  const{data}=await sb.from('supplier_invoices').select('*').eq('org_id',prof.org_id)
+    .order('received_date',{ascending:false}).limit(30);
+  L(false);suppInvList=data||[];
+  const c=document.getElementById('silist');
+  if(!data||!data.length){c.innerHTML='<div class="es">No supplier invoices yet.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Supplier</th><th>Ref</th><th>Date</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
+  <tbody>${data.map(r=>`<tr>
+    <td>${E(r.supplier_name)}</td>
+    <td style="font-size:.75rem;">${E(r.invoice_ref||'—')}</td>
+    <td style="font-size:.75rem;">${r.received_date}</td>
+    <td>${GH(r.total)}</td>
+    <td style="color:var(--s);">${GH(r.amount_paid)}</td>
+    <td><span class="badge ${r.status==='paid'?'bg':r.status==='partial'?'by':'br'}">${r.status}</span></td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+// ── SUPPLIER PAYMENTS ────────────────────────────────────────────
+let selSIId=null,selSIData=null;
+function filterSuppInv(val){
+  const list=document.getElementById('sp-dlist');
+  if(!val.trim()){list.classList.remove('on');return;}
+  const ms=(suppInvList||[]).filter(i=>i.supplier_name.toLowerCase().includes(val.toLowerCase()));
+  list.innerHTML='';
+  ms.slice(0,8).forEach(p=>{
+    const bal=p.total-p.amount_paid;
+    const d=document.createElement('div');d.className='sdi';
+    d.innerText=`${p.supplier_name}${p.invoice_ref?' ('+p.invoice_ref+')':''} | Bal: ${GH(bal)}`;
+    d.onclick=()=>{
+      selSIId=p.id;selSIData=p;
+      document.getElementById('sp-sch').value=p.supplier_name;
+      document.getElementById('sp-sel').innerText=`Balance: ${GH(p.total-p.amount_paid)}`;
+      list.classList.remove('on');
+    };
+    list.appendChild(d);
+  });
+  list.classList.toggle('on',ms.length>0);
+}
+
+async function makeSuppPay(){
+  if(!selSIId){alert('Search and select a supplier invoice first.');return;}
+  const amt=parseFloat(document.getElementById('sp-amt').value)||0;
+  const pm=document.getElementById('sp-pm').value;
+  const note=document.getElementById('sp-note').value.trim();
+  if(amt<=0){alert('Enter a valid amount.');return;}
+  L(true);
+  await sb.from('supplier_payments').insert({org_id:prof.org_id,supplier_invoice_id:selSIId,
+    supplier_name:selSIData.supplier_name,amount:amt,payment_method:pm,notes:note||null,paid_by:prof.id});
+  const newPaid=selSIData.amount_paid+amt;
+  const newSt=newPaid>=selSIData.total-0.01?'paid':newPaid>0?'partial':'unpaid';
+  await sb.from('supplier_invoices').update({amount_paid:newPaid,status:newSt}).eq('id',selSIId);
+  L(false);selSIId=null;selSIData=null;
+  document.getElementById('sp-sch').value='';document.getElementById('sp-sel').innerText='';
+  document.getElementById('sp-amt').value='';document.getElementById('sp-note').value='';
+  loadSuppInvList();loadSPHistory();alert('Payment recorded!');
+}
+
+async function loadSPHistory(){
+  L(true);
+  const{data}=await sb.from('supplier_payments').select('*').eq('org_id',prof.org_id)
+    .order('created_at',{ascending:false}).limit(30);
+  L(false);
+  const c=document.getElementById('splist');
+  if(!data||!data.length){c.innerHTML='<div class="es">No supplier payments yet.</div>';return;}
+  c.innerHTML=`<table><thead><tr><th>Date</th><th>Supplier</th><th>Amount</th><th>Method</th><th>Notes</th></tr></thead>
+  <tbody>${data.map(r=>`<tr>
+    <td style="font-size:.75rem;">${new Date(r.created_at).toLocaleString()}</td>
+    <td>${E(r.supplier_name)}</td>
+    <td style="font-weight:600;color:var(--d);">${GH(r.amount)}</td>
+    <td>${E(r.payment_method)}</td>
+    <td style="color:var(--g);font-size:.75rem;">${E(r.notes||'—')}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+// ── EXPENSES & INCOME STATEMENT ──────────────────────────────────
+async function addExp(){
+  const desc=document.getElementById('ex-desc').value.trim();
+  const amt=parseFloat(document.getElementById('ex-amt').value)||0;
+  const dt=document.getElementById('ex-dt').value;
+  if(!desc||amt<=0||!dt){alert('Fill in description, amount and date.');return;}
+  L(true);
+  await sb.from('expenses').insert({org_id:prof.org_id,description:desc,amount:amt,expense_date:dt,recorded_by:prof.id});
+  L(false);document.getElementById('ex-desc').value='';document.getElementById('ex-amt').value='';
+  alert('Expense recorded!');
+}
+
+async function genIncomeSt(){
+  const s=document.getElementById('is-s').value,e=document.getElementById('is-e').value;
+  if(!s||!e){alert('Select both dates.');return;}
+  L(true);
+  const[{data:sales},{data:exps}]=await Promise.all([
+    sb.from('sales').select('total,sale_items(cost_price_snapshot,qty)').eq('org_id',prof.org_id)
+      .gte('created_at',s+'T00:00:00').lte('created_at',e+'T23:59:59'),
+    sb.from('expenses').select('*').eq('org_id',prof.org_id).gte('expense_date',s).lte('expense_date',e).order('expense_date')
+  ]);
+  L(false);
+  let rev=0,cogs=0;
+  (sales||[]).forEach(sl=>{rev+=sl.total;(sl.sale_items||[]).forEach(i=>{cogs+=(i.cost_price_snapshot||0)*i.qty;});});
+  const gp=rev-cogs;
+  const totalExp=(exps||[]).reduce((s,x)=>s+x.amount,0);
+  const netInc=gp-totalExp;
+  const expRows=(exps||[]).map(x=>`<tr>
+    <td>${x.expense_date}</td><td>${E(x.description)}</td>
+    <td style="text-align:right;font-weight:600;">${GH(x.amount)}</td>
+  </tr>`).join('');
+  const out=document.getElementById('is-out'),em=document.getElementById('is-em'),pb=document.getElementById('is-pb');
+  out.innerHTML=`<div class="sh"><h3>${E(prof.businessName||prof.display_name||'')} — Income Statement</h3>
+    <p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
+  <div class="mg">
+    <div class="mc"><p>Total Revenue</p><h3>${GH(rev)}</h3></div>
+    <div class="mc"><p>Cost of Goods Sold</p><h3>${GH(cogs)}</h3></div>
+    <div class="mc hl"><p>Gross Profit</p><h3 style="color:${gp>=0?'#b45309':'var(--d)'};">${GH(gp)}</h3></div>
+    <div class="mc"><p>Total Expenses</p><h3 style="color:var(--d);">${GH(totalExp)}</h3></div>
+    <div class="mc hl" style="border-color:${netInc>=0?'var(--s)':'var(--d)'};"><p>Net Income</p>
+      <h3 style="color:${netInc>=0?'var(--s)':'var(--d)'};">${GH(netInc)}</h3></div>
+  </div>
+  ${expRows?`<h3 style="font-size:.85rem;margin:12px 0 8px;">Expense Details</h3>
+  <table><thead><tr><th>Date</th><th>Description</th><th style="text-align:right;">Amount</th></tr></thead>
+  <tbody>${expRows}</tbody></table>`:'<p class="hint" style="margin-top:8px;">No expenses recorded for this period.</p>'}`;
+  out.style.display='block';em.style.display='none';pb.style.display='inline-block';
+}
+
+function printStmt(vid){
+  const el=document.getElementById(vid);el.classList.add('pt');
+  document.body.classList.add('printing-statement');
+  window.print();
+  document.body.classList.remove('printing-statement');el.classList.remove('pt');
+}
+
+// ── HISTORY MODAL ────────────────────────────────────────────────
+async function loadHist(tab){
+  document.getElementById('htbar').querySelectorAll('.tb').forEach((b,i)=>b.classList.toggle('on',['sales','credit','inv','exp','supp'][i]===tab));
+  const c=document.getElementById('hcontent');c.innerHTML='<div class="es">Loading...</div>';
+  L(true);
+  let html='<div class="es">No entries found.</div>';
+  if(tab==='sales'){
+    const{data}=await sb.from('sales').select('invoice_id,created_at,total,payment_method,cashier_name_snapshot').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
+    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Invoice</th><th>Cashier</th><th>Method</th><th style="text-align:right;">Total</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${new Date(r.created_at).toLocaleString()}</td><td style="font-family:monospace;font-size:.73rem;">${E(r.invoice_id)}</td><td style="font-size:.73rem;">${E(r.cashier_name_snapshot||'—')}</td><td>${E(r.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(r.total)}</td></tr>`).join('')}</tbody></table>`;
+  }else if(tab==='credit'){
+    const{data}=await sb.from('credit_sales').select('*').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
+    if(data&&data.length)html=`<table><thead><tr><th>Invoice</th><th>Customer</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td style="font-family:monospace;font-size:.73rem;">${E(r.invoice_id)}</td><td>${E(r.customer_name)}</td><td>${GH(r.total)}</td><td style="color:var(--s);">${GH(r.amount_paid)}</td><td><span class="badge ${r.status==='paid'?'bg':r.status==='partial'?'by':'br'}">${r.status}</span></td></tr>`).join('')}</tbody></table>`;
+  }else if(tab==='inv'){
+    const{data}=await sb.from('inventory_log').select('*').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
+    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Product</th><th>Added</th><th>Note</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${new Date(r.created_at).toLocaleString()}</td><td>${E(r.product_name_snapshot)}</td><td style="color:var(--s);font-weight:600;">+${r.qty_added}</td><td style="color:var(--g);font-size:.73rem;">${E(r.note||'—')}</td></tr>`).join('')}</tbody></table>`;
+  }else if(tab==='exp'){
+    const{data}=await sb.from('expenses').select('*').eq('org_id',prof.org_id).order('expense_date',{ascending:false}).limit(30);
+    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Description</th><th style="text-align:right;">Amount</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${r.expense_date}</td><td>${E(r.description)}</td><td style="text-align:right;font-weight:600;color:var(--d);">${GH(r.amount)}</td></tr>`).join('')}</tbody></table>`;
+  }else if(tab==='supp'){
+    const{data}=await sb.from('supplier_invoices').select('*').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
+    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Supplier</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${r.received_date}</td><td>${E(r.supplier_name)}</td><td>${GH(r.total)}</td><td style="color:var(--s);">${GH(r.amount_paid)}</td><td><span class="badge ${r.status==='paid'?'bg':r.status==='partial'?'by':'br'}">${r.status}</span></td></tr>`).join('')}</tbody></table>`;
+  }
+  L(false);c.innerHTML=html;
+}
+
+// ── MASTER ────────────────────────────────────────────────────────
+async function initMaster(){
+  buildNav('master');
+  document.getElementById('hbiz').innerText='NYANSATEK — Master Console';
+  document.getElementById('fbiz').innerText='NYANSATEK';
+  document.getElementById('sb').style.display='none';
+  swV('mv');await loadOrgs();setDef('mls','mle');
+}
+
+async function loadOrgs(){
+  L(true);const{data}=await sb.from('organizations').select('*').order('business_name');L(false);
+  orgList=data||[];
+  const tb=document.querySelector('#ot tbody');tb.innerHTML='';
+  orgList.forEach(o=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><strong>${E(o.business_name)}</strong></td><td>${E(o.contact_email||'—')}</td>
+    <td><span class="badge ${o.is_active?'bg':'br'}">${o.is_active?'Active':'Inactive'}</span></td>
+    <td>${new Date(o.created_at).toLocaleDateString()}</td>`;
+    tb.appendChild(tr);
+  });
+  ['morg','mlo'].forEach(id=>{
+    const sel=document.getElementById(id);sel.innerHTML='<option value="">-- Select --</option>';
+    orgList.forEach(o=>{const op=document.createElement('option');op.value=o.id;op.text=o.business_name;sel.appendChild(op);});
+  });
+}
+
+async function mLoadInv(orgId){
+  if(!orgId)return;activeOrg=orgId;
+  document.getElementById('minvform').style.display='block';
+  const org=orgList.find(o=>o.id===orgId);
+  document.getElementById('minvtitle').innerText=(org?.business_name||'')+' — Inventory';
+  L(true);await loadInv(orgId);L(false);
+}
+
+document.getElementById('mpf').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!activeOrg){alert('Select a business first.');return;}
+  let br=document.getElementById('mbr').value.trim()||'NT-'+Date.now();
+  const nm=document.getElementById('mn').value.trim();
+  const sp=parseFloat(document.getElementById('msp2').value)||0;
+  const cp=parseFloat(document.getElementById('mcp2').value)||0;
+  const stk=parseInt(document.getElementById('mstk').value)||0;
+  const note=document.getElementById('mnote').value.trim();
+  L(true);
+  const{data:prod,error}=await sb.from('products').upsert(
+    {org_id:activeOrg,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk},
+    {onConflict:'org_id,barcode'}).select().single();
+  if(!error&&prod)await sb.from('inventory_log').insert({org_id:activeOrg,product_id:prod.id,
+    product_name_snapshot:nm,added_by:prof.id,qty_added:stk,stock_before:0,stock_after:stk,
+    note:note||'Initial stock (added by NYANSATEK)'});
+  L(false);if(error){alert('Error: '+error.message);return;}
+  e.target.reset();await loadInv(activeOrg);alert('Product saved!');
+});
+
+async function mGenStmt(){
+  const orgId=document.getElementById('mlo').value;
+  const s=document.getElementById('mls').value,e=document.getElementById('mle').value;
+  if(!orgId||!s||!e){alert('Select a business and both dates.');return;}
+  L(true);
+  const{data:sales}=await sb.from('sales').select('*,sale_items(name_snapshot,qty)')
+    .eq('org_id',orgId).gte('created_at',s+'T00:00:00').lte('created_at',e+'T23:59:59').order('created_at');
+  L(false);
+  const out=document.getElementById('mlo2'),em=document.getElementById('mle2'),pb=document.getElementById('ml-pb');
+  const bizName=orgList.find(o=>o.id===orgId)?.business_name||'—';
+  if(!sales||!sales.length){out.style.display='none';em.style.display='block';em.innerText='No transactions.';pb.style.display='none';return;}
+  let gr=0,rows='';
+  sales.forEach(s2=>{gr+=s2.total;
+    rows+=`<tr><td style="font-size:.75rem;font-family:monospace;">${new Date(s2.created_at).toLocaleString()}</td>
+      <td style="font-weight:600;color:#3730a3;font-family:monospace;">${E(s2.invoice_id)}</td>
+      <td style="font-size:.75rem;">${E(s2.cashier_name_snapshot||'—')}</td>
+      <td style="font-size:.75rem;color:var(--g);">${(s2.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
+      <td>${E(s2.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(s2.total)}</td></tr>`;
+  });
+  out.innerHTML=`<div class="sh"><h3>${E(bizName)}</h3><p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
+  <div class="mg"><div class="mc hl"><p>Total Revenue</p><h3 style="color:#b45309;">${GH(gr)}</h3></div></div>
+  <table><thead><tr><th>Timestamp</th><th>Invoice</th><th>Cashier</th><th>Items</th><th>Payment</th><th style="text-align:right;">Total</th></tr></thead>
+  <tbody>${rows}</tbody></table>`;
+  out.style.display='block';em.style.display='none';pb.style.display='inline-block';
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.sdrop'))document.querySelectorAll('.sdlist').forEach(d=>d.classList.remove('on'));
+});
+
+// Boot
+(async function(){
+  L(true);
+  const{data:{session:s}}=await sb.auth.getSession();L(false);
+  if(s)await boot2();else scr('l');
+})();
+
+// PWA: register service worker so the app is installable
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(err=>console.warn('SW registration failed:',err));
+  });
+}
+</script>
+</body>
+</html>
