@@ -1141,7 +1141,7 @@ async function finSale(mode,phone){
   const cartSnap=JSON.parse(JSON.stringify(cart));
   cart=[];document.getElementById('ten').value='';
   await loadInv(prof.org_id);renderCart();await refSales();L(false);
-  if(mode==='print'||mode==='sms'){
+  if(mode==='print'){
     const rh=buildRcpt(invId,method,tot,ten,cartSnap,'RECEIPT','','','',cashierName);
     printIF(rh);
   }
@@ -1194,8 +1194,8 @@ function buildSMSMsg(invId,method,tot,items){
   const phoneLine=prof.phone?`\n${prof.phone}`:'';
   const dt=new Date();
   const dateStr=dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  const itemLines=items.map(i=>`${i.name} x${i.qty} = GH\u20B3${GH(i.price*i.qty)}`).join('\n');
-  return `${biz}${addr}${phoneLine}\n------------------------\nRECEIPT | Inv: ${invId}\n${dateStr}\n------------------------\n${itemLines}\n------------------------\nTOTAL: GH\u20B3${GH(tot)}\nPaid via: ${method}\n------------------------\nThank you for your business!\nPowered by NYANSATEK`;
+  const itemLines=items.map(i=>`${i.name} x${i.qty} = GHS ${GH(i.price*i.qty)}`).join('\n');
+  return `${biz}${addr}${phoneLine}\n------------------------\nRECEIPT | Inv: ${invId}\n${dateStr}\n------------------------\n${itemLines}\n------------------------\nTOTAL: GHS ${GH(tot)}\nPaid via: ${method}\n------------------------\nThank you for your business!\nPowered by NYANSATEK`;
 }
 async function sendSMS(ph,msg){
   try{
