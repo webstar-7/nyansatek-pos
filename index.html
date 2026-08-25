@@ -16,8 +16,9 @@
 <script>
      const SUPABASE_URL = "https://kqwqbohoeltlbwcopeug.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_T6oCd3aRO0OPheQXEkmvRA_nvIhEPcv";
-const SMS_API_KEY="";
-const SMS_SENDER_ID="NYANSATEK";
+// SMS is sent via /.netlify/functions/send-receipt-sms, which holds the
+// Hubtel Client ID/Secret server-side -- see sendSMS() below. No SMS
+// credentials belong in this file; anything here is visible in page source.
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
@@ -180,7 +181,10 @@ footer strong{color:var(--a);}
       <div class="fg"><label>Business Name (or Staff Username)</label>
         <input type="text" id="lb" placeholder="Business name, or your staff username" required></div>
       <div class="fg"><label>Password</label>
-        <input type="password" id="lp" required></div>
+        <div style="position:relative;">
+          <input type="password" id="lp" required style="padding-right:56px;">
+          <button type="button" onclick="const i=document.getElementById('lp');const b=this;if(i.type==='password'){i.type='text';b.innerText='Hide';}else{i.type='password';b.innerText='Show';}" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--bl);font-size:.72rem;font-weight:600;cursor:pointer;">Show</button>
+        </div></div>
       <button type="submit" class="btn ba bf" id="lbtn">Sign In</button>
     </form>
   </div>
@@ -193,9 +197,15 @@ footer strong{color:var(--a);}
     <div class="aerr" id="fpe"></div>
     <form id="fpf">
       <div class="fg"><label>New Password (min 8 chars)</label>
-        <input type="password" id="np" minlength="8" required></div>
+        <div style="position:relative;">
+          <input type="password" id="np" minlength="8" required style="padding-right:56px;">
+          <button type="button" onclick="const i=document.getElementById('np');const b=this;if(i.type==='password'){i.type='text';b.innerText='Hide';}else{i.type='password';b.innerText='Show';}" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--bl);font-size:.72rem;font-weight:600;cursor:pointer;">Show</button>
+        </div></div>
       <div class="fg"><label>Confirm Password</label>
-        <input type="password" id="cp2" minlength="8" required></div>
+        <div style="position:relative;">
+          <input type="password" id="cp2" minlength="8" required style="padding-right:56px;">
+          <button type="button" onclick="const i=document.getElementById('cp2');const b=this;if(i.type==='password'){i.type='text';b.innerText='Hide';}else{i.type='password';b.innerText='Show';}" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--bl);font-size:.72rem;font-weight:600;cursor:pointer;">Show</button>
+        </div></div>
       <button type="submit" class="btn ba bf">Save &amp; Continue</button>
     </form>
   </div>
@@ -449,7 +459,11 @@ footer strong{color:var(--a);}
             <form id="chf">
               <div class="fg"><label>Cashier Full Name</label><input type="text" id="ch-name" required></div>
               <div class="fg"><label>Staff Username (used to log in)</label><input type="text" id="ch-user" placeholder="e.g. john or mary01" required></div>
-              <div class="fg"><label>Password (min 8 chars)</label><input type="password" id="ch-pass" minlength="8" required></div>
+              <div class="fg"><label>Password (min 8 chars)</label>
+                <div style="position:relative;">
+                  <input type="password" id="ch-pass" minlength="8" required style="padding-right:56px;">
+                  <button type="button" onclick="const i=document.getElementById('ch-pass');const b=this;if(i.type==='password'){i.type='text';b.innerText='Hide';}else{i.type='password';b.innerText='Show';}" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--bl);font-size:.72rem;font-weight:600;cursor:pointer;">Show</button>
+                </div></div>
               <button type="submit" class="btn bf ba">Create Cashier</button>
             </form>
           </div>
@@ -835,6 +849,10 @@ async function boot2(){
   const{data:p}=await sb.from('profiles').select('*').eq('id',sess.user.id).single();
   if(!p){L(false);scr('l');return;}
   prof=p;
+  if(prof.role!=='master'&&prof.org_id){
+    const{data:org}=await sb.from('organizations').select('business_name').eq('id',prof.org_id).single();
+    prof.businessName=org?.business_name||prof.display_name||'Business';
+  }
   if(prof.must_change_password){L(false);scr('f');return;}
   if(prof.role==='master')await initMaster();else await initTenant();
   L(false);scr('a');
@@ -869,7 +887,7 @@ function buildNav(role){
 
 async function initTenant(){
   buildNav(prof.role);
-  const biz=prof.display_name||'Business';
+  const biz=prof.businessName||prof.display_name||'Business';
   document.getElementById('hbiz').innerText=biz;
   document.getElementById('fbiz').innerText=biz;
   document.getElementById('sb').style.display='block';
@@ -1171,17 +1189,27 @@ async function confirmSms(){
 }
 
 function buildSMSMsg(invId,method,tot,items){
-  const biz=prof.display_name||'Business';
-  return `${biz}\nInv:${invId}\n${items.map(i=>i.name+' x'+i.qty).join(', ')}\nTotal:${GH(tot)}\n${method}\nThank you!`;
+  const biz=(prof.businessName||prof.display_name||'Business').toUpperCase();
+  const addr=prof.address?`\n${prof.address}`:'';
+  const phoneLine=prof.phone?`\n${prof.phone}`:'';
+  const dt=new Date();
+  const dateStr=dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const itemLines=items.map(i=>`${i.name} x${i.qty} = GH\u20B3${GH(i.price*i.qty)}`).join('\n');
+  return `${biz}${addr}${phoneLine}\n------------------------\nRECEIPT | Inv: ${invId}\n${dateStr}\n------------------------\n${itemLines}\n------------------------\nTOTAL: GH\u20B3${GH(tot)}\nPaid via: ${method}\n------------------------\nThank you for your business!\nPowered by NYANSATEK`;
 }
 async function sendSMS(ph,msg){
-  if(!SMS_API_KEY){alert('Sale complete! (Add SMS_API_KEY at top of file for real SMS.)');return;}
-  try{await fetch(`https://sms.arkesel.com/sms/api?action=send-sms&api_key=${encodeURIComponent(SMS_API_KEY)}&to=${encodeURIComponent(ph)}&from=${encodeURIComponent(SMS_SENDER_ID)}&sms=${encodeURIComponent(msg)}`);}catch(e){console.error(e);}
+  try{
+    const res=await fetch('/.netlify/functions/send-receipt-sms',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({phone:ph,message:msg})
+    });
+    if(!res.ok){console.error('SMS failed:',await res.text());alert('Sale complete, but the SMS could not be sent. You can print or share the receipt manually.');}
+  }catch(e){console.error(e);alert('Sale complete, but the SMS could not be sent. You can print or share the receipt manually.');}
 }
 
 // ── PRINT ────────────────────────────────────────────────────────
 function buildRcpt(invId,method,tot,ten,items,type='RECEIPT',cname='',cphone='',dueDate='',cashierName=''){
-  const biz=E(prof.display_name||'Business');
+  const biz=E(prof.businessName||prof.display_name||'Business');
   const bizPhone=prof.phone?E(prof.phone):'';
   const bizAddr=prof.address?E(prof.address):'';
   const cashierLine=cashierName?E(cashierName):'';
@@ -1747,7 +1775,7 @@ async function genSalesHist(){
       <td style="font-size:.75rem;color:var(--g);">${(s2.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
       <td>${E(s2.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(s2.total)}</td></tr>`;
   });
-  out.innerHTML=`<div class="sh"><h3>${E(prof.display_name||'')}</h3><p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
+  out.innerHTML=`<div class="sh"><h3>${E(prof.businessName||prof.display_name||'')}</h3><p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
   <div class="mg">
     <div class="mc hl"><p>Total Revenue</p><h3 style="color:#b45309;">${GH(gr)}</h3></div>
     <div class="mc"><p>Cash</p><h3>${GH(cs2)}</h3></div>
@@ -1783,7 +1811,7 @@ async function genProfitReport(){
       <td style="text-align:right;font-weight:600;color:${gp>=0?'var(--s)':'var(--d)'};">${GH(gp)}</td></tr>`;
   });
   const gProfit=rev-cogs;
-  out.innerHTML=`<div class="sh"><h3>${E(prof.display_name||'')}</h3><p style="font-size:.8rem;color:#4b5563;">Profit Report: <strong>${s} to ${e}</strong></p></div>
+  out.innerHTML=`<div class="sh"><h3>${E(prof.businessName||prof.display_name||'')}</h3><p style="font-size:.8rem;color:#4b5563;">Profit Report: <strong>${s} to ${e}</strong></p></div>
   <div class="mg">
     <div class="mc"><p>Total Revenue</p><h3>${GH(rev)}</h3></div>
     <div class="mc"><p>Cost of Goods Sold</p><h3>${GH(cogs)}</h3></div>
@@ -2148,7 +2176,7 @@ async function genIncomeSt(){
     <td style="text-align:right;font-weight:600;">${GH(x.amount)}</td>
   </tr>`).join('');
   const out=document.getElementById('is-out'),em=document.getElementById('is-em'),pb=document.getElementById('is-pb');
-  out.innerHTML=`<div class="sh"><h3>${E(prof.display_name||'')} — Income Statement</h3>
+  out.innerHTML=`<div class="sh"><h3>${E(prof.businessName||prof.display_name||'')} — Income Statement</h3>
     <p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
   <div class="mg">
     <div class="mc"><p>Total Revenue</p><h3>${GH(rev)}</h3></div>
