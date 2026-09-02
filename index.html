@@ -19,8 +19,11 @@ const SUPABASE_ANON_KEY = "sb_publishable_T6oCd3aRO0OPheQXEkmvRA_nvIhEPcv";
 // SMS is sent via /.netlify/functions/send-receipt-sms, which holds the
 // Hubtel Client ID/Secret server-side -- see sendSMS() below. No SMS
 // credentials belong in this file; anything here is visible in page source.
+const PAYSTACK_PUBLIC_KEY = "pk_live_f06348c9521967084c78419c709c740c7d3b51d2"; // same pk_live_... key already used in the storefront's js/checkout.js -- this is the PUBLIC key, safe to expose here
+const BILLING_API_BASE = "https://nyansatek.systems/.netlify/functions"; // renew/upgrade endpoints are centralized on the storefront -- see their _lib/cors.js for why this cross-origin call is allowed
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://js.paystack.co/v2/inline.js"></script>
 <style>
 :root{--p:#111827;--a:#d4af37;--bg:#f3f4f6;--b:#e5e7eb;--g:#9ca3af;--s:#10b981;--d:#ef4444;--bl:#2563eb;--t:#1f2937;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif;}
@@ -678,6 +681,14 @@ footer strong{color:var(--a);}
       </div><!-- /card -->
     </div><!-- /ledger view -->
 
+    <!-- BILLING (admin only) -->
+    <div id="bv" class="view">
+      <div class="card" style="max-width:640px;margin:0 auto;">
+        <h2>Billing &amp; Subscription</h2>
+        <div id="bv-content"><div class="es">Loading...</div></div>
+      </div>
+    </div>
+
     <!-- MASTER VIEWS -->
     <div id="mv" class="view">
       <div class="card">
@@ -858,7 +869,7 @@ async function boot2(){
   L(false);scr('a');
 }
 
-const VD={'cv':'grid','av':'grid','chv':'block','lv':'block','mv':'block','miv':'grid','mlv':'block'};
+const VD={'cv':'grid','av':'grid','chv':'block','lv':'block','mv':'block','miv':'grid','mlv':'block','bv':'block'};
 function swV(v){
   document.querySelectorAll('.view').forEach(el=>{el.style.display='none';el.classList.remove('on');});
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
@@ -866,6 +877,7 @@ function swV(v){
   if(el){el.style.display=VD[v]||'block';el.classList.add('on');}
   const b=document.getElementById('t-'+v);if(b)b.classList.add('on');
   if(v==='chv')loadCashiers();
+  if(v==='bv')loadBillingInfo();
 }
 
 function buildNav(role){
@@ -873,7 +885,7 @@ function buildNav(role){
   const tabs=role==='master'
     ?[['mv','Businesses'],['miv','Inv. Manager'],['mlv','Financial Ledger']]
     :role==='admin'
-    ?[['cv','Cashier'],['av','Admin Inventory'],['chv','Cashiers'],['lv','SME Ledger']]
+    ?[['cv','Cashier'],['av','Admin Inventory'],['chv','Cashiers'],['lv','SME Ledger'],['bv','Billing']]
     :[['cv','Cashier']];
   tabs.forEach(([k,l],i)=>{
     const b=document.createElement('button');b.id='t-'+k;b.innerText=l;
@@ -912,6 +924,90 @@ async function loadInv(orgId){
   inv=data||[];
   renderPG();
   renderInvTable(prof.role==='master'?'mit':'ait');
+}
+
+// ── BILLING (admin) ──────────────────────────────────────────────
+async function loadBillingInfo(){
+  const c=document.getElementById('bv-content');
+  c.innerHTML='<div class="es">Loading...</div>';
+  const{data:org,error}=await sb.from('organizations').select('*').eq('id',prof.org_id).single();
+  if(error||!org){c.innerHTML='<div class="es" style="color:var(--d);">Could not load billing info.</div>';return;}
+
+  const planLabel=org.plan_key==='yearly'?'Yearly':'Monthly';
+  const statusBadge=org.subscription_status==='active'
+    ?'<span class="badge bg">Active</span>'
+    :'<span class="badge br">Suspended \u2014 payment needed</span>';
+  const dueDate=org.paid_through_date?new Date(org.paid_through_date).toLocaleDateString():'\u2014';
+
+  c.innerHTML=`
+    <table style="margin-bottom:16px;">
+      <tbody>
+        <tr><td style="color:var(--g);width:160px;">Current plan</td><td><strong>${E(planLabel)}</strong></td></tr>
+        <tr><td style="color:var(--g);">Status</td><td>${statusBadge}</td></tr>
+        <tr><td style="color:var(--g);">Renews on</td><td>${E(dueDate)}</td></tr>
+        <tr><td style="color:var(--g);">Payment method</td><td>${E(org.payment_channel==='card'?'Card':org.payment_channel==='momo'?'Mobile Money':'\u2014')}</td></tr>
+      </tbody>
+    </table>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn ba" onclick="startRenewNow()">Renew Now</button>
+      ${org.plan_key!=='yearly'?'<button class="btn bg2" onclick="startUpgrade()">Upgrade to Yearly</button>':''}
+    </div>
+    <p class="hint" style="margin-top:12px;">Renewing early extends your current renewal date \u2014 it doesn't reset it to today. Upgrading to yearly starts a fresh 12-month period from today.</p>
+    <div id="bv-msg" style="margin-top:10px;"></div>
+  `;
+}
+
+function payWithPaystack({amountPesewas, email, onSuccess}){
+  if(!window.PaystackPop){alert('Payment system failed to load. Please refresh and try again.');return;}
+  const handler=PaystackPop.setup({
+    key:PAYSTACK_PUBLIC_KEY,
+    email:email||'billing@nyansatek.systems',
+    amount:amountPesewas,
+    currency:'GHS',
+    channels:['card','mobile_money'],
+    ref:'MAN-'+prof.org_id+'-'+Date.now(), // distinct from RNW- (auto MoMo renewals) so the webhook ignores these entirely -- the direct endpoint call below is solely responsible for processing manual renew/upgrade payments, since it correctly knows which of the two this is
+    callback:function(response){ onSuccess(response.reference); },
+    onClose:function(){ /* user closed the popup -- no action needed */ }
+  });
+  handler.openIframe();
+}
+
+async function startRenewNow(){
+  const{data:org}=await sb.from('organizations').select('*').eq('id',prof.org_id).single();
+  if(!org)return;
+  const amountPesewas=org.plan_key==='yearly'?120000:12000; // keep in sync with _catalog.js
+  payWithPaystack({amountPesewas,email:org.contact_email,onSuccess: async (reference)=>{
+    await callBillingEndpoint('renew-subscription',reference);
+  }});
+}
+
+async function startUpgrade(){
+  if(!confirm('Upgrade to the Yearly plan now for GH\u20B51,200? This starts a fresh 12-month period from today.'))return;
+  const{data:org}=await sb.from('organizations').select('*').eq('id',prof.org_id).single();
+  if(!org)return;
+  payWithPaystack({amountPesewas:120000,email:org.contact_email,onSuccess: async (reference)=>{
+    await callBillingEndpoint('upgrade-subscription',reference);
+  }});
+}
+
+async function callBillingEndpoint(endpoint,reference){
+  const msg=document.getElementById('bv-msg');
+  msg.innerHTML='<div class="es">Confirming payment...</div>';
+  try{
+    const res=await fetch(BILLING_API_BASE+'/'+endpoint,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({reference,tenantProduct:'pos',tenantId:prof.org_id})
+    });
+    const data=await res.json();
+    if(!res.ok||!data.ok){
+      msg.innerHTML='<div class="es" style="color:var(--d);">'+E(data.error||'Something went wrong confirming your payment. If you were charged, contact support@nyansatek.systems.')+'</div>';
+      return;
+    }
+    msg.innerHTML='<div class="es" style="color:var(--s);">Done! Your subscription is updated.</div>';
+    await loadBillingInfo();
+  }catch(err){
+    msg.innerHTML='<div class="es" style="color:var(--d);">Network error confirming payment. If you were charged, contact support@nyansatek.systems.</div>';
+  }
 }
 
 // ── CASHIER MANAGEMENT (admin) ───────────────────────────────────
