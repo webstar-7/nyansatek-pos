@@ -1,15 +1,30 @@
-const CACHE_NAME = 'nyansatek-pos-v1';
+const CACHE_NAME = 'nyansatek-pos-v2'; // bumped so every device picks up this fix on next visit
 const APP_SHELL = [
-  './pos.html',
+  './',              // the actual page, whatever it's served as (index.html) — was './pos.html', which doesn't exist and broke install entirely
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
 ];
 
-// Install: pre-cache the app shell
+// Install: pre-cache the app shell. Each resource is fetched and cached
+// individually (instead of one cache.addAll call) so that if any single
+// item is missing or renamed later, it doesn't take down the whole
+// install the way a single 404 did here -- that's what silently kept
+// this service worker from ever registering at all.
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.all(
+        APP_SHELL.map(url =>
+          fetch(url)
+            .then(res => {
+              if (res && res.ok) return cache.put(url, res);
+              console.warn('[sw] Skipping precache, bad response for', url, res && res.status);
+            })
+            .catch(err => console.warn('[sw] Skipping precache, fetch failed for', url, err))
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
@@ -46,6 +61,14 @@ self.addEventListener('fetch', event => {
           return res;
         })
         .catch(() => cached); // offline fallback
+
+      // For navigation requests (loading the page itself) specifically,
+      // fall back to the cached app shell root if this exact URL was
+      // never cached -- handles the case where the browser requests
+      // "/index.html" but only "/" (or vice versa) got precached.
+      if (!cached && req.mode === 'navigate') {
+        return network.catch(() => caches.match('./'));
+      }
 
       return cached || network;
     })
