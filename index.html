@@ -1123,6 +1123,58 @@ function scr(n){
   document.getElementById('app').style.display=n==='a'?'flex':'none';
 }
 
+// ══════════════════════════════════════════════════════════════
+// OFFLINE LOGIN — cached profile/org fallback for boot2()
+// ══════════════════════════════════════════════════════════════
+// Signing in for the very first time on a device always needs a live
+// connection (there's no way to check a password against nothing).
+// But once a device HAS signed in successfully at least once, this
+// lets it boot straight into the app on later visits even with zero
+// connectivity — which matters here because boot2() otherwise makes
+// two live Supabase calls (profile, then organization) before it will
+// let anyone in, and either one failing offline used to bounce the
+// user straight back to the login screen.
+//
+// How it works: every time boot2() successfully loads a profile (and,
+// for tenant accounts, an organization) from Supabase, it's cached to
+// localStorage with a timestamp. If a later boot's live fetch fails
+// (no connection), we fall back to that cached copy, as long as it's
+// not older than OFFLINE_SESSION_TRUST_DAYS.
+//
+// OFFLINE_SESSION_TRUST_DAYS is set long on purpose (near-indefinite,
+// per the business's request) so a device that goes weeks without
+// connectivity still boots straight in. Store owners should understand
+// the trade-off: a lost or stolen device would also stay "logged in"
+// for this same long window. Since these are staff devices for a paid
+// business tool (not public consumer accounts), that trade-off is a
+// reasonable default — but it's a deliberate choice, not a free lunch.
+// Note this only governs OUR cached-boot fallback; Supabase's own
+// underlying auth session (access + refresh token) is a separate
+// mechanism controlled by the Supabase Dashboard's Auth settings, and
+// isn't extended by this constant.
+// ══════════════════════════════════════════════════════════════
+const OFFLINE_SESSION_TRUST_DAYS=90;
+const OFFLINE_SESSION_TRUST_MS=OFFLINE_SESSION_TRUST_DAYS*24*60*60*1000;
+const OFFLINE_SESSION_KEY='nyansatek_pos_cached_session';
+
+function cacheSessionOffline(profile,org){
+  try{
+    localStorage.setItem(OFFLINE_SESSION_KEY,JSON.stringify({
+      profile,org:org||null,cachedAt:new Date().toISOString()
+    }));
+  }catch(e){/* non-fatal — offline boot fallback just won't be available on this device */}
+}
+function getCachedSessionOffline(){
+  try{
+    const raw=localStorage.getItem(OFFLINE_SESSION_KEY);
+    if(!raw)return null;
+    const parsed=JSON.parse(raw);
+    const ageMs=Date.now()-new Date(parsed.cachedAt).getTime();
+    if(ageMs>OFFLINE_SESSION_TRUST_MS)return null; // too stale — require a fresh online check-in
+    return parsed;
+  }catch(e){return null;}
+}
+
 document.getElementById('lf').addEventListener('submit',async e=>{
   e.preventDefault();
   const eb=document.getElementById('le');eb.classList.remove('on');
@@ -1161,14 +1213,69 @@ async function handleLogout(){
 
 async function boot2(){
   L(true);
-  const{data:{session:s}}=await sb.auth.getSession();sess=s;
+
+  // getSession() itself is normally a local read (no network round-trip)
+  // unless the stored token needs a refresh — wrapped defensively so a
+  // network hiccup here can't leave the app stuck on the loading screen.
+  let sessionResult;
+  try{
+    sessionResult=await sb.auth.getSession();
+  }catch(e){
+    console.warn('getSession() failed (likely offline):',e);
+    sessionResult={data:{session:null}};
+  }
+  sess=sessionResult.data.session;
   if(!sess){L(false);scr('l');return;}
-  const{data:p}=await sb.from('profiles').select('*').eq('id',sess.user.id).single();
-  if(!p){L(false);scr('l');return;}
+
+  // Live profile fetch, with an offline fallback to whatever was cached
+  // from this device's last successful boot (see block comment above
+  // cacheSessionOffline). fromCache tracks whether org still needs its
+  // own live fetch or was already recovered alongside the profile.
+  let p=null,org=null,fromCache=false;
+  try{
+    const{data,error}=await sb.from('profiles').select('*').eq('id',sess.user.id).single();
+    if(error)throw error;
+    p=data;
+  }catch(e){
+    console.warn('Live profile fetch failed, trying offline cache:',e);
+    const cached=getCachedSessionOffline();
+    if(cached&&cached.profile&&cached.profile.id===sess.user.id){
+      p=cached.profile;org=cached.org;fromCache=true;
+    }
+  }
+  if(!p){
+    L(false);
+    if(!navigator.onLine){
+      alert("You're offline and this device hasn't completed a login here before. Connect to the internet once to sign in — after that, this device can boot offline for up to "+OFFLINE_SESSION_TRUST_DAYS+" days without needing a fresh connection.");
+    }
+    scr('l');
+    return;
+  }
   prof=p;
+
   if(prof.role!=='master'&&prof.org_id){
-    const{data:org}=await sb.from('organizations').select('*').eq('id',prof.org_id).single();
+    if(!fromCache){
+      try{
+        const{data:orgData,error:orgErr}=await sb.from('organizations').select('*').eq('id',prof.org_id).single();
+        if(orgErr)throw orgErr;
+        org=orgData;
+      }catch(e){
+        console.warn('Live organization fetch failed, trying offline cache:',e);
+        const cached=getCachedSessionOffline();
+        if(cached&&cached.org&&cached.org.id===prof.org_id)org=cached.org;
+        // If there's no cached org at all (first-ever offline attempt on
+        // this device, or cache aged past the trust window), org stays
+        // null and we deliberately DON'T block boot on that below — see
+        // the suspension check just after this.
+      }
+    }
     prof.businessName=org?.business_name||prof.display_name||'Business';
+
+    // Suspension is only enforced against org data we actually have. A
+    // cached "suspended" flag is honored even offline (it's still real
+    // information), but a total absence of org data does not lock
+    // anyone out — enforcement re-applies automatically next time the
+    // device reconnects and does a live check.
     if(org&&org.subscription_status==='suspended'){
       L(false);
       document.getElementById('sus-admin-body').style.display=prof.role==='admin'?'block':'none';
@@ -1179,10 +1286,17 @@ async function boot2(){
       scr('x');
       return;
     }
+    if(!fromCache&&org)cacheSessionOffline(prof,org);
+  }else if(prof.role==='master'){
+    if(!fromCache)cacheSessionOffline(prof,null);
   }
+
   if(prof.must_change_password){L(false);scr('f');return;}
   if(prof.role==='master')await initMaster();else await initTenant();
   L(false);scr('a');
+  if(fromCache){
+    console.log('Booted from cached offline session (device has no live connection right now).');
+  }
 }
 
 async function susRenew(){
