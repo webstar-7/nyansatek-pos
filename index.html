@@ -1679,21 +1679,40 @@ async function boot2(){
     sessionResult={data:{session:null}};
   }
   sess=sessionResult.data.session;
-  if(!sess){L(false);scr('l');return;}
 
   // Live profile fetch, with an offline fallback to whatever was cached
   // from this device's last successful boot (see block comment above
   // cacheSessionOffline). fromCache tracks whether org still needs its
   // own live fetch or was already recovered alongside the profile.
+  //
+  // IMPORTANT: sess can be null here even on a device that's logged in
+  // and has a perfectly valid cached session -- getSession() tries to
+  // refresh an expired access token, and that refresh needs a network
+  // round trip. Offline + expired token = session:null, NOT "nobody's
+  // logged in". So a null sess does not, by itself, mean go to the
+  // login screen; it means we can't do the live fetch, and must try
+  // the cache using whatever identity the cache itself remembers.
   let p=null,org=null,fromCache=false;
-  try{
-    const{data,error}=await sb.from('profiles').select('*').eq('id',sess.user.id).single();
-    if(error)throw error;
-    p=data;
-  }catch(e){
-    console.warn('Live profile fetch failed, trying offline cache:',e);
+
+  if(sess){
+    try{
+      const{data,error}=await sb.from('profiles').select('*').eq('id',sess.user.id).single();
+      if(error)throw error;
+      p=data;
+    }catch(e){
+      console.warn('Live profile fetch failed, trying offline cache:',e);
+      const cached=getCachedSessionOffline();
+      if(cached&&cached.profile&&cached.profile.id===sess.user.id){
+        p=cached.profile;org=cached.org;fromCache=true;
+      }
+    }
+  }else{
+    // No live session at all. Could genuinely be "never logged in on
+    // this device" -- or it could be "logged in, but offline with an
+    // expired token that can't refresh right now." Only the cache can
+    // tell these apart.
     const cached=getCachedSessionOffline();
-    if(cached&&cached.profile&&cached.profile.id===sess.user.id){
+    if(cached&&cached.profile){
       p=cached.profile;org=cached.org;fromCache=true;
     }
   }
@@ -3632,10 +3651,17 @@ document.addEventListener('click',e=>{
 });
 
 // Boot
+// Delegates entirely to boot2(), which now handles every combination of
+// {live session / no live session} x {online / offline} x {ever logged
+// in on this device / not} on its own (see the block comment inside
+// boot2). The old version of this IIFE gated on getSession()'s result
+// directly and skipped boot2() entirely whenever it returned session:
+// null -- exactly what happens on a device with an expired access token
+// and no connection to refresh it. That's what caused the reported bug:
+// refreshing while offline always bounced to the login screen, even
+// right after a prior successful online login on that same device.
 (async function(){
-  L(true);
-  const{data:{session:s}}=await sb.auth.getSession();L(false);
-  if(s)await boot2();else scr('l');
+  await boot2();
 })();
 
 // PWA: register service worker so the app is installable
