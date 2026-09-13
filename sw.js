@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nyansatek-pos-v2'; // bumped so every device picks up this fix on next visit
+const CACHE_NAME = 'nyansatek-pos-v3'; // bumped: navigation is now network-first (see below)
 const APP_SHELL = [
   './',              // the actual page, whatever it's served as (index.html) — was './pos.html', which doesn't exist and broke install entirely
   './manifest.json',
@@ -39,8 +39,8 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch: only handle same-origin GET requests for the app shell.
-// Everything else (Supabase API calls, CDN scripts, etc.) goes straight to the network
+// Fetch: only handle same-origin GET requests. Everything else
+// (Supabase API calls, CDN scripts, etc.) goes straight to the network
 // so your live sales/inventory data is never served from a stale cache.
 self.addEventListener('fetch', event => {
   const req = event.request;
@@ -50,6 +50,29 @@ self.addEventListener('fetch', event => {
     return; // let the browser handle it normally
   }
 
+  // Navigation requests (loading the page itself) are NETWORK-FIRST.
+  // This is an actively-developed app -- every reload while online
+  // should show the latest deployed version immediately, not whatever
+  // was cached before the last deploy. Falls back to the cached shell
+  // only when the network request genuinely fails (i.e. offline).
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req)
+        .then(res => {
+          if (res && res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then(cached => cached || caches.match('./')))
+    );
+    return;
+  }
+
+  // Everything else (icons, manifest, etc.) keeps the faster
+  // cache-first-with-background-revalidation strategy -- these rarely
+  // change, so serving the cached copy immediately is the right trade.
   event.respondWith(
     caches.match(req).then(cached => {
       const network = fetch(req)
@@ -61,14 +84,6 @@ self.addEventListener('fetch', event => {
           return res;
         })
         .catch(() => cached); // offline fallback
-
-      // For navigation requests (loading the page itself) specifically,
-      // fall back to the cached app shell root if this exact URL was
-      // never cached -- handles the case where the browser requests
-      // "/index.html" but only "/" (or vice versa) got precached.
-      if (!cached && req.mode === 'navigate') {
-        return network.catch(() => caches.match('./'));
-      }
 
       return cached || network;
     })
