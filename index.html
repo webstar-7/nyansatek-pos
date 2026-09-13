@@ -876,7 +876,7 @@ const today=()=>new Date().toISOString().split('T')[0];
 // ══════════════════════════════════════════════════════════════
 
 const OFFLINE_DB_NAME='nyansatek_pos_offline';
-const OFFLINE_DB_VERSION=1;
+const OFFLINE_DB_VERSION=3; // v3 adds financeQueue + creditCache for offline Credit Sales/Payments/Expenses
 let offlineDBPromise=null;
 
 function openOfflineDB(){
@@ -890,11 +890,49 @@ function openOfflineDB(){
         const s=db.createObjectStore('salesQueue',{keyPath:'clientRef'});
         s.createIndex('queuedAt','queuedAt');
       }
+      if(!db.objectStoreNames.contains('adminQueue')){
+        const a=db.createObjectStore('adminQueue',{keyPath:'clientRef'});
+        a.createIndex('queuedAt','queuedAt');
+      }
+      if(!db.objectStoreNames.contains('idMap'))db.createObjectStore('idMap',{keyPath:'localId'});
+      // financeQueue: queued Credit Sale / Credit Payment / Expense writes
+      // made offline. Same resumable-step, type-dispatched pattern as
+      // adminQueue. Supplier Invoices/Payments and Void Sale are NOT in
+      // scope here -- see the block comment above syncOneQueuedFinanceAction.
+      if(!db.objectStoreNames.contains('financeQueue')){
+        const f=db.createObjectStore('financeQueue',{keyPath:'clientRef'});
+        f.createIndex('queuedAt','queuedAt');
+      }
+      // creditCache: last-known credit_sales rows for this org, so credit
+      // payments can look up an invoice's balance offline the same way
+      // the Cashier grid looks up cached product stock.
+      if(!db.objectStoreNames.contains('creditCache'))db.createObjectStore('creditCache',{keyPath:'id'});
     };
     req.onsuccess=()=>resolve(req.result);
     req.onerror=()=>reject(req.error);
   });
   return offlineDBPromise;
+}
+
+function isLocalId(id){return typeof id==='string'&&id.indexOf('local-')===0;}
+
+async function setIdMapping(localId,realId){
+  try{
+    const db=await openOfflineDB();
+    const req=db.transaction('idMap','readwrite').objectStore('idMap').put({localId,realId});
+    return new Promise((resolve,reject)=>{req.onsuccess=()=>resolve();req.onerror=()=>reject(req.error);});
+  }catch(e){console.warn('Could not persist id mapping:',e);}
+}
+async function resolveId(id){
+  if(!isLocalId(id))return id;
+  try{
+    const db=await openOfflineDB();
+    const req=db.transaction('idMap','readonly').objectStore('idMap').get(id);
+    return new Promise((resolve,reject)=>{
+      req.onsuccess=()=>resolve(req.result?req.result.realId:id); // not yet resolved -- caller must handle
+      req.onerror=()=>reject(req.error);
+    });
+  }catch(e){return id;}
 }
 
 function genClientRef(){
@@ -931,6 +969,39 @@ async function getCachedCatalogOffline(orgId){
       req.onerror=()=>reject(req.error);
     });
   }catch(e){console.warn('Could not read cached catalog:',e);return [];}
+}
+
+async function cacheCreditSalesOffline(orgId,rows){
+  try{
+    const db=await openOfflineDB();
+    await new Promise((resolve,reject)=>{
+      const t=db.transaction('creditCache','readwrite');
+      const store=t.objectStore('creditCache');
+      const clearReq=store.getAll();
+      clearReq.onsuccess=()=>{
+        (clearReq.result||[]).forEach(row=>{if(row.org_id===orgId)store.delete(row.id);});
+        (rows||[]).forEach(r=>store.put(r));
+      };
+      t.oncomplete=()=>resolve();
+      t.onerror=()=>reject(t.error);
+    });
+  }catch(e){console.warn('Could not cache credit sales offline:',e);}
+}
+async function getCachedCreditSalesOffline(orgId){
+  try{
+    const db=await openOfflineDB();
+    return await new Promise((resolve,reject)=>{
+      const req=db.transaction('creditCache','readonly').objectStore('creditCache').getAll();
+      req.onsuccess=()=>resolve((req.result||[]).filter(r=>r.org_id===orgId));
+      req.onerror=()=>reject(req.error);
+    });
+  }catch(e){console.warn('Could not read cached credit sales:',e);return [];}
+}
+async function persistCachedCreditSale(row){
+  try{
+    const db=await openOfflineDB();
+    db.transaction('creditCache','readwrite').objectStore('creditCache').put(row);
+  }catch(e){/* non-fatal — in-memory list is already correct either way */}
 }
 
 async function persistCachedProductStock(productId,newStock){
@@ -991,6 +1062,121 @@ async function queuedSaleCount(){
   }catch(e){return 0;}
 }
 
+// ══════════════════════════════════════════════════════════════
+// ADMIN OFFLINE WRITE QUEUE — Admin Inventory (Create / Add Stock / Edit)
+// ══════════════════════════════════════════════════════════════
+// Same resumable-step idea as salesQueue, applied to product writes.
+// Scope: Admin Inventory only (create product, add stock, edit product,
+// inline price/cost edit). Credit sales, supplier invoices/payments,
+// expenses, and void-sale are a separate, later phase -- those touch
+// running balances across multiple tables and need more care than a
+// straight product write.
+//
+// Conflict handling: per the business's own setup (one admin, one
+// office), true concurrent edits from two different people are not a
+// realistic scenario here -- the only edge case is the same admin
+// working offline on two devices before either syncs, which is rare
+// and low-stakes. So this uses simple last-write-wins: whichever
+// queued write reaches the server last simply overwrites the field
+// values before it. No conflict log or merge UI, by design.
+// ══════════════════════════════════════════════════════════════
+
+async function queueAdminAction(record){
+  const db=await openOfflineDB();
+  const full={
+    clientRef:genClientRef(),queuedAt:new Date().toISOString(),
+    applied:false,serverProductId:null,...record
+  };
+  return new Promise((resolve,reject)=>{
+    const req=db.transaction('adminQueue','readwrite').objectStore('adminQueue').add(full);
+    req.onsuccess=()=>resolve(full);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function getQueuedAdminActions(){
+  const db=await openOfflineDB();
+  return new Promise((resolve,reject)=>{
+    const req=db.transaction('adminQueue','readonly').objectStore('adminQueue').index('queuedAt').getAll();
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function updateQueuedAdminAction(rec){
+  const db=await openOfflineDB();
+  return new Promise((resolve,reject)=>{
+    const req=db.transaction('adminQueue','readwrite').objectStore('adminQueue').put(rec);
+    req.onsuccess=()=>resolve();req.onerror=()=>reject(req.error);
+  });
+}
+async function removeQueuedAdminAction(clientRef){
+  const db=await openOfflineDB();
+  return new Promise((resolve,reject)=>{
+    const req=db.transaction('adminQueue','readwrite').objectStore('adminQueue').delete(clientRef);
+    req.onsuccess=()=>resolve();req.onerror=()=>reject(req.error);
+  });
+}
+async function queuedAdminActionCount(){
+  try{
+    const db=await openOfflineDB();
+    return new Promise((resolve,reject)=>{
+      const req=db.transaction('adminQueue','readonly').objectStore('adminQueue').count();
+      req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+    });
+  }catch(e){return 0;}
+}
+
+// ══════════════════════════════════════════════════════════════
+// FINANCE OFFLINE WRITE QUEUE — Credit Sales, Credit Payments, Expenses
+// ══════════════════════════════════════════════════════════════
+// Same idea as adminQueue, applied to the SME Ledger's append-heavy
+// writes. Deliberately NOT in scope here: Supplier Invoices/Payments
+// (their own layer of complexity via the warehouse/store-transfer
+// chain — a later phase) and Void Sale (deletes rows based on live
+// data; doing that safely offline is a different, riskier problem
+// than anything queued here and isn't part of this pattern).
+// ══════════════════════════════════════════════════════════════
+
+async function queueFinanceAction(record){
+  const db=await openOfflineDB();
+  const full={clientRef:genClientRef(),queuedAt:new Date().toISOString(),applied:false,...record};
+  return new Promise((resolve,reject)=>{
+    const req=db.transaction('financeQueue','readwrite').objectStore('financeQueue').add(full);
+    req.onsuccess=()=>resolve(full);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function getQueuedFinanceActions(){
+  const db=await openOfflineDB();
+  return new Promise((resolve,reject)=>{
+    const req=db.transaction('financeQueue','readonly').objectStore('financeQueue').index('queuedAt').getAll();
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function updateQueuedFinanceAction(rec){
+  const db=await openOfflineDB();
+  return new Promise((resolve,reject)=>{
+    const req=db.transaction('financeQueue','readwrite').objectStore('financeQueue').put(rec);
+    req.onsuccess=()=>resolve();req.onerror=()=>reject(req.error);
+  });
+}
+async function removeQueuedFinanceAction(clientRef){
+  const db=await openOfflineDB();
+  return new Promise((resolve,reject)=>{
+    const req=db.transaction('financeQueue','readwrite').objectStore('financeQueue').delete(clientRef);
+    req.onsuccess=()=>resolve();req.onerror=()=>reject(req.error);
+  });
+}
+async function queuedFinanceActionCount(){
+  try{
+    const db=await openOfflineDB();
+    return new Promise((resolve,reject)=>{
+      const req=db.transaction('financeQueue','readonly').objectStore('financeQueue').count();
+      req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+    });
+  }catch(e){return 0;}
+}
+
 function isLikelyNetworkError(err){
   const m=(err&&err.message||'').toLowerCase();
   return !navigator.onLine||m.includes('fetch')||m.includes('network')||m.includes('failed to fetch');
@@ -999,15 +1185,255 @@ function isLikelyNetworkError(err){
 function updateOfflineUI(){
   const ob=document.getElementById('offline-badge');
   if(ob)ob.classList.toggle('on',!navigator.onLine);
-  queuedSaleCount().then(n=>{
+  Promise.all([queuedSaleCount(),queuedAdminActionCount(),queuedFinanceActionCount()]).then(([sales,admin,finance])=>{
+    const n=sales+admin+finance;
     const sb2=document.getElementById('sync-badge');
     if(!sb2)return;
     sb2.classList.toggle('on',n>0);
-    sb2.innerText=n+(n===1?' sale pending sync':' sales pending sync');
+    sb2.innerText=n+(n===1?' item pending sync':' items pending sync');
   });
 }
 
 let syncInProgress=false;
+// Drain order matters: admin (product creates) first, since a Credit
+// Sale or a regular Sale rung up offline for a product that was ALSO
+// created offline depends on that product's create action having
+// resolved to a real server ID (see isLocalId/resolveId above). Finance
+// runs next (Credit Sales can themselves be referenced by a queued
+// Credit Payment), then the plain sales queue last.
+async function drainAllQueues(){
+  await drainAdminQueue();
+  await drainFinanceQueue();
+  await drainOfflineQueue();
+}
+
+async function drainAdminQueue(){
+  if(syncInProgress||!navigator.onLine||!prof||!prof.org_id)return;
+  syncInProgress=true;
+  let synced=0,stillPending=0;
+  try{
+    const queued=await getQueuedAdminActions();
+    for(const rec of queued){
+      if(!navigator.onLine)break;
+      try{
+        const done=await syncOneQueuedAdminAction(rec);
+        if(done)synced++;else stillPending++;
+      }catch(e){
+        console.warn('Sync attempt failed for a queued admin action, will retry later:',e);
+        stillPending++;
+      }
+    }
+  }finally{
+    syncInProgress=false;
+    updateOfflineUI();
+    if(synced>0)await loadInv(prof.org_id); // refresh with authoritative server data/IDs
+    if(synced>0||stillPending>0)console.log(`Admin queue sync: ${synced} synced, ${stillPending} still pending.`);
+  }
+}
+
+// Syncs one queued Admin Inventory write. Three types:
+//  - create_product: upsert on (org_id,barcode) — idempotent by design,
+//    same as the existing online Create Product flow. Records the
+//    local-ID -> real-ID mapping so anything still referencing the
+//    local ID (a later queued stock-add/edit, or an offline sale) can
+//    resolve it.
+//  - add_stock: applies a QUANTITY DELTA against the server's current
+//    stock (not an absolute value), so it composes correctly however
+//    many other offline actions touched this product in the meantime.
+//  - edit_product: applies whichever fields were actually changed as
+//    an absolute update — last-write-wins, per the single-admin scope
+//    agreed for this phase (see block comment above).
+async function syncOneQueuedAdminAction(rec){
+  if(rec.type==='create_product'){
+    if(!rec.serverProductId){
+      const p=rec.payload;
+      const{data,error}=await sb.from('products').upsert(
+        {org_id:p.org_id,barcode:p.barcode,name:p.name,price:p.price,cost_price:p.cost_price,stock:p.stock},
+        {onConflict:'org_id,barcode'}
+      ).select().single();
+      if(error)throw error;
+      rec.serverProductId=data.id;
+      await updateQueuedAdminAction(rec);
+      await setIdMapping(rec.localId,data.id);
+      if(!rec.logApplied){
+        await sb.from('inventory_log').insert({org_id:p.org_id,product_id:data.id,
+          product_name_snapshot:p.name,added_by:p.added_by,qty_added:p.stock,
+          stock_before:0,stock_after:p.stock,note:p.note||'Initial stock (created offline)'});
+        rec.logApplied=true;await updateQueuedAdminAction(rec);
+      }
+    }
+    await removeQueuedAdminAction(rec.clientRef);
+    return true;
+  }
+
+  if(rec.type==='add_stock'){
+    const p=rec.payload;
+    const realId=await resolveId(p.productId);
+    if(isLocalId(realId))throw new Error('Product this stock belongs to has not finished syncing yet — will retry.');
+    if(!rec.stockApplied){
+      const{data:current}=await sb.from('products').select('stock,name').eq('id',realId).single();
+      const before=current?current.stock:0;
+      const after=before+p.qty;
+      await sb.from('products').update({stock:after}).eq('id',realId);
+      await sb.from('inventory_log').insert({org_id:p.org_id,product_id:realId,
+        product_name_snapshot:current?current.name:p.nameSnapshot,added_by:p.added_by,
+        qty_added:p.qty,stock_before:before,stock_after:after,note:p.note||null});
+      rec.stockApplied=true;await updateQueuedAdminAction(rec);
+    }
+    await removeQueuedAdminAction(rec.clientRef);
+    return true;
+  }
+
+  if(rec.type==='edit_product'){
+    const p=rec.payload;
+    const realId=await resolveId(p.productId);
+    if(isLocalId(realId))throw new Error('Product being edited has not finished syncing yet — will retry.');
+    if(!rec.applied){
+      const{error}=await sb.from('products').update(p.fields).eq('id',realId);
+      if(error)throw error;
+      rec.applied=true;await updateQueuedAdminAction(rec);
+    }
+    await removeQueuedAdminAction(rec.clientRef);
+    return true;
+  }
+
+  console.warn('Unknown queued admin action type, dropping:',rec.type);
+  await removeQueuedAdminAction(rec.clientRef);
+  return true;
+}
+
+async function drainFinanceQueue(){
+  if(syncInProgress||!navigator.onLine||!prof||!prof.org_id)return;
+  syncInProgress=true;
+  let synced=0,stillPending=0;
+  try{
+    const queued=await getQueuedFinanceActions();
+    for(const rec of queued){
+      if(!navigator.onLine)break;
+      try{
+        const done=await syncOneQueuedFinanceAction(rec);
+        if(done)synced++;else stillPending++;
+      }catch(e){
+        console.warn('Sync attempt failed for a queued finance action, will retry later:',e);
+        stillPending++;
+      }
+    }
+  }finally{
+    syncInProgress=false;
+    updateOfflineUI();
+    if(synced>0){
+      await loadInv(prof.org_id); // stock may have changed via credit-sale items
+      loadCreditList(); // refresh the outstanding-invoices panel if it's open
+    }
+    if(synced>0||stillPending>0)console.log(`Finance queue sync: ${synced} synced, ${stillPending} still pending.`);
+  }
+}
+
+// Syncs one queued finance write. Three types:
+//  - credit_sale: mirrors syncOneQueuedSale's resumable steps (parent
+//    row -> items -> stock), but against credit_sales/credit_sale_items.
+//    Records localId -> real-ID so a later queued credit_payment against
+//    this same invoice can resolve it.
+//  - credit_payment: resolves its target invoice's local ID if needed,
+//    then adds the payment against the CURRENT server balance (not the
+//    possibly-stale cached one) — same "read live, then apply" approach
+//    as the stock decrement in sales, so a payment can never be double-
+//    counted even if it's retried after a partial failure.
+//  - expense: a plain idempotent insert, no dependencies.
+async function syncOneQueuedFinanceAction(rec){
+  if(rec.type==='credit_sale'){
+    const p=rec.payload;
+    for(const it of p.items){
+      if(isLocalId(it.id)){
+        const real=await resolveId(it.id);
+        if(isLocalId(real))throw new Error('Referenced product has not finished syncing yet — will retry.');
+        it.id=real;
+      }
+    }
+    if(!rec.serverCreditSaleId){
+      const{data,error}=await sb.from('credit_sales').insert({
+        org_id:p.org_id,invoice_id:p.invoice_id,customer_name:p.customer_name,
+        customer_phone:p.customer_phone,due_date:p.due_date,total:p.total,status:'unpaid',
+        notes:p.notes,created_by:p.created_by,cashier_name_snapshot:p.cashier_name_snapshot,
+        client_ref:rec.clientRef,created_offline:true
+      }).select().single();
+      if(error){
+        if(/duplicate|unique/i.test(error.message||'')){
+          const{data:existing}=await sb.from('credit_sales').select('id').eq('client_ref',rec.clientRef).maybeSingle();
+          if(!existing)throw error;
+          rec.serverCreditSaleId=existing.id;
+        }else{throw error;}
+      }else{
+        rec.serverCreditSaleId=data.id;
+      }
+      await updateQueuedFinanceAction(rec);
+      await setIdMapping(rec.localId,rec.serverCreditSaleId);
+    }
+    if(!rec.itemsApplied){
+      const{error:itemsErr}=await sb.from('credit_sale_items').insert(p.items.map(it=>({
+        credit_sale_id:rec.serverCreditSaleId,product_id:it.id,name_snapshot:it.name,
+        cost_price_snapshot:it.cost_price||0,selling_price_snapshot:it.price,
+        qty:it.qty,line_total:it.price*it.qty
+      })));
+      if(itemsErr)throw itemsErr;
+      rec.itemsApplied=true;await updateQueuedFinanceAction(rec);
+    }
+    if(!rec.stockApplied){
+      for(const it of p.items){
+        const{data:current}=await sb.from('products').select('stock').eq('id',it.id).single();
+        const serverStock=current?current.stock:0;
+        const newStock=serverStock-it.qty;
+        await sb.from('products').update({stock:newStock}).eq('id',it.id);
+        if(newStock<0)console.warn(`Offline credit sale oversold "${it.name}": server stock is now ${newStock}.`);
+      }
+      rec.stockApplied=true;await updateQueuedFinanceAction(rec);
+    }
+    await removeQueuedFinanceAction(rec.clientRef);
+    return true;
+  }
+
+  if(rec.type==='credit_payment'){
+    const p=rec.payload;
+    const realCsId=await resolveId(p.creditSaleId);
+    if(isLocalId(realCsId))throw new Error('Invoice this payment belongs to has not finished syncing yet — will retry.');
+    if(!rec.applied){
+      const{data:existingPay}=await sb.from('credit_payments').select('id').eq('client_ref',rec.clientRef).maybeSingle();
+      if(!existingPay){
+        await sb.from('credit_payments').insert({org_id:p.org_id,credit_sale_id:realCsId,amount:p.amount,
+          payment_method:p.payment_method,notes:p.notes,received_by:p.received_by,
+          client_ref:rec.clientRef,created_offline:true});
+        const{data:cs}=await sb.from('credit_sales').select('total,amount_paid').eq('id',realCsId).single();
+        if(cs){
+          const newPaid=cs.amount_paid+p.amount;
+          const newSt=newPaid>=cs.total-0.01?'paid':newPaid>0?'partial':'unpaid';
+          await sb.from('credit_sales').update({amount_paid:newPaid,status:newSt}).eq('id',realCsId);
+        }
+      }
+      rec.applied=true;await updateQueuedFinanceAction(rec);
+    }
+    await removeQueuedFinanceAction(rec.clientRef);
+    return true;
+  }
+
+  if(rec.type==='expense'){
+    const p=rec.payload;
+    if(!rec.applied){
+      const{data:existing}=await sb.from('expenses').select('id').eq('client_ref',rec.clientRef).maybeSingle();
+      if(!existing){
+        await sb.from('expenses').insert({org_id:p.org_id,description:p.description,amount:p.amount,
+          expense_date:p.expense_date,recorded_by:p.recorded_by,client_ref:rec.clientRef,created_offline:true});
+      }
+      rec.applied=true;await updateQueuedFinanceAction(rec);
+    }
+    await removeQueuedFinanceAction(rec.clientRef);
+    return true;
+  }
+
+  console.warn('Unknown queued finance action type, dropping:',rec.type);
+  await removeQueuedFinanceAction(rec.clientRef);
+  return true;
+}
+
 async function drainOfflineQueue(){
   if(syncInProgress||!navigator.onLine||!prof||!prof.org_id)return;
   syncInProgress=true;
@@ -1042,6 +1468,21 @@ async function drainOfflineQueue(){
 // never double-applies a stock decrement or duplicates a sale row.
 async function syncOneQueuedSale(rec){
   const p=rec.payload;
+
+  // If this sale includes a product that was ALSO created offline (a
+  // temporary local- ID), it can only be synced once that product's own
+  // create action has resolved to a real server ID. drainAllQueues()
+  // runs the admin queue first specifically so this is normally already
+  // resolved by the time we get here — but if it genuinely isn't yet
+  // (e.g. the create is still stuck on a real error), leave this sale
+  // queued rather than fail it outright; it'll succeed on a later pass.
+  for(const it of p.items){
+    if(isLocalId(it.id)){
+      const real=await resolveId(it.id);
+      if(isLocalId(real))throw new Error('Referenced product has not finished syncing yet (offline-created item) — will retry.');
+      it.id=real;
+    }
+  }
 
   // Step 1: the parent 'sales' row (idempotent via client_ref).
   if(!rec.serverSaleId){
@@ -1108,13 +1549,13 @@ async function syncOneQueuedSale(rec){
 }
 
 function manualSync(){
-  if(!navigator.onLine){alert("You're still offline — sales will sync automatically once you're back online.");return;}
-  drainOfflineQueue();
+  if(!navigator.onLine){alert("You're still offline — changes will sync automatically once you're back online.");return;}
+  drainAllQueues();
 }
 
-window.addEventListener('online',()=>{updateOfflineUI();drainOfflineQueue();});
+window.addEventListener('online',()=>{updateOfflineUI();drainAllQueues();});
 window.addEventListener('offline',updateOfflineUI);
-setInterval(()=>{if(navigator.onLine)drainOfflineQueue();},30000);
+setInterval(()=>{if(navigator.onLine)drainAllQueues();},30000);
 
 function scr(n){
   document.getElementById('ls').style.display=n==='l'?'flex':'none';
@@ -1208,7 +1649,20 @@ document.getElementById('fpf').addEventListener('submit',async e=>{
 });
 
 async function handleLogout(){
-  await sb.auth.signOut();sess=null;prof=null;inv=[];cart=[];scr('l');
+  // Staying signed in works offline (that's the whole point of the cached
+  // boot fallback above), but signing back IN never can -- there's no way
+  // to check a password with no network to check it against. So logging
+  // out while offline is a real trap: the device can't get back in until
+  // it reconnects. Warn clearly rather than let that happen silently.
+  if(!navigator.onLine){
+    const proceed=confirm(
+      "You're currently offline. If you log out now, this device won't be able to sign back in until it reconnects to the internet \u2014 staying signed in works offline, but signing back in never can.\n\nLog out anyway?"
+    );
+    if(!proceed)return;
+  }
+  await sb.auth.signOut();sess=null;prof=null;inv=[];cart=[];
+  try{localStorage.removeItem(OFFLINE_SESSION_KEY);}catch(e){/* non-fatal */}
+  scr('l');
 }
 
 async function boot2(){
@@ -1363,7 +1817,7 @@ async function initTenant(){
   setDef('sh-s','sh-e','pr-s','pr-e','is-s','is-e','ex-dt','si-dt');
   await loadInv(prof.org_id);await refSales();
   updateOfflineUI();
-  if(navigator.onLine)drainOfflineQueue();
+  if(navigator.onLine)drainAllQueues();
 }
 
 function setDef(...ids){const t=today();ids.forEach(id=>{const el=document.getElementById(id);if(el&&!el.value)el.value=t;});}
@@ -1393,6 +1847,18 @@ async function loadInv(orgId){
     const{data,error}=await sb.from('products').select('*').eq('org_id',orgId).order('name');
     if(error)throw error;
     inv=data||[];
+    // If any offline-created products are still waiting to sync (a genuine
+    // sync failure, not just being offline right now), keep them visible
+    // here rather than let a normal server refresh silently drop them —
+    // they'll merge into the real list once their queued create succeeds.
+    try{
+      const pendingCreates=(await getQueuedAdminActions()).filter(a=>a.type==='create_product'&&a.localId&&!a.serverProductId);
+      const cached=await getCachedCatalogOffline(orgId);
+      pendingCreates.forEach(a=>{
+        const row=cached.find(c=>c.id===a.localId);
+        if(row&&!inv.some(p=>p.id===row.id))inv.push(row);
+      });
+    }catch(e){/* non-fatal — just a display nicety */}
     cacheCatalogOffline(orgId,inv); // fire-and-forget — don't block the UI on the IndexedDB write
   }catch(e){
     console.warn('Could not load products from Supabase, falling back to offline cache:',e);
@@ -1567,8 +2033,29 @@ function renderInvTable(tid){
 async function updatePriceField(id,field,val){
   const v=parseFloat(val);if(isNaN(v)||v<0)return;
   const upd=field==='cost'?{cost_price:v}:{price:v};
-  await sb.from('products').update(upd).eq('id',id);
-  await loadInv(activeOrg);
+
+  const goOfflineUpdate=async()=>{
+    const prod=inv.find(i=>i.id===id);
+    if(prod){
+      Object.assign(prod,upd);
+      const db=await openOfflineDB();
+      db.transaction('catalog','readwrite').objectStore('catalog').put(prod);
+    }
+    await queueAdminAction({type:'edit_product',payload:{productId:id,fields:upd}});
+    renderInvTable('ait');renderPG();updateOfflineUI();
+  };
+
+  // Master console (prof.role==='master') stays online-only for this phase.
+  if(prof.role!=='master'&&!navigator.onLine){await goOfflineUpdate();return;}
+
+  try{
+    const{error}=await sb.from('products').update(upd).eq('id',id);
+    if(error)throw error;
+    await loadInv(activeOrg);
+  }catch(err){
+    if(prof.role!=='master'&&isLikelyNetworkError(err)){await goOfflineUpdate();}
+    else{alert('Error updating price: '+(err.message||'Unknown error'));}
+  }
 }
 
 // ── PRODUCT GRID ────────────────────────────────────────────────
@@ -1774,6 +2261,60 @@ async function finSale(mode,phone){
 
 // Credit invoice from cashier cart
 function closeCreditModal(){document.getElementById('cim').style.display='none';}
+// Shared by both credit-sale entry points (Cashier's "Issue Credit
+// Invoice" button and the Ledger's Credit Sales tab) so the offline
+// logic only has to be written once. Mirrors finSale()'s try-online-
+// then-queue structure, applied to credit_sales/credit_sale_items.
+async function submitCreditSale({cn,cphone,due,note,cartSnap}){
+  const tot=cartSnap.reduce((s,i)=>s+i.price*i.qty,0);
+  const invId='CRD-'+Math.floor(10000+Math.random()*90000);
+  const cashierName=prof.full_name||prof.display_name||'—';
+
+  const goOffline=async()=>{
+    const localId='local-'+genClientRef();
+    const localRow={id:localId,org_id:prof.org_id,invoice_id:invId,customer_name:cn,
+      customer_phone:cphone||null,due_date:due,total:tot,amount_paid:0,status:'unpaid',
+      notes:note||null,created_by:prof.id,cashier_name_snapshot:cashierName,
+      created_at:new Date().toISOString()};
+    credInvList=credInvList||[];credInvList.unshift(localRow);
+    await persistCachedCreditSale(localRow);
+    // Optimistic stock decrement, same pattern as the Cashier sale flow.
+    cartSnap.forEach(it=>{
+      const p=inv.find(x=>x.id===it.id);
+      if(p){p.stock-=it.qty;persistCachedProductStock(it.id,p.stock);}
+    });
+    await queueFinanceAction({
+      type:'credit_sale',localId,
+      payload:{org_id:prof.org_id,invoice_id:invId,customer_name:cn,customer_phone:cphone||null,
+        due_date:due,total:tot,notes:note||null,created_by:prof.id,cashier_name_snapshot:cashierName,items:cartSnap}
+    });
+    renderPG();updateOfflineUI();
+    return{invId,cashierName,offline:true};
+  };
+
+  if(!navigator.onLine)return await goOffline();
+
+  try{
+    const{data:cs,error}=await sb.from('credit_sales').insert({
+      org_id:prof.org_id,invoice_id:invId,customer_name:cn,customer_phone:cphone||null,
+      due_date:due,total:tot,status:'unpaid',notes:note||null,created_by:prof.id,cashier_name_snapshot:cashierName
+    }).select().single();
+    if(error)throw error;
+    const{error:itemsErr}=await sb.from('credit_sale_items').insert(cartSnap.map(it=>({
+      credit_sale_id:cs.id,product_id:it.id,name_snapshot:it.name,
+      cost_price_snapshot:it.cost_price||0,selling_price_snapshot:it.price,
+      qty:it.qty,line_total:it.price*it.qty
+    })));
+    if(itemsErr)throw itemsErr;
+    for(const it of cartSnap)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
+    await loadInv(prof.org_id);
+    return{invId,cashierName,offline:false};
+  }catch(err){
+    if(isLikelyNetworkError(err))return await goOffline();
+    throw err;
+  }
+}
+
 async function issueCreditFromCart(){
   const cn=document.getElementById('ci-cname').value.trim();
   const cp=document.getElementById('ci-cphone').value.trim();
@@ -1783,23 +2324,16 @@ async function issueCreditFromCart(){
   const tot=cart.reduce((s,i)=>s+i.price*i.qty,0);
   L(true);closeCreditModal();
   const cartSnap=JSON.parse(JSON.stringify(cart));
-  const invId='CRD-'+Math.floor(10000+Math.random()*90000);
-  const cashierName=prof.full_name||prof.display_name||'—';
-  const{data:cs,error}=await sb.from('credit_sales').insert({
-    org_id:prof.org_id,invoice_id:invId,customer_name:cn,customer_phone:cp||null,
-    due_date:due,total:tot,status:'unpaid',notes:note||null,created_by:prof.id,cashier_name_snapshot:cashierName
-  }).select().single();
-  if(error){L(false);alert('Error: '+error.message);return;}
-  await sb.from('credit_sale_items').insert(cartSnap.map(it=>({
-    credit_sale_id:cs.id,product_id:it.id,name_snapshot:it.name,
-    cost_price_snapshot:it.cost_price||0,selling_price_snapshot:it.price,
-    qty:it.qty,line_total:it.price*it.qty
-  })));
-  for(const it of cartSnap)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
-  cart=[];document.getElementById('ten').value='';
-  await loadInv(prof.org_id);renderCart();L(false);
-  const rh=buildRcpt(invId,'Credit',tot,0,cartSnap,'CREDIT INVOICE',cn,cp,due,cashierName);
-  printIF(rh);
+  try{
+    const{invId,cashierName,offline}=await submitCreditSale({cn,cphone:cp,due,note,cartSnap});
+    cart=[];document.getElementById('ten').value='';
+    renderCart();L(false);
+    const rh=buildRcpt(invId,'Credit',tot,0,cartSnap,'CREDIT INVOICE',cn,cp,due,cashierName);
+    printIF(rh);
+    if(offline)alert(`You're offline — credit invoice ${invId} saved on this device and will sync once you're back online.`);
+  }catch(err){
+    L(false);alert('Error: '+(err.message||'Unknown error'));
+  }
 }
 
 function closeSms(){document.getElementById('smsm').style.display='none';document.getElementById('smsp').value='';}
@@ -2062,13 +2596,53 @@ document.getElementById('apf').addEventListener('submit',async e=>{
   const stk=parseInt(document.getElementById('astk').value)||0;
   const note=document.getElementById('anote').value.trim();
   L(true);
-  const{data:prod,error}=await sb.from('products').upsert(
-    {org_id:prof.org_id,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk},
-    {onConflict:'org_id,barcode'}).select().single();
-  if(!error&&prod)await sb.from('inventory_log').insert({org_id:prof.org_id,product_id:prod.id,
-    product_name_snapshot:nm,added_by:prof.id,qty_added:stk,stock_before:0,stock_after:stk,note:note||'Initial stock'});
-  L(false);if(error){alert('Error: '+error.message);return;}
-  e.target.reset();await loadInv(prof.org_id);alert('Product saved!');
+
+  const goOfflineCreate=async()=>{
+    // Match the online path's upsert-on-barcode semantics: if this
+    // barcode already matches a product on this device (synced or still
+    // local), overwrite it instead of creating a duplicate row.
+    const existing=inv.find(p=>p.barcode===br);
+    const db=await openOfflineDB();
+    if(existing){
+      Object.assign(existing,{name:nm,price:sp,cost_price:cp,stock:stk});
+      db.transaction('catalog','readwrite').objectStore('catalog').put(existing);
+      await queueAdminAction({
+        type:'edit_product',
+        payload:{productId:existing.id,fields:{name:nm,price:sp,cost_price:cp,stock:stk}}
+      });
+    }else{
+      // Optimistic local product so it shows up immediately in Admin
+      // Inventory AND is sellable from the Cashier grid right away —
+      // matching the "record new data offline" requirement. It gets a
+      // temporary local- ID until it syncs and picks up a real one (see
+      // isLocalId/resolveId above).
+      const localId='local-'+genClientRef();
+      const localProd={id:localId,org_id:prof.org_id,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk};
+      inv.push(localProd);
+      db.transaction('catalog','readwrite').objectStore('catalog').put(localProd);
+      await queueAdminAction({
+        type:'create_product',localId,
+        payload:{org_id:prof.org_id,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk,added_by:prof.id,note:note||'Initial stock'}
+      });
+    }
+    L(false);e.target.reset();renderPG();renderInvTable('ait');updateOfflineUI();
+    alert(`You're offline — "${nm}" has been saved on this device and will sync automatically once you're back online.`);
+  };
+
+  if(!navigator.onLine){await goOfflineCreate();return;}
+
+  try{
+    const{data:prod,error}=await sb.from('products').upsert(
+      {org_id:prof.org_id,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk},
+      {onConflict:'org_id,barcode'}).select().single();
+    if(error)throw error;
+    await sb.from('inventory_log').insert({org_id:prof.org_id,product_id:prod.id,
+      product_name_snapshot:nm,added_by:prof.id,qty_added:stk,stock_before:0,stock_after:stk,note:note||'Initial stock'});
+    L(false);e.target.reset();await loadInv(prof.org_id);alert('Product saved!');
+  }catch(error){
+    if(isLikelyNetworkError(error)){await goOfflineCreate();}
+    else{L(false);alert('Error: '+error.message);}
+  }
 });
 
 // Searchable stock dropdown
@@ -2104,17 +2678,55 @@ async function addStk(ctx){
   if(qty<=0){alert('Enter a valid quantity.');return;}
   const prod=inv.find(i=>i.id===selStkPId);if(!prod)return;
   const ns=prod.stock+qty;
+
+  const resetForm=()=>{
+    selStkPId=null;
+    document.getElementById(ctx==='m'?'msrch':'asrch').value='';
+    document.getElementById(ctx==='m'?'msqty':'asqty').value='';
+    document.getElementById(ctx==='m'?'msnote':'asnote').value='';
+    const cur=document.getElementById(ctx==='m'?'mscur':'ascur');if(cur)cur.innerText='';
+  };
+
+  // Master console (ctx 'm') stays online-only for this phase — same as
+  // Cashier Management and Billing, see the scope note above.
+  if(ctx==='a'&&!navigator.onLine){
+    prod.stock=ns; // optimistic, same pattern as the Cashier sale flow
+    const db=await openOfflineDB();
+    db.transaction('catalog','readwrite').objectStore('catalog').put(prod);
+    await queueAdminAction({
+      type:'add_stock',
+      payload:{productId:prod.id,qty,org_id:orgId,added_by:prof.id,note:note||null,nameSnapshot:prod.name}
+    });
+    resetForm();renderPG();renderInvTable('ait');updateOfflineUI();
+    alert(`You're offline — added ${qty} units to "${prod.name}" on this device. New stock: ${ns}. Will sync once you're back online.`);
+    return;
+  }
+
   L(true);
-  await sb.from('products').update({stock:ns}).eq('id',selStkPId);
-  await sb.from('inventory_log').insert({org_id:orgId,product_id:selStkPId,product_name_snapshot:prod.name,
-    added_by:prof.id,qty_added:qty,stock_before:prod.stock,stock_after:ns,
-    note:note||(ctx==='m'?'Added by NYANSATEK':null)});
-  L(false);selStkPId=null;
-  document.getElementById(ctx==='m'?'msrch':'asrch').value='';
-  document.getElementById(ctx==='m'?'msqty':'asqty').value='';
-  document.getElementById(ctx==='m'?'msnote':'asnote').value='';
-  const cur=document.getElementById(ctx==='m'?'mscur':'ascur');if(cur)cur.innerText='';
-  await loadInv(orgId);alert(`Added ${qty} units. New stock: ${ns}`);
+  try{
+    const{error:updErr}=await sb.from('products').update({stock:ns}).eq('id',selStkPId);
+    if(updErr)throw updErr;
+    await sb.from('inventory_log').insert({org_id:orgId,product_id:selStkPId,product_name_snapshot:prod.name,
+      added_by:prof.id,qty_added:qty,stock_before:prod.stock,stock_after:ns,
+      note:note||(ctx==='m'?'Added by NYANSATEK':null)});
+    L(false);resetForm();
+    await loadInv(orgId);alert(`Added ${qty} units. New stock: ${ns}`);
+  }catch(err){
+    L(false);
+    if(ctx==='a'&&isLikelyNetworkError(err)){
+      prod.stock=ns;
+      const db=await openOfflineDB();
+      db.transaction('catalog','readwrite').objectStore('catalog').put(prod);
+      await queueAdminAction({
+        type:'add_stock',
+        payload:{productId:prod.id,qty,org_id:orgId,added_by:prof.id,note:note||null,nameSnapshot:prod.name}
+      });
+      resetForm();renderPG();renderInvTable('ait');updateOfflineUI();
+      alert(`You're offline — added ${qty} units to "${prod.name}" on this device. New stock: ${ns}. Will sync once you're back online.`);
+    }else{
+      alert('Error: '+(err.message||'Unknown error'));
+    }
+  }
 }
 
 async function loadLog(ctx){
@@ -2364,13 +2976,36 @@ async function saveProductEdit(ctx){
   const cost_price=parseFloat(document.getElementById(pfx+'cost').value)||0;
   const stock=parseInt(document.getElementById(pfx+'qty').value)||0;
   if(!name){alert('Product name is required.');return;}
-  L(true);
-  const{error}=await sb.from('products').update({name,barcode:barcode||null,price,cost_price,stock}).eq('id',editProdId);
-  L(false);
-  if(error){alert('Error: '+error.message);return;}
+  const fields={name,barcode:barcode||null,price,cost_price,stock};
   const orgId=ctx==='m'?activeOrg:prof.org_id;
-  await loadInv(orgId);
-  alert('Product updated successfully!');
+
+  const goOfflineEdit=async()=>{
+    const prod=inv.find(i=>i.id===editProdId);
+    if(prod){
+      Object.assign(prod,fields);
+      const db=await openOfflineDB();
+      db.transaction('catalog','readwrite').objectStore('catalog').put(prod);
+    }
+    await queueAdminAction({type:'edit_product',payload:{productId:editProdId,fields}});
+    renderPG();renderInvTable('ait');updateOfflineUI();
+    alert(`You're offline — "${name}" has been updated on this device and will sync once you're back online.`);
+  };
+
+  // Master console (ctx 'm') stays online-only for this phase.
+  if(ctx==='a'&&!navigator.onLine){await goOfflineEdit();return;}
+
+  L(true);
+  try{
+    const{error}=await sb.from('products').update(fields).eq('id',editProdId);
+    if(error)throw error;
+    L(false);
+    await loadInv(orgId);
+    alert('Product updated successfully!');
+  }catch(err){
+    L(false);
+    if(ctx==='a'&&isLikelyNetworkError(err)){await goOfflineEdit();}
+    else{alert('Error: '+(err.message||'Unknown error'));}
+  }
 }
 function swLedTab(tab){
   ['sh','pr','cs','cp','si','sp','is','vo'].forEach(t=>{
@@ -2497,36 +3132,30 @@ async function issueCredit(){
   const note=document.getElementById('cs-note').value.trim();
   if(!cn||!due){alert('Customer name and due date are required.');return;}
   if(!cCart.length){alert('Add at least one item.');return;}
-  const tot=cCart.reduce((s,i)=>s+i.price*i.qty,0);
   L(true);
-  const invId='CRD-'+Math.floor(10000+Math.random()*90000);
-  const cashierName=prof.full_name||prof.display_name||'—';
-  const{data:cs,error}=await sb.from('credit_sales').insert({
-    org_id:prof.org_id,invoice_id:invId,customer_name:cn,customer_phone:cp2||null,
-    due_date:due,total:tot,status:'unpaid',notes:note||null,created_by:prof.id,cashier_name_snapshot:cashierName
-  }).select().single();
-  if(error){L(false);alert('Error: '+error.message);return;}
-  await sb.from('credit_sale_items').insert(cCart.map(it=>({
-    credit_sale_id:cs.id,product_id:it.id,name_snapshot:it.name,
-    cost_price_snapshot:it.cost_price||0,selling_price_snapshot:it.price,
-    qty:it.qty,line_total:it.price*it.qty
-  })));
-  for(const it of cCart)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
-  const snap=JSON.parse(JSON.stringify(cCart));
-  cCart=[];renderCCart();
-  document.getElementById('cs-cn').value='';document.getElementById('cs-cp').value='';
-  document.getElementById('cs-due').value='';document.getElementById('cs-note').value='';
-  await loadInv(prof.org_id);L(false);
-  const rh=buildRcpt(invId,'Credit',tot,0,snap,'CREDIT INVOICE',cn,cp2,due,cashierName);
-  printIF(rh);loadCreditList();
+  const cartSnap=JSON.parse(JSON.stringify(cCart));
+  try{
+    const{invId,cashierName,offline}=await submitCreditSale({cn,cphone:cp2,due,note,cartSnap});
+    cCart=[];renderCCart();
+    document.getElementById('cs-cn').value='';document.getElementById('cs-cp').value='';
+    document.getElementById('cs-due').value='';document.getElementById('cs-note').value='';
+    L(false);
+    const rh=buildRcpt(invId,'Credit',cartSnap.reduce((s,i)=>s+i.price*i.qty,0),0,cartSnap,'CREDIT INVOICE',cn,cp2,due,cashierName);
+    printIF(rh);
+    if(offline){
+      renderCreditListFromArray(credInvList);
+      alert(`You're offline — credit invoice ${invId} saved on this device and will sync once you're back online.`);
+    }else{
+      loadCreditList();
+    }
+  }catch(err){
+    L(false);alert('Error: '+(err.message||'Unknown error'));
+  }
 }
 
-async function loadCreditList(){
-  L(true);
-  const{data}=await sb.from('credit_sales').select('*').eq('org_id',prof.org_id)
-    .order('created_at',{ascending:false}).limit(30);
-  L(false);credInvList=data||[];
+function renderCreditListFromArray(data){
   const c=document.getElementById('cslist');
+  if(!c)return;
   if(!data||!data.length){c.innerHTML='<div class="es">No credit sales yet.</div>';return;}
   c.innerHTML=`<table><thead><tr><th>Invoice</th><th>Customer</th><th>Total</th><th>Paid</th><th>Due</th><th>Status</th></tr></thead>
   <tbody>${data.map(r=>`<tr>
@@ -2537,6 +3166,23 @@ async function loadCreditList(){
     <td style="font-size:.75rem;">${r.due_date||'—'}</td>
     <td><span class="badge ${r.status==='paid'?'bg':r.status==='partial'?'by':'br'}">${r.status}</span></td>
   </tr>`).join('')}</tbody></table>`;
+}
+
+async function loadCreditList(){
+  L(true);
+  try{
+    const{data,error}=await sb.from('credit_sales').select('*').eq('org_id',prof.org_id)
+      .order('created_at',{ascending:false}).limit(30);
+    if(error)throw error;
+    credInvList=data||[];
+    cacheCreditSalesOffline(prof.org_id,credInvList); // fire-and-forget
+  }catch(e){
+    console.warn('Could not load credit sales from Supabase, falling back to offline cache:',e);
+    credInvList=await getCachedCreditSalesOffline(prof.org_id);
+    credInvList.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  }
+  L(false);
+  renderCreditListFromArray(credInvList);
 }
 
 // ── CREDIT PAYMENTS ──────────────────────────────────────────────
@@ -2569,15 +3215,46 @@ async function recvCreditPay(){
   if(amt<=0){alert('Enter a valid amount.');return;}
   const bal=selCPSale.total-selCPSale.amount_paid;
   if(amt>bal+0.01){alert(`Amount exceeds balance of ${GH(bal)}`);return;}
+
+  const resetForm=()=>{
+    selCPId=null;selCPSale=null;
+    document.getElementById('cp-sch').value='';document.getElementById('cp-sel').innerText='';
+    document.getElementById('cp-amt').value='';document.getElementById('cp-note').value='';
+  };
+
+  const goOffline=async()=>{
+    // Optimistic balance update against the cached invoice, same pattern
+    // as stock deltas elsewhere — the real sync step re-reads the
+    // server's current balance before applying, so this is just for
+    // this device's own display in the meantime.
+    selCPSale.amount_paid+=amt;
+    selCPSale.status=selCPSale.amount_paid>=selCPSale.total-0.01?'paid':selCPSale.amount_paid>0?'partial':'unpaid';
+    await persistCachedCreditSale(selCPSale);
+    await queueFinanceAction({
+      type:'credit_payment',
+      payload:{org_id:prof.org_id,creditSaleId:selCPId,amount:amt,payment_method:pm,notes:note||null,received_by:prof.id}
+    });
+    renderCreditListFromArray(credInvList);
+    resetForm();updateOfflineUI();
+    alert("You're offline — payment saved on this device and will sync once you're back online.");
+  };
+
+  if(!navigator.onLine){await goOffline();return;}
+
   L(true);
-  await sb.from('credit_payments').insert({org_id:prof.org_id,credit_sale_id:selCPId,amount:amt,payment_method:pm,notes:note||null,received_by:prof.id});
-  const newPaid=selCPSale.amount_paid+amt;
-  const newSt=newPaid>=selCPSale.total-0.01?'paid':newPaid>0?'partial':'unpaid';
-  await sb.from('credit_sales').update({amount_paid:newPaid,status:newSt}).eq('id',selCPId);
-  L(false);selCPId=null;selCPSale=null;
-  document.getElementById('cp-sch').value='';document.getElementById('cp-sel').innerText='';
-  document.getElementById('cp-amt').value='';document.getElementById('cp-note').value='';
-  await loadCreditList();await loadCPHistory();alert('Payment recorded!');
+  try{
+    const{error}=await sb.from('credit_payments').insert({org_id:prof.org_id,credit_sale_id:selCPId,amount:amt,payment_method:pm,notes:note||null,received_by:prof.id});
+    if(error)throw error;
+    const newPaid=selCPSale.amount_paid+amt;
+    const newSt=newPaid>=selCPSale.total-0.01?'paid':newPaid>0?'partial':'unpaid';
+    await sb.from('credit_sales').update({amount_paid:newPaid,status:newSt}).eq('id',selCPId);
+    L(false);resetForm();
+    await loadCreditList();await loadCPHistory();alert('Payment recorded!');
+  }catch(err){
+    L(false);
+    if(isLikelyNetworkError(err)){await goOffline();}
+    else{alert('Error: '+(err.message||'Unknown error'));}
+  }
 }
 
 async function loadCPHistory(){
@@ -2773,10 +3450,27 @@ async function addExp(){
   const amt=parseFloat(document.getElementById('ex-amt').value)||0;
   const dt=document.getElementById('ex-dt').value;
   if(!desc||amt<=0||!dt){alert('Fill in description, amount and date.');return;}
+
+  const resetForm=()=>{document.getElementById('ex-desc').value='';document.getElementById('ex-amt').value='';};
+
+  const goOffline=async()=>{
+    await queueFinanceAction({type:'expense',payload:{org_id:prof.org_id,description:desc,amount:amt,expense_date:dt,recorded_by:prof.id}});
+    resetForm();updateOfflineUI();
+    alert("You're offline — expense saved on this device and will sync once you're back online.");
+  };
+
+  if(!navigator.onLine){await goOffline();return;}
+
   L(true);
-  await sb.from('expenses').insert({org_id:prof.org_id,description:desc,amount:amt,expense_date:dt,recorded_by:prof.id});
-  L(false);document.getElementById('ex-desc').value='';document.getElementById('ex-amt').value='';
-  alert('Expense recorded!');
+  try{
+    const{error}=await sb.from('expenses').insert({org_id:prof.org_id,description:desc,amount:amt,expense_date:dt,recorded_by:prof.id});
+    if(error)throw error;
+    L(false);resetForm();alert('Expense recorded!');
+  }catch(err){
+    L(false);
+    if(isLikelyNetworkError(err)){await goOffline();}
+    else{alert('Error: '+(err.message||'Unknown error'));}
+  }
 }
 
 async function genIncomeSt(){
