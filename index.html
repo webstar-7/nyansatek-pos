@@ -54,7 +54,7 @@ nav .hist-btn{color:var(--a)!important;font-size:1rem;padding:4px 8px;}
 main{flex:1;overflow:hidden;}
 .view{display:none;}
 /* CASHIER */
-#cv{height:calc(100vh - 92px);}
+#cv{height:100%;}
 #cv.on{display:grid;grid-template-columns:1fr 288px;}
 .pp{overflow-y:auto;height:100%;padding:12px;display:flex;flex-direction:column;gap:8px;}
 .srow{display:grid;grid-template-columns:1fr 160px;gap:7px;}
@@ -89,6 +89,44 @@ main{flex:1;overflow:hidden;}
 .ck{border-top:2px solid var(--b);padding:9px;}
 .gt{display:flex;justify-content:space-between;font-size:1rem;font-weight:700;color:var(--p);border-top:2px dashed var(--b);padding-top:6px;margin:4px 0 8px;}
 .sbs{display:flex;flex-direction:column;gap:4px;}
+
+/* ── MOBILE LAYOUT ──────────────────────────────────────────────
+   Below ~860px (phones, small tablets in portrait): the header was
+   a fixed 52px tall and simply clipped anything that didn't fit in
+   one row (nav buttons hidden behind the "Today" badge, etc.) since
+   every view's height used to be calculated as calc(100vh - 92px) --
+   a number that silently assumed the header always stays 52px. Both
+   are fixed now: the header is allowed to wrap onto more than one
+   row and grow, and every view sizes itself off its flex parent's
+   real height instead of a hardcoded guess (see the height:100% base
+   rules above -- main{flex:1} already sizes correctly around
+   whatever the header/footer actually render at).
+   The Cashier view also switches from a fixed 1fr/288px side-by-side
+   grid (which left almost no room for the product search panel on a
+   narrow screen) to a stacked layout: product search on top, cart
+   docked at the bottom with its own scroll, capped so it can't push
+   the product panel off-screen.
+*/
+@media (max-width:860px){
+  header{height:auto;min-height:52px;flex-wrap:wrap;padding:8px 12px;row-gap:6px;}
+  .brand{font-size:.82rem;}
+  .sbadge{display:none;} /* today's running total — not worth the space here; still visible in SME Ledger */
+  .hr{flex-wrap:wrap;width:100%;justify-content:flex-start;gap:6px;}
+  nav{display:flex;flex-wrap:wrap;gap:4px;}
+  nav button{padding:4px 8px;font-size:.72rem;}
+
+  #cv.on{display:flex;flex-direction:column;}
+  .pp{flex:1;min-height:0;}
+  .srow{grid-template-columns:1fr;}
+  .pg{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));}
+  .cp{border-left:none;border-top:3px solid var(--b);flex:none;max-height:56vh;}
+
+  #av.on{grid-template-columns:1fr;overflow-y:auto;}
+  #av .lp,#av .rp{height:auto;overflow-y:visible;}
+  #miv.on{grid-template-columns:1fr;overflow-y:auto;}
+  #miv .lp,#miv .rp{height:auto;overflow-y:visible;}
+}
+
 /* SHARED */
 .fg{margin-bottom:8px;}
 .fg label{display:block;font-size:.71rem;font-weight:600;margin-bottom:2px;color:#4b5563;}
@@ -112,17 +150,17 @@ main{flex:1;overflow:hidden;}
 .br{background:#fee2e2;color:#991b1b;}
 .bpurp{background:#ede9fe;color:#5b21b6;}
 /* ADMIN */
-#av{height:calc(100vh - 92px);overflow:hidden;}
+#av{height:100%;overflow:hidden;}
 #av.on{display:grid;grid-template-columns:310px 1fr;gap:16px;padding:16px;}
 #av .lp{overflow-y:auto;height:100%;}
 #av .rp{overflow-y:auto;height:100%;}
 /* MASTER INV */
-#miv{height:calc(100vh - 92px);overflow:hidden;}
+#miv{height:100%;overflow:hidden;}
 #miv.on{display:grid;grid-template-columns:310px 1fr;gap:16px;padding:16px;}
 #miv .lp{overflow-y:auto;height:100%;}
 #miv .rp{overflow-y:auto;height:100%;}
 /* LEDGER */
-#lv.on,#mlv.on,#mv.on{display:block;padding:16px;overflow-y:auto;height:calc(100vh - 92px);}
+#lv.on,#mlv.on,#mv.on{display:block;padding:16px;overflow-y:auto;height:100%;}
 /* TABS */
 .tbar{display:flex;flex-wrap:wrap;border-bottom:2px solid var(--b);margin-bottom:12px;gap:2px;}
 .tb{background:none;border:none;padding:6px 11px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--g);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .12s;white-space:nowrap;}
