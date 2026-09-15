@@ -2,7 +2,7 @@
   "name": "NYANSATEK Elite POS",
   "short_name": "NYANSATEK POS",
   "description": "NYANSATEK Elite Point of Sale System",
-  "start_url": "./pos.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
