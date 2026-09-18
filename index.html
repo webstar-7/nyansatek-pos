@@ -1792,7 +1792,7 @@ async function boot2(){
       document.getElementById('sus-admin-body').style.display=prof.role==='admin'?'block':'none';
       document.getElementById('sus-nonadmin-body').style.display=prof.role==='admin'?'none':'block';
       if(prof.role==='admin'){
-        document.getElementById('sus-plan').value=(org.plan_key==='yearly'?'Yearly':'Monthly')+' \u2014 GH\u20B5'+(org.plan_key==='yearly'?'1,200/yr':'120/mo');
+        document.getElementById('sus-plan').value=(org.plan_key==='yearly'?'Yearly':'Monthly')+' \u2014 GH\u20B5'+(org.plan_key==='yearly'?'2,000/yr':'200/mo');
       }
       scr('x');
       return;
@@ -1813,7 +1813,7 @@ async function boot2(){
 async function susRenew(){
   const{data:org}=await sb.from('organizations').select('*').eq('id',prof.org_id).single();
   if(!org)return;
-  const amountPesewas=org.plan_key==='yearly'?120000:12000; // keep in sync with _catalog.js
+  const amountPesewas=org.plan_key==='yearly'?200000:20000; // keep in sync with _catalog.js
   payWithPaystack({amountPesewas,email:org.contact_email,onSuccess: async (reference)=>{
     const msg=document.getElementById('sus-msg');
     msg.innerHTML='<div class="es">Confirming payment...</div>';
@@ -1979,28 +1979,28 @@ function payWithPaystack({amountPesewas, email, onSuccess}){
 async function startRenewNow(){
   const{data:org}=await sb.from('organizations').select('*').eq('id',prof.org_id).single();
   if(!org)return;
-  const amountPesewas=org.plan_key==='yearly'?120000:12000; // keep in sync with _catalog.js
+  const amountPesewas=org.plan_key==='yearly'?200000:20000; // keep in sync with _catalog.js
   payWithPaystack({amountPesewas,email:org.contact_email,onSuccess: async (reference)=>{
     await callBillingEndpoint('renew-subscription',reference);
   }});
 }
 
 async function startUpgrade(){
-  if(!confirm('Upgrade to the Yearly plan now for GH\u20B51,200? This starts a fresh 12-month period from today.'))return;
+  if(!confirm('Upgrade to the Yearly plan now for GH\u20B52,000? This starts a fresh 12-month period from today.'))return;
   const{data:org}=await sb.from('organizations').select('*').eq('id',prof.org_id).single();
   if(!org)return;
-  payWithPaystack({amountPesewas:120000,email:org.contact_email,onSuccess: async (reference)=>{
-    await callBillingEndpoint('upgrade-subscription',reference);
+  payWithPaystack({amountPesewas:200000,email:org.contact_email,onSuccess: async (reference)=>{
+    await callBillingEndpoint('upgrade-subscription',reference,{targetPlanKey:'yearly'});
   }});
 }
 
-async function callBillingEndpoint(endpoint,reference){
+async function callBillingEndpoint(endpoint,reference,extra){
   const msg=document.getElementById('bv-msg');
   msg.innerHTML='<div class="es">Confirming payment...</div>';
   try{
     const res=await fetch(BILLING_API_BASE+'/'+endpoint,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({reference,tenantProduct:'pos',tenantId:prof.org_id})
+      body:JSON.stringify({reference,tenantProduct:'pos',tenantId:prof.org_id,...(extra||{})})
     });
     const data=await res.json();
     if(!res.ok||!data.ok){
