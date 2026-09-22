@@ -2412,12 +2412,12 @@ function buildSMSMsg(invId,method,tot,items){
   return `${biz}${addr}${phoneLine}\n------------------------\nRECEIPT | Inv: ${invId}\n${dateStr}\n------------------------\n${itemLines}\n------------------------\nTOTAL: GHS ${GH(tot)}\nPaid via: ${method}\n------------------------\nThank you for your business!\nPowered by NYANSATEK`;
 }
 async function sendSMS(ph,msg){
+  // Moved from a Netlify function to a Supabase Edge Function so it no
+  // longer depends on this site being hosted on Netlify. Same signature,
+  // same fire-and-forget error handling as before.
   try{
-    const res=await fetch('/.netlify/functions/send-receipt-sms',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({phone:ph,message:msg})
-    });
-    if(!res.ok){console.error('SMS failed:',await res.text());alert('Sale complete, but the SMS could not be sent. You can print or share the receipt manually.');}
+    const{data,error}=await sb.functions.invoke('pos-send-receipt-sms',{body:{phone:ph,message:msg}});
+    if(error||data?.error){console.error('SMS failed:',error||data.error);alert('Sale complete, but the SMS could not be sent. You can print or share the receipt manually.');}
   }catch(e){console.error(e);alert('Sale complete, but the SMS could not be sent. You can print or share the receipt manually.');}
 }
 
