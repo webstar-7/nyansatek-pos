@@ -35,7 +35,7 @@ body{background:var(--bg);color:var(--t);display:flex;flex-direction:column;min-
 .sub{color:var(--g);font-size:.83rem;margin-bottom:20px;}
 .aerr{background:#fbe5e5;color:#a82c2c;padding:9px 12px;border-radius:8px;font-size:.82rem;margin-bottom:14px;display:none;}
 .aerr.on{display:block;}
-.login{min-height:100vh;width:100%;align-self:stretch;display:grid;grid-template-columns:minmax(320px,44%) 1fr;flex:1;}
+.login{position:fixed;inset:0;display:grid;grid-template-columns:minmax(320px,44%) 1fr;overflow:auto;}
 .login-l{background:var(--p);color:#e9edf7;padding:56px 52px;display:flex;flex-direction:column;justify-content:space-between;}
 .login-l .mono{width:56px;height:56px;font-size:24px;border-radius:15px;}
 .login-l h1{font-size:2.1rem;line-height:1.12;margin:26px 0 12px;font-weight:700;letter-spacing:-.4px;color:#fff;}
