@@ -35,6 +35,18 @@ body{background:var(--bg);color:var(--t);display:flex;flex-direction:column;min-
 .sub{color:var(--g);font-size:.83rem;margin-bottom:20px;}
 .aerr{background:#fbe5e5;color:#a82c2c;padding:9px 12px;border-radius:8px;font-size:.82rem;margin-bottom:14px;display:none;}
 .aerr.on{display:block;}
+.login{min-height:100vh;display:grid;grid-template-columns:minmax(320px,44%) 1fr;flex:1;}
+.login-l{background:var(--p);color:#e9edf7;padding:56px 52px;display:flex;flex-direction:column;justify-content:space-between;}
+.login-l .mono{width:56px;height:56px;font-size:24px;border-radius:15px;}
+.login-l h1{font-size:2.1rem;line-height:1.12;margin:26px 0 12px;font-weight:700;letter-spacing:-.4px;color:#fff;}
+.login-l p.tag{font-size:1rem;color:rgba(233,237,247,.75);max-width:34ch;}
+.login-l ul{list-style:none;display:grid;gap:14px;}
+.login-l li{display:flex;gap:12px;align-items:flex-start;color:rgba(233,237,247,.86);font-size:.9rem;}
+.login-l li i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--a);margin-top:8px;font-style:normal;}
+.login-r{display:grid;place-items:center;padding:32px;background:#fff;}
+.login-card{width:100%;max-width:380px;}
+.login-card h1{font-size:1.4rem;color:var(--p);margin-bottom:5px;}
+@media(max-width:820px){.login{grid-template-columns:1fr;}.login-l{padding:28px;}.login-l h1{font-size:1.6rem;}.login-l ul{display:none;}}
 /* SIDEBAR (shell) */
 #app{display:flex;min-height:100vh;}
 .side{background:var(--p);color:#e9edf7;display:flex;flex-direction:column;padding:18px 14px;width:220px;flex:none;position:sticky;top:0;height:100vh;}
@@ -43,9 +55,11 @@ body{background:var(--bg);color:var(--t);display:flex;flex-direction:column;min-
 .brand b{display:block;font-size:14px;line-height:1.2;color:#fff;}
 .brand small{display:block;color:rgba(233,237,247,.62);font-size:11.5px;font-weight:500;}
 .brand em{color:var(--g);font-size:.72rem;font-weight:400;font-style:normal;margin-left:7px;}
-.side .foot{margin-top:auto;padding:14px 6px 0;border-top:1px solid rgba(255,255,255,.14);font-size:12.5px;}
+.side .foot{margin-top:auto;padding:14px 6px 0;border-top:1px solid rgba(255,255,255,.14);font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
 .side .foot b{display:block;font-size:13px;color:#fff;}
 .side .foot span{color:rgba(233,237,247,.6);}
+.side .foot button{background:rgba(255,255,255,.1);border:0;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12.5px;white-space:nowrap;}
+.side .foot button:hover{background:rgba(255,255,255,.18);}
 .top{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 20px;background:#fff;border-bottom:1px solid var(--b);flex-wrap:wrap;}
 .top .r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .sbadge{background:rgba(209,160,58,.12);border:1px solid var(--a);border-radius:999px;padding:3px 12px;font-size:.7rem;color:var(--g);text-align:center;}
@@ -58,8 +72,6 @@ body{background:var(--bg);color:var(--t);display:flex;flex-direction:column;min-
 nav button{background:transparent;border:0;color:rgba(233,237,247,.8);padding:9px 12px;font-weight:600;cursor:pointer;border-radius:9px;font-size:.84rem;text-align:left;transition:all .15s;}
 nav button:hover{background:rgba(255,255,255,.08);}
 nav button.on{color:var(--ai);background:var(--a);font-weight:700;}
-nav .lo{color:#f2a0a0!important;margin-top:8px;}
-nav .hist-btn{color:var(--a)!important;font-size:1rem;}
 /* LAYOUT */
 .main{flex:1;min-width:0;display:flex;flex-direction:column;}
 main{flex:1;overflow:hidden;}
@@ -176,9 +188,10 @@ main{flex:1;overflow:hidden;}
 /* LEDGER */
 #lv.on,#mlv.on,#mv.on{display:block;padding:16px;overflow-y:auto;height:100%;}
 /* TABS */
-.tbar{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--b);margin-bottom:12px;gap:2px;}
-.tb{background:none;border:none;padding:6px 11px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--g);border-bottom:3px solid transparent;margin-bottom:-1px;transition:all .12s;white-space:nowrap;}
-.tb.on{color:var(--p);border-bottom-color:var(--a);}
+.tbar{display:flex;flex-wrap:wrap;border-bottom:0;margin-bottom:14px;gap:6px;}
+.tb{background:#fff;border:1px solid var(--b);padding:7px 14px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--g);border-radius:999px;transition:all .15s;white-space:nowrap;}
+.tb:hover{border-color:var(--a);color:var(--p);}
+.tb.on{background:var(--p);border-color:var(--p);color:#fff;}
 .tp{display:none;}
 .tp.on{display:block;}
 /* TABLE */
@@ -234,21 +247,35 @@ footer strong{color:var(--a);}
 <div class="lov" id="lov">Working...</div>
 
 <!-- AUTH -->
-<div class="as" id="ls">
-  <div class="ac">
-    <h1>NYANSATEK Elite POS</h1>
-    <p class="sub">Sign in to your business environment</p>
-    <div class="aerr" id="le"></div>
-    <form id="lf">
-      <div class="fg"><label>Business Name (or Staff Username)</label>
-        <input type="text" id="lb" placeholder="Business name, or your staff username" required></div>
-      <div class="fg"><label>Password</label>
-        <div style="position:relative;">
-          <input type="password" id="lp" required style="padding-right:56px;">
-          <button type="button" onclick="const i=document.getElementById('lp');const b=this;if(i.type==='password'){i.type='text';b.innerText='Hide';}else{i.type='password';b.innerText='Show';}" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--bl);font-size:.72rem;font-weight:600;cursor:pointer;">Show</button>
-        </div></div>
-      <button type="submit" class="btn ba bf" id="lbtn">Sign In</button>
-    </form>
+<div class="login" id="ls">
+  <div class="login-l">
+    <div>
+      <div class="mono">N</div>
+      <h1>NYANSATEK Elite POS</h1>
+      <p class="tag">Point of sale, inventory and ledger management built for Ghanaian shops.</p>
+    </div>
+    <ul>
+      <li><i></i>Your records are backed up automatically, under your own account</li>
+      <li><i></i>Cashiers get their own logins with their own access</li>
+      <li><i></i>Works from a phone, tablet, or the shop computer</li>
+    </ul>
+  </div>
+  <div class="login-r">
+    <div class="login-card">
+      <h1>Sign in</h1>
+      <p class="sub">Sign in to your business environment</p>
+      <div class="aerr" id="le"></div>
+      <form id="lf">
+        <div class="fg"><label>Business Name (or Staff Username)</label>
+          <input type="text" id="lb" placeholder="Business name, or your staff username" required></div>
+        <div class="fg"><label>Password</label>
+          <div style="position:relative;">
+            <input type="password" id="lp" required style="padding-right:56px;">
+            <button type="button" onclick="const i=document.getElementById('lp');const b=this;if(i.type==='password'){i.type='text';b.innerText='Hide';}else{i.type='password';b.innerText='Show';}" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--bl);font-size:.72rem;font-weight:600;cursor:pointer;">Show</button>
+          </div></div>
+        <button type="submit" class="btn ba bf" id="lbtn">Sign In</button>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -347,29 +374,12 @@ footer strong{color:var(--a);}
   </div>
 </div>
 
-<!-- HISTORY MODAL -->
-<div class="mo" id="hm" style="display:none;">
-  <div class="mc2 mc2-wide">
-    <h3>&#128203; Activity History</h3>
-    <p class="sub">Recent entries across all areas of the system.</p>
-    <div class="tbar" id="htbar">
-      <button class="tb on" onclick="loadHist('sales')">Sales</button>
-      <button class="tb" onclick="loadHist('credit')">Credit Sales</button>
-      <button class="tb" onclick="loadHist('inv')">Inventory</button>
-      <button class="tb" onclick="loadHist('exp')">Expenses</button>
-      <button class="tb" onclick="loadHist('supp')">Supplier</button>
-    </div>
-    <div id="hcontent"><div class="es">Select a tab above.</div></div>
-    <button onclick="document.getElementById('hm').style.display='none'" class="btn bf" style="margin-top:10px;">Close</button>
-  </div>
-</div>
-
 <!-- APP -->
 <div id="app" style="display:none;">
   <div class="side">
     <div class="brand"><div class="mono">N</div><div><b>NYANSATEK</b><small>Elite POS</small></div></div>
     <nav id="nav" class="nav"></nav>
-    <div class="foot"><div><b id="hbiz">—</b><span>Business</span></div></div>
+    <div class="foot"><div><b id="hbiz">—</b><span>Business</span></div><button type="button" onclick="handleLogout()">Log Out</button></div>
   </div>
   <div class="main">
   <div class="top">
@@ -380,6 +390,11 @@ footer strong{color:var(--a);}
     </div>
   </div>
   <main>
+
+    <!-- OVERVIEW -->
+    <div id="ov" class="view" style="padding:16px;overflow-y:auto;height:100%;">
+      <div class="es">Loading...</div>
+    </div>
 
     <!-- CASHIER -->
     <div id="cv" class="view">
@@ -1862,6 +1877,7 @@ function swV(v){
   const b=document.getElementById('t-'+v);if(b)b.classList.add('on');
   if(v==='chv')loadCashiers();
   if(v==='bv')loadBillingInfo();
+  if(v==='ov')loadOverview();
 }
 
 function buildNav(role){
@@ -1869,16 +1885,12 @@ function buildNav(role){
   const tabs=role==='master'
     ?[['mv','Businesses'],['miv','Inv. Manager'],['mlv','Financial Ledger']]
     :role==='admin'
-    ?[['cv','Cashier'],['av','Admin Inventory'],['chv','Cashiers'],['lv','SME Ledger'],['bv','Billing']]
+    ?[['ov','Overview'],['cv','Cashier'],['av','Admin Inventory'],['chv','Cashiers'],['lv','SME Ledger'],['bv','Billing']]
     :[['cv','Cashier']];
   tabs.forEach(([k,l],i)=>{
     const b=document.createElement('button');b.id='t-'+k;b.innerText=l;
     if(i===0)b.classList.add('on');b.onclick=()=>swV(k);nav.appendChild(b);
   });
-  const hb=document.createElement('button');hb.className='hist-btn';hb.title='Activity History';
-  hb.innerHTML='&#128203;';hb.onclick=()=>{document.getElementById('hm').style.display='flex';loadHist('sales');};
-  nav.appendChild(hb);
-  const lo=document.createElement('button');lo.innerText='Log Out';lo.className='lo';lo.onclick=handleLogout;nav.appendChild(lo);
 }
 
 async function initTenant(){
@@ -1888,9 +1900,9 @@ async function initTenant(){
   document.getElementById('fbiz').innerText=biz;
   document.getElementById('sb').style.display='block';
   activeOrg=prof.org_id;
-  swV('cv');toggleTen();
   setDef('sh-s','sh-e','pr-s','pr-e','is-s','is-e','ex-dt','si-dt');
   await loadInv(prof.org_id);await refSales();
+  swV(prof.role==='admin'?'ov':'cv');toggleTen();
   updateOfflineUI();
   if(navigator.onLine)drainAllQueues();
 }
@@ -1915,6 +1927,51 @@ async function refSales(){
     tot+=todayQueued.reduce((s,r)=>s+(r.payload.total||0),0);
   }catch(e){/* ignore — cosmetic figure only */}
   const el=document.getElementById('tsal');if(el)el.innerText=GH(tot);
+}
+
+async function loadOverview(){
+  const el=document.getElementById('ov');
+  el.innerHTML='<div class="es">Loading...</div>';
+  const t=today();
+  let salesToday=[];
+  try{
+    const{data,error}=await sb.from('sales').select('invoice_id,created_at,total,payment_method')
+      .eq('org_id',prof.org_id).gte('created_at',t+'T00:00:00').lte('created_at',t+'T23:59:59')
+      .order('created_at',{ascending:false});
+    if(error)throw error;
+    salesToday=data||[];
+  }catch(e){
+    // Offline — today's list just stays empty; the KPI strip below still
+    // shows an accurate total via refSales()'s own queued-sales fallback.
+  }
+  const todayTotal=salesToday.reduce((s,r)=>s+r.total,0);
+  const lowStock=inv.filter(p=>Number(p.stock)<=5).sort((a,b)=>a.stock-b.stock);
+  const recent=salesToday.slice(0,6);
+  const hour=new Date().getHours();
+  const greet=hour<12?'morning':hour<17?'afternoon':'evening';
+  el.innerHTML=
+   '<div class="card" style="margin-bottom:16px;">'+
+     '<h2 style="border:0;margin-bottom:2px;padding-bottom:0;">Good '+greet+', '+E(prof.businessName||prof.display_name||'')+'</h2>'+
+     '<p class="hint" style="margin-bottom:0;">'+new Date().toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'})+'</p>'+
+   '</div>'+
+   '<div class="mg">'+
+     '<div class="mc hl"><p>Sales Today</p><h3>'+GHC+GH(todayTotal)+'</h3></div>'+
+     '<div class="mc"><p>Transactions Today</p><h3>'+salesToday.length+'</h3></div>'+
+     '<div class="mc"><p>Products in Stock</p><h3>'+inv.length+'</h3></div>'+
+     '<div class="mc'+(lowStock.length?'':'')+'"><p>Low Stock Alerts</p><h3'+(lowStock.length?' style="color:var(--d);"':'')+'>'+lowStock.length+'</h3></div>'+
+   '</div>'+
+   '<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;">'+
+     '<div class="card"><h2>Recent Sales</h2>'+
+       (recent.length?('<table><thead><tr><th>Time</th><th>Invoice</th><th>Method</th><th style="text-align:right;">Total</th></tr></thead><tbody>'+
+         recent.map(r=>'<tr><td style="font-size:.73rem;">'+new Date(r.created_at).toLocaleTimeString()+'</td><td style="font-family:monospace;font-size:.73rem;">'+E(r.invoice_id)+'</td><td>'+E(r.payment_method)+'</td><td style="text-align:right;font-weight:600;">'+GHC+GH(r.total)+'</td></tr>').join('')+
+       '</tbody></table>'):'<div class="es">No sales recorded yet today.</div>')+
+     '</div>'+
+     '<div class="card"><h2>Low Stock</h2>'+
+       (lowStock.length?('<table><thead><tr><th>Product</th><th style="text-align:center;">Stock</th></tr></thead><tbody>'+
+         lowStock.slice(0,8).map(p=>'<tr><td>'+E(p.name)+'</td><td style="text-align:center;"><span class="badge '+(Number(p.stock)===0?'br':'by')+'">'+p.stock+'</span></td></tr>').join('')+
+       '</tbody></table>'):'<div class="es">All stocked up — nothing low.</div>')+
+     '</div>'+
+   '</div>';
 }
 
 async function loadInv(orgId){
@@ -3589,36 +3646,6 @@ function printStmt(vid){
   document.body.classList.add('printing-statement');
   window.print();
   document.body.classList.remove('printing-statement');el.classList.remove('pt');
-}
-
-// ── HISTORY MODAL ────────────────────────────────────────────────
-async function loadHist(tab){
-  document.getElementById('htbar').querySelectorAll('.tb').forEach((b,i)=>b.classList.toggle('on',['sales','credit','inv','exp','supp'][i]===tab));
-  const c=document.getElementById('hcontent');c.innerHTML='<div class="es">Loading...</div>';
-  L(true);
-  let html='<div class="es">No entries found.</div>';
-  if(tab==='sales'){
-    const{data}=await sb.from('sales').select('invoice_id,created_at,total,payment_method,cashier_name_snapshot').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
-    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Invoice</th><th>Cashier</th><th>Method</th><th style="text-align:right;">Total</th></tr></thead>
-    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${new Date(r.created_at).toLocaleString()}</td><td style="font-family:monospace;font-size:.73rem;">${E(r.invoice_id)}</td><td style="font-size:.73rem;">${E(r.cashier_name_snapshot||'—')}</td><td>${E(r.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(r.total)}</td></tr>`).join('')}</tbody></table>`;
-  }else if(tab==='credit'){
-    const{data}=await sb.from('credit_sales').select('*').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
-    if(data&&data.length)html=`<table><thead><tr><th>Invoice</th><th>Customer</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
-    <tbody>${data.map(r=>`<tr><td style="font-family:monospace;font-size:.73rem;">${E(r.invoice_id)}</td><td>${E(r.customer_name)}</td><td>${GH(r.total)}</td><td style="color:var(--s);">${GH(r.amount_paid)}</td><td><span class="badge ${r.status==='paid'?'bg':r.status==='partial'?'by':'br'}">${r.status}</span></td></tr>`).join('')}</tbody></table>`;
-  }else if(tab==='inv'){
-    const{data}=await sb.from('inventory_log').select('*').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
-    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Product</th><th>Added</th><th>Note</th></tr></thead>
-    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${new Date(r.created_at).toLocaleString()}</td><td>${E(r.product_name_snapshot)}</td><td style="color:var(--s);font-weight:600;">+${r.qty_added}</td><td style="color:var(--g);font-size:.73rem;">${E(r.note||'—')}</td></tr>`).join('')}</tbody></table>`;
-  }else if(tab==='exp'){
-    const{data}=await sb.from('expenses').select('*').eq('org_id',prof.org_id).order('expense_date',{ascending:false}).limit(30);
-    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Description</th><th style="text-align:right;">Amount</th></tr></thead>
-    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${r.expense_date}</td><td>${E(r.description)}</td><td style="text-align:right;font-weight:600;color:var(--d);">${GH(r.amount)}</td></tr>`).join('')}</tbody></table>`;
-  }else if(tab==='supp'){
-    const{data}=await sb.from('supplier_invoices').select('*').eq('org_id',prof.org_id).order('created_at',{ascending:false}).limit(30);
-    if(data&&data.length)html=`<table><thead><tr><th>Date</th><th>Supplier</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead>
-    <tbody>${data.map(r=>`<tr><td style="font-size:.73rem;">${r.received_date}</td><td>${E(r.supplier_name)}</td><td>${GH(r.total)}</td><td style="color:var(--s);">${GH(r.amount_paid)}</td><td><span class="badge ${r.status==='paid'?'bg':r.status==='partial'?'by':'br'}">${r.status}</span></td></tr>`).join('')}</tbody></table>`;
-  }
-  L(false);c.innerHTML=html;
 }
 
 // ── MASTER ────────────────────────────────────────────────────────
