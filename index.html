@@ -224,6 +224,8 @@ td{padding:9px 10px;border-bottom:1px solid #edf0f4;vertical-align:middle;}
 .mc.hl{background:#fdf6e6;border-color:var(--a);}
 .mc p{font-size:.7rem;text-transform:uppercase;color:var(--g);margin-bottom:2px;font-weight:600;}
 .mc h3{font-size:1.3rem;color:var(--p);font-weight:750;}
+.mc.kpi-link{cursor:pointer;transition:transform .12s,box-shadow .12s;}
+.mc.kpi-link:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(23,38,74,.12);}
 .sh{border-left:4px solid var(--a);background:var(--bg);padding:12px;margin-bottom:12px;border-radius:0 8px 8px 0;}
 /* MODAL */
 .mo{position:fixed;inset:0;background:rgba(14,22,38,.5);display:flex;align-items:center;justify-content:center;z-index:900;}
@@ -1966,10 +1968,10 @@ async function loadOverview(){
      '<p class="hint" style="margin-bottom:0;">'+new Date().toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'})+'</p>'+
    '</div>'+
    '<div class="mg">'+
-     '<div class="mc hl"><p>Sales Today</p><h3>'+GHC+GH(todayTotal)+'</h3></div>'+
-     '<div class="mc"><p>Transactions Today</p><h3>'+salesToday.length+'</h3></div>'+
-     '<div class="mc"><p>Products in Stock</p><h3>'+inv.length+'</h3></div>'+
-     '<div class="mc'+(lowStock.length?'':'')+'"><p>Low Stock Alerts</p><h3'+(lowStock.length?' style="color:var(--d);"':'')+'>'+lowStock.length+'</h3></div>'+
+     '<div class="mc hl kpi-link" onclick="swV(\'lv\');swLedTab(\'sh\');"><p>Sales Today</p><h3>'+GHC+GH(todayTotal)+'</h3></div>'+
+     '<div class="mc kpi-link" onclick="swV(\'lv\');swLedTab(\'sh\');"><p>Transactions Today</p><h3>'+salesToday.length+'</h3></div>'+
+     '<div class="mc kpi-link" onclick="swV(\'av\');"><p>Products in Stock</p><h3>'+inv.length+'</h3></div>'+
+     '<div class="mc kpi-link'+(lowStock.length?'':'')+'" onclick="swV(\'av\');"><p>Low Stock Alerts</p><h3'+(lowStock.length?' style="color:var(--d);"':'')+'>'+lowStock.length+'</h3></div>'+
    '</div>'+
    '<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;">'+
      '<div class="card"><h2>Recent Sales</h2>'+
