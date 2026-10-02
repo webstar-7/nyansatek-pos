@@ -135,7 +135,7 @@ main{flex:1;overflow:hidden;}
   #app{flex-direction:column;}
   .side{position:static;height:auto;width:auto;flex-direction:column;padding:10px;}
   .brand{font-size:.82rem;padding-bottom:8px;}
-  .side .foot{display:none;}
+  .side .foot{margin-top:10px;padding-top:10px;}
   .sbadge{display:none;} /* today's running total — not worth the space here; still visible in SME Ledger */
   .top{flex-wrap:wrap;width:100%;justify-content:flex-start;gap:6px;padding:10px 12px;}
   .nav{flex-direction:row;overflow-x:auto;gap:4px;padding-bottom:2px;}
@@ -147,10 +147,13 @@ main{flex:1;overflow:hidden;}
   .pg{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));}
   .cp{border-left:none;border-top:3px solid var(--b);flex:none;max-height:56vh;}
 
-  #av.on{grid-template-columns:1fr;overflow-y:auto;}
-  #av .lp,#av .rp{height:auto;overflow-y:visible;}
-  #miv.on{grid-template-columns:1fr;overflow-y:auto;}
-  #miv .lp,#miv .rp{height:auto;overflow-y:visible;}
+  /* Any ad-hoc two/three-column grid laid out inline (cashier management,
+     settings panels, the overview summary, etc.) stacks to one column on
+     phones instead of squeezing every column into a sliver. */
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns:1fr 1.3fr"],
+  [style*="grid-template-columns:1.2fr 1fr"],
+  [style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr!important;}
 }
 
 /* SHARED */
@@ -178,13 +181,21 @@ main{flex:1;overflow:hidden;}
 /* ADMIN */
 #av{height:100%;overflow:hidden;}
 #av.on{display:grid;grid-template-columns:310px 1fr;gap:16px;padding:16px;}
-#av .lp{overflow-y:auto;height:100%;}
-#av .rp{overflow-y:auto;height:100%;}
+#av .lp{overflow-y:auto;height:100%;min-width:0;}
+#av .rp{overflow-y:auto;height:100%;min-width:0;}
 /* MASTER INV */
 #miv{height:100%;overflow:hidden;}
 #miv.on{display:grid;grid-template-columns:310px 1fr;gap:16px;padding:16px;}
-#miv .lp{overflow-y:auto;height:100%;}
-#miv .rp{overflow-y:auto;height:100%;}
+#miv .lp{overflow-y:auto;height:100%;min-width:0;}
+#miv .rp{overflow-y:auto;height:100%;min-width:0;}
+@media (max-width:860px){
+  #av{height:auto;overflow:visible;}
+  #av.on{grid-template-columns:minmax(0,1fr);overflow-y:visible;}
+  #av .lp,#av .rp{height:auto;overflow-y:visible;}
+  #miv{height:auto;overflow:visible;}
+  #miv.on{grid-template-columns:minmax(0,1fr);overflow-y:visible;}
+  #miv .lp,#miv .rp{height:auto;overflow-y:visible;}
+}
 /* LEDGER */
 #lv.on,#mlv.on,#mv.on{display:block;padding:16px;overflow-y:auto;height:100%;}
 /* TABS */
@@ -1630,7 +1641,7 @@ window.addEventListener('offline',updateOfflineUI);
 setInterval(()=>{if(navigator.onLine)drainAllQueues();},30000);
 
 function scr(n){
-  document.getElementById('ls').style.display=n==='l'?'flex':'none';
+  document.getElementById('ls').style.display=n==='l'?'grid':'none';
   document.getElementById('fps').style.display=n==='f'?'flex':'none';
   document.getElementById('sus').style.display=n==='x'?'flex':'none';
   document.getElementById('app').style.display=n==='a'?'flex':'none';
