@@ -50,7 +50,8 @@ body{background:var(--bg);color:var(--t);display:flex;flex-direction:column;min-
 /* SIDEBAR (shell) */
 #app{display:flex;min-height:100vh;}
 .side{background:var(--p);color:#e9edf7;display:flex;flex-direction:column;padding:18px 14px;width:220px;flex:none;position:sticky;top:0;height:100vh;}
-.mono{width:36px;height:36px;border-radius:10px;background:var(--a);color:var(--ai);display:grid;place-items:center;font-weight:800;font-size:15px;flex:none;}
+.mono{width:36px;height:36px;border-radius:10px;background:var(--a);color:var(--ai);display:grid;place-items:center;font-weight:800;font-size:15px;flex:none;overflow:hidden;}
+.mono svg{width:100%;height:100%;display:block;}
 .brand{display:flex;gap:10px;align-items:center;padding:4px 4px 16px;font-size:.95rem;font-weight:700;color:var(--a);}
 .brand b{display:block;font-size:14px;line-height:1.2;color:#fff;}
 .brand small{display:block;color:rgba(233,237,247,.62);font-size:11.5px;font-weight:500;}
@@ -221,6 +222,9 @@ td{padding:9px 10px;border-bottom:1px solid #edf0f4;vertical-align:middle;}
 .sdi:hover{background:var(--bg);}
 /* METRICS */
 .mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin-bottom:12px;}
+.chart svg{width:100%;height:auto;display:block;}
+.chart text{font:12px var(--font);fill:var(--g);}
+.chart .v{font-weight:700;fill:var(--t);}
 .mc{background:#fff;border:1px solid var(--b);border-left:4px solid var(--a);border-radius:var(--r);padding:12px;text-align:center;}
 .mc.hl{background:#fdf6e6;border-color:var(--a);}
 .mc p{font-size:.7rem;text-transform:uppercase;color:var(--g);margin-bottom:2px;font-weight:600;}
@@ -264,7 +268,7 @@ footer strong{color:var(--a);}
 <div class="login" id="ls">
   <div class="login-l">
     <div>
-      <div class="mono">N</div>
+      <div class="mono"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="14" fill="#152238"/><g fill="none" stroke="#D9A833" stroke-width="6.2" stroke-linecap="round" stroke-linejoin="round"><path d="M 32 32 C 32 21, 24 15, 18 20 C 12 25, 15 34, 24 34 C 29 34, 32 31, 32 32 C 32 40, 40 47, 46 43"/><path d="M 32 32 C 32 21, 40 15, 46 20 C 52 25, 49 34, 40 34 C 36.4 34, 33.6 32.6, 32.4 30.8 M 30.2 33.6 C 27 39, 20 45, 18 43"/></g></svg></div>
       <h1>NYANSATEK Elite POS</h1>
       <p class="tag">Point of sale, inventory and ledger management built for Ghanaian shops.</p>
     </div>
@@ -391,7 +395,7 @@ footer strong{color:var(--a);}
 <!-- APP -->
 <div id="app" style="display:none;">
   <div class="side">
-    <div class="brand"><div class="mono">N</div><div><b>NYANSATEK</b><small>Elite POS</small></div></div>
+    <div class="brand"><div class="mono"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="14" fill="#152238"/><g fill="none" stroke="#D9A833" stroke-width="6.2" stroke-linecap="round" stroke-linejoin="round"><path d="M 32 32 C 32 21, 24 15, 18 20 C 12 25, 15 34, 24 34 C 29 34, 32 31, 32 32 C 32 40, 40 47, 46 43"/><path d="M 32 32 C 32 21, 40 15, 46 20 C 52 25, 49 34, 40 34 C 36.4 34, 33.6 32.6, 32.4 30.8 M 30.2 33.6 C 27 39, 20 45, 18 43"/></g></svg></div><div><b>NYANSATEK</b><small>Elite POS</small></div></div>
     <nav id="nav" class="nav"></nav>
     <div class="foot"><div><b id="hbiz">—</b><span>Business</span></div><button type="button" onclick="handleLogout()">Log Out</button></div>
   </div>
@@ -923,6 +927,19 @@ const L=on=>document.getElementById('lov').classList.toggle('on',on);
 const E=s=>!s?'':String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const GH=n=>(n||0).toFixed(2);
 const today=()=>new Date().toISOString().split('T')[0];
+const addDays=(d,n)=>{const dt=new Date(d+'T00:00:00');dt.setDate(dt.getDate()+n);return dt.toISOString().split('T')[0];};
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function lastDays(n,fn){const out=[];for(let i=n-1;i>=0;i--){const d=addDays(today(),-i);out.push({l:DOW[new Date(d+'T00:00:00').getDay()],d,v:fn(d)});}return out;}
+function barChart(data,unit){
+  const W=440,H=190,pl=8,pb=26,pt=22,n=data.length,bw=(W-pl*2)/n;
+  const max=Math.max(1,...data.map(x=>x.v));
+  return '<div class="chart"><svg viewBox="0 0 '+W+' '+H+'" role="img">'+data.map((x,i)=>{
+    const h=Math.max(2,(x.v/max)*(H-pb-pt)),x0=pl+i*bw+bw*.18,w=bw*.64,y=H-pb-h;
+    return '<rect x="'+x0.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="4" fill="var(--a)"/>'+
+      '<text class="v" x="'+(x0+w/2).toFixed(1)+'" y="'+(y-6).toFixed(1)+'" text-anchor="middle">'+E(unit==='money'?Math.round(x.v).toLocaleString('en-US'):String(x.v))+'</text>'+
+      '<text x="'+(x0+w/2).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+E(x.l)+'</text>';
+  }).join('')+'</svg></div>';
+}
 
 // ══════════════════════════════════════════════════════════════
 // OFFLINE MODE — catalog cache + sales queue + sync engine
@@ -1948,6 +1965,7 @@ async function loadOverview(){
   el.innerHTML='<div class="es">Loading...</div>';
   const t=today();
   let salesToday=[];
+  let salesWeek=[];
   try{
     const{data,error}=await sb.from('sales').select('invoice_id,created_at,total,payment_method')
       .eq('org_id',prof.org_id).gte('created_at',t+'T00:00:00').lte('created_at',t+'T23:59:59')
@@ -1958,6 +1976,18 @@ async function loadOverview(){
     // Offline — today's list just stays empty; the KPI strip below still
     // shows an accurate total via refSales()'s own queued-sales fallback.
   }
+  try{
+    const weekStart=addDays(t,-6);
+    const{data,error}=await sb.from('sales').select('created_at,total')
+      .eq('org_id',prof.org_id).gte('created_at',weekStart+'T00:00:00').lte('created_at',t+'T23:59:59');
+    if(error)throw error;
+    salesWeek=data||[];
+  }catch(e){
+    // Offline — chart just shows zeros for days it can't fetch.
+  }
+  const byDay={};
+  salesWeek.forEach(r=>{const d=r.created_at.slice(0,10);byDay[d]=(byDay[d]||0)+Number(r.total||0);});
+  const chartData=lastDays(7,d=>Math.round((byDay[d]||0)*100)/100);
   const todayTotal=salesToday.reduce((s,r)=>s+r.total,0);
   const lowStock=inv.filter(p=>Number(p.stock)<=5).sort((a,b)=>a.stock-b.stock);
   const recent=salesToday.slice(0,6);
@@ -1975,15 +2005,18 @@ async function loadOverview(){
      '<div class="mc kpi-link'+(lowStock.length?'':'')+'" onclick="swV(\'av\');"><p>Low Stock Alerts</p><h3'+(lowStock.length?' style="color:var(--d);"':'')+'>'+lowStock.length+'</h3></div>'+
    '</div>'+
    '<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;">'+
-     '<div class="card"><h2>Recent Sales</h2>'+
-       (recent.length?('<table><thead><tr><th>Time</th><th>Invoice</th><th>Method</th><th style="text-align:right;">Total</th></tr></thead><tbody>'+
-         recent.map(r=>'<tr><td style="font-size:.73rem;">'+new Date(r.created_at).toLocaleTimeString()+'</td><td style="font-family:monospace;font-size:.73rem;">'+E(r.invoice_id)+'</td><td>'+E(r.payment_method)+'</td><td style="text-align:right;font-weight:600;">'+GHC+GH(r.total)+'</td></tr>').join('')+
-       '</tbody></table>'):'<div class="es">No sales recorded yet today.</div>')+
-     '</div>'+
-     '<div class="card"><h2>Low Stock</h2>'+
-       (lowStock.length?('<table><thead><tr><th>Product</th><th style="text-align:center;">Stock</th></tr></thead><tbody>'+
-         lowStock.slice(0,8).map(p=>'<tr><td>'+E(p.name)+'</td><td style="text-align:center;"><span class="badge '+(Number(p.stock)===0?'br':'by')+'">'+p.stock+'</span></td></tr>').join('')+
-       '</tbody></table>'):'<div class="es">All stocked up — nothing low.</div>')+
+     '<div class="card"><h2>Sales — last 7 days</h2>'+barChart(chartData,'money')+'</div>'+
+     '<div style="display:grid;gap:16px;">'+
+       '<div class="card"><h2>Recent Sales</h2>'+
+         (recent.length?('<table><thead><tr><th>Time</th><th>Invoice</th><th>Method</th><th style="text-align:right;">Total</th></tr></thead><tbody>'+
+           recent.map(r=>'<tr><td style="font-size:.73rem;">'+new Date(r.created_at).toLocaleTimeString()+'</td><td style="font-family:monospace;font-size:.73rem;">'+E(r.invoice_id)+'</td><td>'+E(r.payment_method)+'</td><td style="text-align:right;font-weight:600;">'+GHC+GH(r.total)+'</td></tr>').join('')+
+         '</tbody></table>'):'<div class="es">No sales recorded yet today.</div>')+
+       '</div>'+
+       '<div class="card"><h2>Low Stock</h2>'+
+         (lowStock.length?('<table><thead><tr><th>Product</th><th style="text-align:center;">Stock</th></tr></thead><tbody>'+
+           lowStock.slice(0,8).map(p=>'<tr><td>'+E(p.name)+'</td><td style="text-align:center;"><span class="badge '+(Number(p.stock)===0?'br':'by')+'">'+p.stock+'</span></td></tr>').join('')+
+         '</tbody></table>'):'<div class="es">All stocked up — nothing low.</div>')+
+       '</div>'+
      '</div>'+
    '</div>';
 }
