@@ -7,7 +7,7 @@
 
 <!-- PWA: makes the site installable as an app -->
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#111827">
+<meta name="theme-color" content="#17264a">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -25,34 +25,46 @@ const BILLING_API_BASE = "https://nyansatek.systems/.netlify/functions"; // rene
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://js.paystack.co/v2/inline.js"></script>
 <style>
-:root{--p:#111827;--a:#d4af37;--bg:#f3f4f6;--b:#e5e7eb;--g:#9ca3af;--s:#10b981;--d:#ef4444;--bl:#2563eb;--t:#1f2937;}
-*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif;}
-body{background:var(--bg);color:var(--t);display:flex;flex-direction:column;min-height:100vh;}
+:root{--p:#17264a;--a:#d1a03a;--ai:#1a1405;--bg:#f3f4f7;--b:#e2e6ec;--g:#667487;--s:#1b9a62;--d:#d24545;--bl:#2f6fda;--t:#1b2433;--r:10px;--font:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font);}
+body{background:var(--bg);color:var(--t);display:flex;flex-direction:column;min-height:100vh;font-variant-numeric:tabular-nums;}
 /* AUTH */
 .as{flex:1;display:flex;align-items:center;justify-content:center;background:var(--p);}
-.ac{background:#fff;border-radius:10px;padding:36px;width:380px;box-shadow:0 10px 30px rgba(0,0,0,.3);border-top:4px solid var(--a);}
+.ac{background:#fff;border-radius:14px;padding:36px;width:380px;box-shadow:0 24px 70px rgba(10,18,32,.35);border-top:4px solid var(--a);}
 .ac h1{font-size:1.25rem;color:var(--p);margin-bottom:5px;}
 .sub{color:var(--g);font-size:.83rem;margin-bottom:20px;}
-.aerr{background:#fee2e2;color:#991b1b;padding:9px 12px;border-radius:5px;font-size:.82rem;margin-bottom:14px;display:none;}
+.aerr{background:#fbe5e5;color:#a82c2c;padding:9px 12px;border-radius:8px;font-size:.82rem;margin-bottom:14px;display:none;}
 .aerr.on{display:block;}
-/* HEADER */
-header{background:var(--p);color:#fff;padding:0 18px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--a);flex-shrink:0;}
-.brand{font-size:.95rem;font-weight:700;color:var(--a);}
+/* SIDEBAR (shell) */
+#app{display:flex;min-height:100vh;}
+.side{background:var(--p);color:#e9edf7;display:flex;flex-direction:column;padding:18px 14px;width:220px;flex:none;position:sticky;top:0;height:100vh;}
+.mono{width:36px;height:36px;border-radius:10px;background:var(--a);color:var(--ai);display:grid;place-items:center;font-weight:800;font-size:15px;flex:none;}
+.brand{display:flex;gap:10px;align-items:center;padding:4px 4px 16px;font-size:.95rem;font-weight:700;color:var(--a);}
+.brand b{display:block;font-size:14px;line-height:1.2;color:#fff;}
+.brand small{display:block;color:rgba(233,237,247,.62);font-size:11.5px;font-weight:500;}
 .brand em{color:var(--g);font-size:.72rem;font-weight:400;font-style:normal;margin-left:7px;}
-.hr{display:flex;align-items:center;gap:8px;}
-.sbadge{background:rgba(212,175,55,.1);border:1px solid var(--a);border-radius:5px;padding:2px 9px;font-size:.7rem;color:var(--g);text-align:center;}
+.side .foot{margin-top:auto;padding:14px 6px 0;border-top:1px solid rgba(255,255,255,.14);font-size:12.5px;}
+.side .foot b{display:block;font-size:13px;color:#fff;}
+.side .foot span{color:rgba(233,237,247,.6);}
+.top{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 20px;background:#fff;border-bottom:1px solid var(--b);flex-wrap:wrap;}
+.top .r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sbadge{background:rgba(209,160,58,.12);border:1px solid var(--a);border-radius:999px;padding:3px 12px;font-size:.7rem;color:var(--g);text-align:center;}
 .sbadge strong{color:var(--s);display:block;font-size:.84rem;}
-.offline-badge{background:#fee2e2;border:1px solid var(--d);border-radius:5px;padding:2px 9px;font-size:.7rem;color:#991b1b;font-weight:700;text-align:center;display:none;}
+.offline-badge{background:#fbe5e5;border:1px solid var(--d);border-radius:999px;padding:3px 12px;font-size:.7rem;color:#a82c2c;font-weight:700;text-align:center;display:none;}
 .offline-badge.on{display:block;}
-.sync-badge{background:#fef3c7;border:1px solid #d97706;border-radius:5px;padding:2px 9px;font-size:.7rem;color:#92400e;font-weight:700;text-align:center;cursor:pointer;display:none;}
+.sync-badge{background:#fdf0d9;border:1px solid #b76e00;border-radius:999px;padding:3px 12px;font-size:.7rem;color:#8a5700;font-weight:700;text-align:center;cursor:pointer;display:none;}
 .sync-badge.on{display:block;}
-nav button{background:transparent;border:1px solid transparent;color:var(--g);padding:4px 10px;font-weight:600;cursor:pointer;border-radius:4px;font-size:.78rem;transition:all .15s;}
-nav button.on{border-color:var(--a);color:#fff;background:rgba(212,175,55,.12);}
-nav .lo{color:#fca5a5!important;}
-nav .hist-btn{color:var(--a)!important;font-size:1rem;padding:4px 8px;}
+.nav{display:flex;flex-direction:column;gap:2px;overflow:auto;}
+nav button{background:transparent;border:0;color:rgba(233,237,247,.8);padding:9px 12px;font-weight:600;cursor:pointer;border-radius:9px;font-size:.84rem;text-align:left;transition:all .15s;}
+nav button:hover{background:rgba(255,255,255,.08);}
+nav button.on{color:var(--ai);background:var(--a);font-weight:700;}
+nav .lo{color:#f2a0a0!important;margin-top:8px;}
+nav .hist-btn{color:var(--a)!important;font-size:1rem;}
 /* LAYOUT */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
 main{flex:1;overflow:hidden;}
 .view{display:none;}
+.view.on{display:block;}
 /* CASHIER */
 #cv{height:100%;}
 #cv.on{display:grid;grid-template-columns:1fr 288px;}
@@ -108,12 +120,14 @@ main{flex:1;overflow:hidden;}
    the product panel off-screen.
 */
 @media (max-width:860px){
-  header{height:auto;min-height:52px;flex-wrap:wrap;padding:8px 12px;row-gap:6px;}
-  .brand{font-size:.82rem;}
+  #app{flex-direction:column;}
+  .side{position:static;height:auto;width:auto;flex-direction:column;padding:10px;}
+  .brand{font-size:.82rem;padding-bottom:8px;}
+  .side .foot{display:none;}
   .sbadge{display:none;} /* today's running total — not worth the space here; still visible in SME Ledger */
-  .hr{flex-wrap:wrap;width:100%;justify-content:flex-start;gap:6px;}
-  nav{display:flex;flex-wrap:wrap;gap:4px;}
-  nav button{padding:4px 8px;font-size:.72rem;}
+  .top{flex-wrap:wrap;width:100%;justify-content:flex-start;gap:6px;padding:10px 12px;}
+  .nav{flex-direction:row;overflow-x:auto;gap:4px;padding-bottom:2px;}
+  nav button{padding:6px 9px;font-size:.72rem;white-space:nowrap;}
 
   #cv.on{display:flex;flex-direction:column;}
   .pp{flex:1;min-height:0;}
@@ -129,25 +143,25 @@ main{flex:1;overflow:hidden;}
 
 /* SHARED */
 .fg{margin-bottom:8px;}
-.fg label{display:block;font-size:.71rem;font-weight:600;margin-bottom:2px;color:#4b5563;}
-.fg input,.fg select,.fg textarea{width:100%;padding:6px 8px;border:1px solid var(--b);border-radius:4px;font-size:.81rem;}
-.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--a);}
-.card{background:#fff;border-radius:7px;border:1px solid var(--b);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
-.card h2{font-size:1rem;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--bg);color:var(--p);}
-.btn{background:var(--p);color:#fff;padding:7px 14px;border:none;border-radius:4px;font-weight:600;cursor:pointer;font-size:.83rem;transition:all .15s;}
-.btn:hover{opacity:.84;}
+.fg label{display:block;font-size:.71rem;font-weight:600;margin-bottom:2px;color:var(--g);}
+.fg input,.fg select,.fg textarea{width:100%;padding:7px 9px;border:1px solid var(--b);border-radius:8px;font-size:.81rem;background:#fff;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:2px solid rgba(209,160,58,.16);border-color:var(--a);}
+.card{background:#fff;border-radius:var(--r);border:1px solid var(--b);padding:16px;}
+.card h2{font-size:1rem;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--b);color:var(--p);}
+.btn{background:var(--p);color:#fff;padding:7px 14px;border:1px solid var(--p);border-radius:8px;font-weight:600;cursor:pointer;font-size:.83rem;transition:all .15s;}
+.btn:hover{opacity:.88;}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
-.ba{background:var(--a);color:var(--p);}
-.bg2{background:var(--s);color:#fff;}
-.bd{background:var(--d);color:#fff;}
+.ba{background:var(--a);color:var(--ai);border-color:var(--a);}
+.bg2{background:var(--s);color:#fff;border-color:var(--s);}
+.bd{background:var(--d);color:#fff;border-color:var(--d);}
 .bf{width:100%;padding:9px;font-size:.85rem;}
 .bsm{padding:4px 10px;font-size:.76rem;}
 .hint{font-size:.76rem;color:var(--g);margin-bottom:8px;}
-.es{text-align:center;padding:28px;color:var(--g);border:1px dashed var(--b);border-radius:5px;margin-top:10px;}
-.badge{padding:2px 7px;border-radius:11px;font-size:.7rem;font-weight:600;}
-.bg{background:#d1fae5;color:#065f46;}
-.by{background:#fef3c7;color:#92400e;}
-.br{background:#fee2e2;color:#991b1b;}
+.es{text-align:center;padding:28px;color:var(--g);border:1px dashed var(--b);border-radius:8px;margin-top:10px;}
+.badge{padding:2px 9px;border-radius:999px;font-size:.7rem;font-weight:650;}
+.bg{background:#e2f5ec;color:#0f6b43;}
+.by{background:#fdf0d9;color:#8a5700;}
+.br{background:#fbe5e5;color:#a82c2c;}
 .bpurp{background:#ede9fe;color:#5b21b6;}
 /* ADMIN */
 #av{height:100%;overflow:hidden;}
@@ -162,50 +176,50 @@ main{flex:1;overflow:hidden;}
 /* LEDGER */
 #lv.on,#mlv.on,#mv.on{display:block;padding:16px;overflow-y:auto;height:100%;}
 /* TABS */
-.tbar{display:flex;flex-wrap:wrap;border-bottom:2px solid var(--b);margin-bottom:12px;gap:2px;}
-.tb{background:none;border:none;padding:6px 11px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--g);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .12s;white-space:nowrap;}
+.tbar{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--b);margin-bottom:12px;gap:2px;}
+.tb{background:none;border:none;padding:6px 11px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--g);border-bottom:3px solid transparent;margin-bottom:-1px;transition:all .12s;white-space:nowrap;}
 .tb.on{color:var(--p);border-bottom-color:var(--a);}
 .tp{display:none;}
 .tp.on{display:block;}
 /* TABLE */
 table{width:100%;border-collapse:collapse;font-size:.8rem;}
-th{background:var(--bg);padding:8px 10px;font-weight:600;border-bottom:2px solid var(--b);text-align:left;font-size:.74rem;}
-td{padding:8px 10px;border-bottom:1px solid var(--b);vertical-align:middle;}
-.ip{width:75px;padding:3px 5px;border:1px solid var(--b);border-radius:3px;font-weight:600;text-align:right;font-size:.79rem;}
+th{background:#fafbfc;padding:9px 10px;font-weight:650;border-bottom:1px solid var(--b);text-align:left;font-size:.74rem;color:var(--g);}
+td{padding:9px 10px;border-bottom:1px solid #edf0f4;vertical-align:middle;}
+.ip{width:75px;padding:3px 5px;border:1px solid var(--b);border-radius:6px;font-weight:600;text-align:right;font-size:.79rem;}
 /* SEARCH DROP */
 .sdrop{position:relative;}
-.sdrop input{width:100%;padding:6px 8px;border:1px solid var(--b);border-radius:4px;font-size:.81rem;}
+.sdrop input{width:100%;padding:7px 9px;border:1px solid var(--b);border-radius:8px;font-size:.81rem;}
 .sdrop input:focus{outline:none;border-color:var(--a);}
-.sdlist{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--b);border-radius:4px;max-height:180px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.1);display:none;}
+.sdlist{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--b);border-radius:8px;max-height:180px;overflow-y:auto;z-index:100;box-shadow:0 8px 24px rgba(10,18,32,.14);display:none;}
 .sdlist.on{display:block;}
 .sdi{padding:6px 9px;cursor:pointer;font-size:.8rem;border-bottom:1px solid var(--b);}
 .sdi:hover{background:var(--bg);}
 /* METRICS */
 .mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin-bottom:12px;}
-.mc{background:#fff;border:1px solid var(--b);border-radius:5px;padding:12px;text-align:center;}
-.mc.hl{background:#fefcbf;border-color:var(--a);}
+.mc{background:#fff;border:1px solid var(--b);border-left:4px solid var(--a);border-radius:var(--r);padding:12px;text-align:center;}
+.mc.hl{background:#fdf6e6;border-color:var(--a);}
 .mc p{font-size:.7rem;text-transform:uppercase;color:var(--g);margin-bottom:2px;font-weight:600;}
-.mc h3{font-size:1.2rem;color:var(--p);}
-.sh{border-left:4px solid var(--a);background:var(--bg);padding:12px;margin-bottom:12px;border-radius:0 5px 5px 0;}
+.mc h3{font-size:1.3rem;color:var(--p);font-weight:750;}
+.sh{border-left:4px solid var(--a);background:var(--bg);padding:12px;margin-bottom:12px;border-radius:0 8px 8px 0;}
 /* MODAL */
-.mo{position:fixed;inset:0;background:rgba(17,24,39,.74);display:flex;align-items:center;justify-content:center;z-index:900;}
-.mc2{background:#fff;border-radius:9px;padding:24px;width:420px;border-top:4px solid var(--a);max-height:85vh;overflow-y:auto;}
+.mo{position:fixed;inset:0;background:rgba(14,22,38,.5);display:flex;align-items:center;justify-content:center;z-index:900;}
+.mc2{background:#fff;border-radius:14px;padding:24px;width:420px;border-top:4px solid var(--a);max-height:85vh;overflow-y:auto;box-shadow:0 24px 70px rgba(10,18,32,.35);}
 .mc2 h3{font-size:1rem;margin-bottom:4px;}
 .mc2 .sub{font-size:.8rem;color:var(--g);margin-bottom:14px;}
 .mc2-wide{width:600px;}
 /* CART MINI (credit/supplier) */
-.minicart{border:1px solid var(--b);border-radius:5px;margin-bottom:10px;max-height:160px;overflow-y:auto;}
+.minicart{border:1px solid var(--b);border-radius:8px;margin-bottom:10px;max-height:160px;overflow-y:auto;}
 .mci{display:flex;align-items:center;gap:5px;padding:5px 8px;border-bottom:1px solid var(--b);font-size:.78rem;}
 .mci:last-child{border-bottom:none;}
 /* LOADING */
-.lov{position:fixed;inset:0;background:rgba(17,24,39,.6);display:none;align-items:center;justify-content:center;color:#fff;font-weight:600;z-index:999;}
+.lov{position:fixed;inset:0;background:rgba(14,22,38,.6);display:none;align-items:center;justify-content:center;color:#fff;font-weight:600;z-index:999;}
 .lov.on{display:flex;}
 /* FOOTER */
 footer{background:var(--p);color:var(--g);text-align:center;padding:9px;font-size:.75rem;flex-shrink:0;}
 footer strong{color:var(--a);}
 /* PRINT A4 */
 @media print{
-  header,footer,nav,.sbs,.tbar,.lov,.mo,
+  .side,footer,.sbs,.tbar,.lov,.mo,
   .rb-btn,.btn,#av .lp,#cv .pp,#cv .ck{display:none!important;}
   body{background:#fff!important;display:block!important;}
   body.pr-receipt #app,body.pr-stmt #app{display:none!important;}
@@ -271,7 +285,7 @@ footer strong{color:var(--a);}
       <div id="sus-msg" style="margin-top:8px;"></div>
     </div>
     <div id="sus-nonadmin-body" style="display:none;">
-      <p style="font-size:.85rem;color:#4b5563;">Please contact the business owner to reactivate this account before you can sign in.</p>
+      <p style="font-size:.85rem;color:var(--g);">Please contact the business owner to reactivate this account before you can sign in.</p>
     </div>
     <button class="btn bf" style="margin-top:14px;background:#6b7280;" onclick="handleLogout()">Log Out</button>
   </div>
@@ -351,16 +365,20 @@ footer strong{color:var(--a);}
 </div>
 
 <!-- APP -->
-<div id="app" style="display:none;flex-direction:column;min-height:100vh;">
-  <header>
-    <div class="brand"><span id="hbiz">—</span><em>| System Matrix</em></div>
-    <div class="hr">
+<div id="app" style="display:none;">
+  <div class="side">
+    <div class="brand"><div class="mono">N</div><div><b>NYANSATEK</b><small>Elite POS</small></div></div>
+    <nav id="nav" class="nav"></nav>
+    <div class="foot"><div><b id="hbiz">—</b><span>Business</span></div></div>
+  </div>
+  <div class="main">
+  <div class="top">
+    <div class="r">
       <div class="sbadge" id="sb" style="display:none;">Today<strong id="tsal">GH&#8373;0.00</strong></div>
       <div class="offline-badge" id="offline-badge">&#9888; OFFLINE</div>
       <div class="sync-badge" id="sync-badge" onclick="manualSync()" title="Click to sync now">0 pending sync</div>
-      <nav id="nav"></nav>
     </div>
-  </header>
+  </div>
   <main>
 
     <!-- CASHIER -->
@@ -386,7 +404,7 @@ footer strong{color:var(--a);}
             </select></div>
           <div id="tw" class="fg"><label>Amount Tendered (GH&#8373;)</label>
             <input type="number" id="ten" placeholder="0.00" oninput="calcCh()"></div>
-          <div style="font-size:.75rem;color:#4b5563;margin-bottom:5px;">
+          <div style="font-size:.75rem;color:var(--g);margin-bottom:5px;">
             <div style="display:flex;justify-content:space-between;"><span>Subtotal</span><span id="stot">GH&#8373;0.00</span></div>
             <div style="display:flex;justify-content:space-between;color:var(--s);font-weight:600;" id="chrow">
               <span>Change</span><span id="chd">GH&#8373;0.00</span></div>
@@ -860,6 +878,7 @@ footer strong{color:var(--a);}
 
   </main>
   <footer><span id="fbiz">—</span> Terminal Solutions &bull; Powered by <strong>NYANSATEK</strong> &bull; 0536340578</footer>
+  </div>
 </div>
 
 <script>
@@ -1835,12 +1854,11 @@ async function susRenew(){
   }});
 }
 
-const VD={'cv':'grid','av':'grid','chv':'block','lv':'block','mv':'block','miv':'grid','mlv':'block','bv':'block'};
 function swV(v){
-  document.querySelectorAll('.view').forEach(el=>{el.style.display='none';el.classList.remove('on');});
+  document.querySelectorAll('.view').forEach(el=>{el.classList.remove('on');});
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
   const el=document.getElementById(v);
-  if(el){el.style.display=VD[v]||'block';el.classList.add('on');}
+  if(el){el.classList.add('on');}
   const b=document.getElementById('t-'+v);if(b)b.classList.add('on');
   if(v==='chv')loadCashiers();
   if(v==='bv')loadBillingInfo();
@@ -2438,18 +2456,18 @@ function buildRcpt(invId,method,tot,ten,items,type='RECEIPT',cname='',cphone='',
 <style>
 @page{size:A4;margin:18mm 20mm;}
 body{font-family:'Segoe UI',Arial,sans-serif;font-size:10.5pt;color:#000;font-weight:600;}
-.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #111827;padding-bottom:12px;margin-bottom:16px;}
-.hdr h1{font-size:20pt;color:#111827;margin:0;}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #17264a;padding-bottom:12px;margin-bottom:16px;}
+.hdr h1{font-size:20pt;color:#17264a;margin:0;}
 .hdr .inv-meta{text-align:right;font-size:9pt;color:#000;font-weight:700;}
-.inv-meta strong{color:#d4af37;font-size:12pt;display:block;margin-bottom:4px;}
-.cust{background:#f8f8f8;border-left:4px solid #d4af37;padding:10px 14px;margin-bottom:14px;border-radius:0 5px 5px 0;}
+.inv-meta strong{color:#d1a03a;font-size:12pt;display:block;margin-bottom:4px;}
+.cust{background:#f8f8f8;border-left:4px solid #d1a03a;padding:10px 14px;margin-bottom:14px;border-radius:0 5px 5px 0;}
 .cust p{margin:2px 0;font-size:9.5pt;font-weight:700;}
 table{width:100%;border-collapse:collapse;margin-bottom:12px;}
-th{background:#111827;color:#fff;padding:7px 9px;text-align:left;font-size:9pt;}
+th{background:#17264a;color:#fff;padding:7px 9px;text-align:left;font-size:9pt;}
 td{padding:7px 9px;border-bottom:1px solid #ddd;font-size:9pt;font-weight:700;color:#000;}
-.tot-blk{max-width:260px;margin-left:auto;border:2px solid #111827;border-radius:4px;}
+.tot-blk{max-width:260px;margin-left:auto;border:2px solid #17264a;border-radius:4px;}
 .trow{display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #ddd;font-size:9.5pt;font-weight:700;}
-.trow.grand{background:#111827;color:#fff;font-weight:700;font-size:11pt;border:none;}
+.trow.grand{background:#17264a;color:#fff;font-weight:700;font-size:11pt;border:none;}
 .footer{text-align:center;margin-top:24px;font-size:8.5pt;color:#333;border-top:1px solid #ddd;padding-top:10px;font-weight:700;}
 </style></head><body>
 <div class="hdr">
@@ -3090,7 +3108,7 @@ async function genSalesHist(){
       <td style="font-size:.75rem;color:var(--g);">${(s2.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
       <td>${E(s2.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(s2.total)}</td></tr>`;
   });
-  out.innerHTML=`<div class="sh"><h3>${E(prof.businessName||prof.display_name||'')}</h3><p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
+  out.innerHTML=`<div class="sh"><h3>${E(prof.businessName||prof.display_name||'')}</h3><p style="font-size:.8rem;color:var(--g);">Period: <strong>${s} to ${e}</strong></p></div>
   <div class="mg">
     <div class="mc hl"><p>Total Revenue</p><h3 style="color:#b45309;">${GH(gr)}</h3></div>
     <div class="mc"><p>Cash</p><h3>${GH(cs2)}</h3></div>
@@ -3126,7 +3144,7 @@ async function genProfitReport(){
       <td style="text-align:right;font-weight:600;color:${gp>=0?'var(--s)':'var(--d)'};">${GH(gp)}</td></tr>`;
   });
   const gProfit=rev-cogs;
-  out.innerHTML=`<div class="sh"><h3>${E(prof.businessName||prof.display_name||'')}</h3><p style="font-size:.8rem;color:#4b5563;">Profit Report: <strong>${s} to ${e}</strong></p></div>
+  out.innerHTML=`<div class="sh"><h3>${E(prof.businessName||prof.display_name||'')}</h3><p style="font-size:.8rem;color:var(--g);">Profit Report: <strong>${s} to ${e}</strong></p></div>
   <div class="mg">
     <div class="mc"><p>Total Revenue</p><h3>${GH(rev)}</h3></div>
     <div class="mc"><p>Cost of Goods Sold</p><h3>${GH(cogs)}</h3></div>
@@ -3551,7 +3569,7 @@ async function genIncomeSt(){
   </tr>`).join('');
   const out=document.getElementById('is-out'),em=document.getElementById('is-em'),pb=document.getElementById('is-pb');
   out.innerHTML=`<div class="sh"><h3>${E(prof.businessName||prof.display_name||'')} — Income Statement</h3>
-    <p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
+    <p style="font-size:.8rem;color:var(--g);">Period: <strong>${s} to ${e}</strong></p></div>
   <div class="mg">
     <div class="mc"><p>Total Revenue</p><h3>${GH(rev)}</h3></div>
     <div class="mc"><p>Cost of Goods Sold</p><h3>${GH(cogs)}</h3></div>
@@ -3676,7 +3694,7 @@ async function mGenStmt(){
       <td style="font-size:.75rem;color:var(--g);">${(s2.sale_items||[]).map(i=>i.name_snapshot+' x'+i.qty).join(', ')}</td>
       <td>${E(s2.payment_method)}</td><td style="text-align:right;font-weight:600;">${GH(s2.total)}</td></tr>`;
   });
-  out.innerHTML=`<div class="sh"><h3>${E(bizName)}</h3><p style="font-size:.8rem;color:#4b5563;">Period: <strong>${s} to ${e}</strong></p></div>
+  out.innerHTML=`<div class="sh"><h3>${E(bizName)}</h3><p style="font-size:.8rem;color:var(--g);">Period: <strong>${s} to ${e}</strong></p></div>
   <div class="mg"><div class="mc hl"><p>Total Revenue</p><h3 style="color:#b45309;">${GH(gr)}</h3></div></div>
   <table><thead><tr><th>Timestamp</th><th>Invoice</th><th>Cashier</th><th>Items</th><th>Payment</th><th style="text-align:right;">Total</th></tr></thead>
   <tbody>${rows}</tbody></table>`;
