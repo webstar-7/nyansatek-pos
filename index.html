@@ -252,6 +252,33 @@ td{padding:9px 10px;border-bottom:1px solid #edf0f4;vertical-align:middle;}
 /* FOOTER */
 footer{background:var(--p);color:var(--g);text-align:center;padding:9px;font-size:.75rem;flex-shrink:0;}
 footer strong{color:var(--a);}
+/* HOW TO USE */
+#hv>*{max-width:980px;}
+.gd-intro{margin-bottom:12px;}
+.gd-intro h2{border:0;padding:0;margin-bottom:4px;}
+.gd-jump{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.gd-jump a{font-size:.76rem;font-weight:600;color:var(--p);text-decoration:none;border:1px solid var(--b);border-radius:999px;padding:5px 12px;background:#fff;}
+.gd-jump a:hover{border-color:var(--a);}
+details.gd{background:#fff;border:1px solid var(--b);border-radius:var(--r);margin-bottom:8px;scroll-margin-top:12px;}
+details.gd>summary{cursor:pointer;list-style:none;padding:14px 16px;font-weight:700;font-size:.92rem;color:var(--p);display:flex;align-items:center;gap:10px;}
+details.gd>summary::-webkit-details-marker{display:none;}
+details.gd>summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--a);border-bottom:2px solid var(--a);transform:rotate(-45deg);transition:transform .15s;flex:none;}
+details.gd[open]>summary::before{transform:rotate(45deg);}
+details.gd>summary:focus-visible{outline:2px solid var(--a);outline-offset:-2px;border-radius:var(--r);}
+.gd-b{padding:0 16px 16px 34px;font-size:.85rem;line-height:1.55;color:var(--t);}
+.gd-b p{margin-bottom:8px;}
+.gd-steps{padding-left:18px;display:grid;gap:8px;}
+.gd-steps li{padding-left:4px;}
+.gd-steps li::marker{color:var(--a);font-weight:700;}
+.gd-steps .btn{margin-left:6px;vertical-align:middle;}
+.gd-tabs{display:grid;gap:6px;}
+.gd-tabs>div{display:grid;grid-template-columns:200px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid #edf0f4;}
+.gd-tabs>div:last-child{border-bottom:0;}
+.gd-tabs b{font-size:.82rem;color:var(--p);}
+.gd-tabs span{font-size:.8rem;color:var(--g);}
+.gd-help{font-size:.85rem;}
+.gd-help a{color:var(--bl);font-weight:600;}
+@media(max-width:600px){.gd-tabs>div{grid-template-columns:1fr auto;}.gd-tabs span{grid-column:1/2;}.gd-b{padding-left:16px;}}
 /* PRINT A4 */
 @media print{
   .side,footer,.sbs,.tbar,.lov,.mo,
@@ -414,6 +441,9 @@ footer strong{color:var(--a);}
   <main>
 
     <!-- OVERVIEW -->
+    <!-- HOW TO USE -->
+    <div id="hv" class="view" style="padding:16px;overflow-y:auto;height:100%;"></div>
+
     <div id="ov" class="view" style="padding:16px;overflow-y:auto;height:100%;">
       <div class="es">Loading...</div>
     </div>
@@ -1916,6 +1946,7 @@ function swV(v){
   if(v==='chv')loadCashiers();
   if(v==='bv')loadBillingInfo();
   if(v==='ov')loadOverview();
+  if(v==='hv')renderGuide();
 }
 
 function buildNav(role){
@@ -1923,8 +1954,8 @@ function buildNav(role){
   const tabs=role==='master'
     ?[['mv','Businesses'],['miv','Inv. Manager'],['mlv','Financial Ledger']]
     :role==='admin'
-    ?[['ov','Overview'],['cv','Cashier'],['av','Admin Inventory'],['chv','Cashiers'],['lv','SME Ledger'],['bv','Billing']]
-    :[['cv','Cashier']];
+    ?[['ov','Overview'],['cv','Cashier'],['av','Admin Inventory'],['chv','Cashiers'],['lv','SME Ledger'],['bv','Billing'],['hv','How to use']]
+    :[['cv','Cashier'],['hv','How to use']];
   tabs.forEach(([k,l],i)=>{
     const b=document.createElement('button');b.id='t-'+k;b.innerText=l;
     if(i===0)b.classList.add('on');b.onclick=()=>swV(k);nav.appendChild(b);
@@ -1965,6 +1996,135 @@ async function refSales(){
     tot+=todayQueued.reduce((s,r)=>s+(r.payload.total||0),0);
   }catch(e){/* ignore — cosmetic figure only */}
   const el=document.getElementById('tsal');if(el)el.innerText=GH(tot);
+}
+
+// ── HOW TO USE (guide for admins and cashiers) ────────────────
+// Static help content. The buttons only navigate to existing screens
+// and tabs; nothing here reads or writes data.
+function gdInv(tab){swV('av');swInvTab(tab,'a');}
+function gdRS(tab){swV('av');swInvTab('rs','a');swRSTab(tab);}
+function gdLed(tab){swV('lv');swLedTab(tab);}
+function renderGuide(){
+  const el=document.getElementById('hv');if(!el)return;
+  const role=prof?.role;
+  const btn=(fn,label)=>`<button class="btn bsm" onclick="${fn}">${label||'Open'}</button>`;
+  const sec=(id,title,body,openFirst)=>`<details class="gd" id="gd-${id}"${openFirst?' open':''}><summary>${title}</summary><div class="gd-b">${body}</div></details>`;
+  const ol=items=>`<ol class="gd-steps">${items.map(i=>`<li>${i}</li>`).join('')}</ol>`;
+  const sale=(open)=>sec('sale','Making a sale',`
+    ${ol([
+      `Open <b>Cashier</b>. ${btn("swV('cv')")}`,
+      'Find the product: type in <b>Search products</b> or scan its barcode into <b>Scan barcode</b>. Tap a product to add it to the cart.',
+      'Change quantities with <b>+</b> and <b>−</b> in the cart; tap the red <b>×</b> to remove an item, or <b>Clear</b> to start over.',
+      'Choose the <b>Payment Method</b>. For cash, type the <b>Amount Tendered</b> and the change is worked out for you.',
+      'Finish with one of the buttons: <b>Complete</b>, <b>Print &amp; Complete</b> (prints a receipt), <b>Send SMS &amp; Complete</b> (texts the receipt to the customer’s phone), or <b>Issue Credit Invoice</b> (the customer pays later).',
+      'Need an old receipt? Tap <b>Recent</b> and <b>Reprint</b> any of the last 10 sales.'
+    ])}`,open);
+  const offline=sec('offline','Working without internet',`
+    <p>Keep selling when the internet drops. Sales are saved on the device — the red <b>Offline</b> badge shows you are offline and the yellow <b>pending sync</b> badge shows how many sales are waiting. They upload automatically when the connection returns; tap the yellow badge to sync straight away.</p>
+    <p class="hint">Sign in once while online on each device first, so the product list is saved for offline use.</p>`);
+  if(role!=='admin'){
+    el.innerHTML=`<div class="card gd-intro"><h2>How to use</h2><p class="hint">Everything you need to sell at the till. Tap a heading to open it.</p></div>
+      ${sec('signin','Signing in',`<p>Sign in with the <b>Staff Username</b> and password your manager created for you — not the business name.</p>`)}
+      ${sale(true)}
+      ${sec('credit-c','Selling on credit',`${ol([
+        'Add the items to the cart as normal.',
+        'Tap <b>Issue Credit Invoice</b>, enter the customer’s name, phone (optional) and the date they will pay by.',
+        'Tap <b>Issue Invoice &amp; Print</b> and give the customer their copy. Your manager records the payment when they pay.'])}`)}
+      ${offline}
+      <div class="card gd-help"><b>Something not working?</b> Ask your manager, or call NYANSATEK support on <a href="tel:0536340578">0536 340 578</a>.</div>`;
+    return;
+  }
+  const screens=[
+    ['Overview',"swV('ov')",'Today at a glance: sales, number of transactions, products in stock, low-stock alerts and a 7-day sales chart.'],
+    ['Cashier',"swV('cv')",'The till. Ring up sales, print or text receipts, issue credit invoices and reprint recent receipts.'],
+    ['Admin Inventory → Create',"gdInv('cr')",'Add a new product with its selling price, cost price, barcode and opening stock.'],
+    ['Admin Inventory → Add Stock',"gdInv('as')",'Top up stock for a product you already sell.'],
+    ['Admin Inventory → Edit',"gdInv('ed')",'Change a product’s name, barcode, prices or quantity.'],
+    ['Admin Inventory → Received Supply',"gdInv('rs')",'Track goods from the supplier through warehouse and store before they go on sale.'],
+    ['Admin Inventory → History',"gdInv('lg')",'A log of every stock change, for checking discrepancies.'],
+    ['Cashiers',"swV('chv')",'Create and delete cashier logins.'],
+    ['SME Ledger → Sales History',"gdLed('sh')",'Every sale in a date range, ready to print.'],
+    ['SME Ledger → Profit Report',"gdLed('pr')",'Profit made in a date range, from your cost and selling prices.'],
+    ['SME Ledger → Credit Sales',"gdLed('cs')",'Issue credit invoices and see who still owes you.'],
+    ['SME Ledger → Credit Payments',"gdLed('cp')",'Record money received against a credit invoice.'],
+    ['SME Ledger → Supplier Invoices',"gdLed('si')",'Record goods bought from suppliers, and what you still owe them.'],
+    ['SME Ledger → Supplier Payments',"gdLed('sp')",'Record payments you make to suppliers.'],
+    ['SME Ledger → Income Statement',"gdLed('is')",'Sales, costs and expenses for a period. Add expenses such as rent or electricity here.'],
+    ['SME Ledger → Void / Return Sale',"gdLed('vo')",'Cancel a sale for a return or warranty issue; the items go back into stock.'],
+    ['Billing',"swV('bv')",'Your NYANSATEK subscription: plan, renewal date, renew or upgrade.']
+  ];
+  el.innerHTML=`
+  <div class="card gd-intro">
+    <h2>How to use NYANSATEK Elite POS</h2>
+    <p class="hint">Everything you need to set up your shop and run it day to day. Tap a heading to open it; the buttons take you straight to the right screen.</p>
+    <div class="gd-jump">${[['setup','Setting up'],['screens','What each screen does'],['products','Products & stock'],['cashiers','Cashiers'],['sale','Making a sale'],['credit','Credit sales'],['supply','Receiving supply'],['suppliers','Suppliers'],['returns','Returns'],['reports','Reports & profit'],['offline','Offline'],['daily','Daily routine']].map(([k,l])=>`<a href="#gd-${k}" onclick="document.getElementById('gd-${k}').open=true">${l}</a>`).join('')}</div>
+  </div>
+  ${sec('setup','Setting up your shop (do these in order)',`
+    ${ol([
+      `Add your products: name, selling price, cost price, barcode if it has one, and the stock you have now. ${btn("gdInv('cr')")}`,
+      `Check the <b>Current Inventory</b> table on the right of Admin Inventory — fix any price by typing in it and pressing Enter. ${btn("swV('av')")}`,
+      `Create a login for each cashier. ${btn("swV('chv')")}`,
+      `Make a test sale in <b>Cashier</b>, then void it under SME Ledger → Void / Return Sale. ${btn("swV('cv')")}`,
+      `Record what you owe suppliers, so the ledger is complete from day one. ${btn("gdLed('si')")}`,
+      `Check <b>Overview</b> each day for sales and low stock. ${btn("swV('ov')")}`
+    ])}`,true)}
+  ${sec('screens','What each screen does',`<div class="gd-tabs">${screens.map(([n,f,d])=>`<div><b>${n}</b><span>${d}</span>${btn(f)}</div>`).join('')}</div>`)}
+  ${sec('products','Adding products and managing stock',`
+    ${ol([
+      `<b>New product:</b> Admin Inventory → <b>+ Create</b>. Enter the name, selling and cost price, barcode (optional) and starting stock, then <b>Save Product</b>. ${btn("gdInv('cr')")}`,
+      `<b>More of an existing product:</b> <b>+ Add Stock</b> → search the product → enter the quantity → <b>Add to Stock</b>. ${btn("gdInv('as')")}`,
+      `<b>Fix a mistake:</b> <b>✎ Edit</b> → search → change the details → <b>Save Changes</b>. ${btn("gdInv('ed')")}`,
+      `<b>See what changed and when:</b> <b>📋 History</b> → <b>Load Log</b>. ${btn("gdInv('lg')")}`,
+      'Products with 5 or fewer left show up under <b>Low Stock</b> on the Overview.'
+    ])}`)}
+  ${sec('cashiers','Giving cashiers their own logins',`
+    ${ol([
+      `Open <b>Cashiers</b> and fill in <b>+ New Cashier</b>: their full name, a staff username and a password of at least 8 characters. ${btn("swV('chv')")}`,
+      'Give the cashier their username and password. They sign in with the username instead of the business name, and only see the till.',
+      'When a cashier leaves, tap <b>Delete</b> beside their name. Their past sales stay in your records.'
+    ])}`)}
+  ${sale(false)}
+  ${sec('credit','Selling on credit and collecting payment',`
+    ${ol([
+      `At the till: add the items, tap <b>Issue Credit Invoice</b>, enter the customer’s name, phone and due date, then <b>Issue Invoice &amp; Print</b>. You can also issue one from SME Ledger → Credit Sales. ${btn("gdLed('cs')")}`,
+      'See who still owes you under <b>Outstanding Credit Sales</b> → <b>Refresh List</b>.',
+      `When the customer pays: SME Ledger → <b>Credit Payments</b> → search the invoice → enter the amount and method → <b>Record Payment</b>. Part payments are fine. ${btn("gdLed('cp')")}`
+    ])}`)}
+  ${sec('supply','Receiving goods through warehouse and store',`
+    <p>Use this when goods arrive before you are ready to sell them. Stock only becomes sellable at the last step.</p>
+    ${ol([
+      `<b>Record Received:</b> enter the supplier, reference and date, add each item and quantity, then <b>Save Receipt</b>. Goods are held in the warehouse. ${btn("gdRS('rec')")}`,
+      `<b>Transfer to Store:</b> move warehouse goods to one of your stores’ holding area. ${btn("gdRS('xfer')")}`,
+      `<b>Release to Stock:</b> move goods from the store into live stock, in whatever quantity you are ready to shelve. They are now on sale at the till. ${btn("gdRS('rel')")}`
+    ])}
+    <p class="hint">Selling goods straight away? Use Add Stock instead, or record a supplier invoice with the destination set to “Add to Stock”.</p>`)}
+  ${sec('suppliers','Supplier invoices and payments',`
+    ${ol([
+      `SME Ledger → <b>Supplier Invoices</b>: enter the supplier, invoice reference, date received and due date, add the items, and choose <b>Add to Stock</b> or <b>Add to Warehouse (hold)</b>. Tap <b>Record Supplier Invoice</b>. ${btn("gdLed('si')")}`,
+      'See what you owe under <b>Outstanding Payables</b>.',
+      `When you pay: <b>Supplier Payments</b> → search the invoice → amount and method → <b>Record Payment</b>. ${btn("gdLed('sp')")}`
+    ])}`)}
+  ${sec('returns','Returns, refunds and voided sales',`
+    ${ol([
+      `SME Ledger → <b>Void / Return Sale</b>. ${btn("gdLed('vo')")}`,
+      'Pick the cashier who made the sale and the date, then tap <b>Find Sales</b>.',
+      'Select the sale and void it. The items go back into stock automatically and the sale drops out of your totals.'
+    ])}`)}
+  ${sec('reports','Sales reports, profit and expenses',`
+    ${ol([
+      `<b>Sales History:</b> pick a date range → <b>Extract</b> → <b>Print</b> if needed. ${btn("gdLed('sh')")}`,
+      `<b>Profit Report:</b> profit for a date range, based on your cost prices — keep cost prices up to date for accurate figures. ${btn("gdLed('pr')")}`,
+      `<b>Income Statement:</b> add expenses like rent, wages and electricity with <b>+ Add Expense</b>, pick a period and tap <b>Generate</b>. ${btn("gdLed('is')")}`
+    ])}`)}
+  ${offline}
+  ${sec('daily','A typical day',`
+    ${ol([
+      'Open: cashiers sign in on the till device.',
+      'During the day: sell from <b>Cashier</b>; record supplier deliveries and credit payments as they happen.',
+      'Close: check <b>Overview</b> for the day’s sales and low stock, and make sure the pending-sync badge is gone.',
+      'Weekly or monthly: print Sales History and the Income Statement, and settle outstanding payables.'
+    ])}`)}
+  <div class="card gd-help"><b>Need help?</b> Call NYANSATEK support on <a href="tel:0536340578">0536 340 578</a>.</div>`;
 }
 
 async function loadOverview(){
