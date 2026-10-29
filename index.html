@@ -252,6 +252,9 @@ td{padding:9px 10px;border-bottom:1px solid #edf0f4;vertical-align:middle;}
 /* FOOTER */
 footer{background:var(--p);color:var(--g);text-align:center;padding:9px;font-size:.75rem;flex-shrink:0;}
 footer strong{color:var(--a);}
+/* SETTINGS */
+.st-ok{background:#e2f5ec;color:#0f6b43;border-radius:8px;padding:8px 10px;font-size:.82rem;margin-bottom:8px;}
+.st-pend{background:#fdf0d9;color:#8a5700;border-radius:8px;padding:8px 10px;font-size:.82rem;margin-bottom:10px;}
 /* HOW TO USE */
 #hv>*{max-width:980px;}
 .gd-intro{margin-bottom:12px;}
@@ -441,6 +444,9 @@ details.gd>summary:focus-visible{outline:2px solid var(--a);outline-offset:-2px;
   <main>
 
     <!-- OVERVIEW -->
+    <!-- SETTINGS -->
+    <div id="stv" class="view" style="padding:16px;overflow-y:auto;height:100%;"></div>
+
     <!-- HOW TO USE -->
     <div id="hv" class="view" style="padding:16px;overflow-y:auto;height:100%;"></div>
 
@@ -847,7 +853,7 @@ details.gd>summary:focus-visible{outline:2px solid var(--a);outline-offset:-2px;
       <div class="card">
         <h2>Registered Businesses</h2>
         <p class="hint">Add businesses via Supabase — see tenant-onboarding-template.sql.</p>
-        <table id="ot"><thead><tr><th>Business</th><th>Email</th><th>Status</th><th>Since</th></tr></thead><tbody></tbody></table>
+        <table id="ot"><thead><tr><th>Business</th><th>Email</th><th>Status</th><th>Since</th><th>Approved Sender ID</th><th></th></tr></thead><tbody></tbody></table>
       </div>
     </div>
 
@@ -1947,6 +1953,7 @@ function swV(v){
   if(v==='bv')loadBillingInfo();
   if(v==='ov')loadOverview();
   if(v==='hv')renderGuide();
+  if(v==='stv')loadSettingsView();
 }
 
 function buildNav(role){
@@ -1954,7 +1961,7 @@ function buildNav(role){
   const tabs=role==='master'
     ?[['mv','Businesses'],['miv','Inv. Manager'],['mlv','Financial Ledger']]
     :role==='admin'
-    ?[['ov','Overview'],['cv','Cashier'],['av','Admin Inventory'],['chv','Cashiers'],['lv','SME Ledger'],['bv','Billing'],['hv','How to use']]
+    ?[['ov','Overview'],['cv','Cashier'],['av','Admin Inventory'],['chv','Cashiers'],['lv','SME Ledger'],['bv','Billing'],['stv','Settings'],['hv','How to use']]
     :[['cv','Cashier'],['hv','How to use']];
   tabs.forEach(([k,l],i)=>{
     const b=document.createElement('button');b.id='t-'+k;b.innerText=l;
@@ -2051,7 +2058,8 @@ function renderGuide(){
     ['SME Ledger → Supplier Payments',"gdLed('sp')",'Record payments you make to suppliers.'],
     ['SME Ledger → Income Statement',"gdLed('is')",'Sales, costs and expenses for a period. Add expenses such as rent or electricity here.'],
     ['SME Ledger → Void / Return Sale',"gdLed('vo')",'Cancel a sale for a return or warranty issue; the items go back into stock.'],
-    ['Billing',"swV('bv')",'Your NYANSATEK subscription: plan, renewal date, renew or upgrade.']
+    ['Billing',"swV('bv')",'Your NYANSATEK subscription: plan, renewal date, renew or upgrade.'],
+    ['Settings',"swV('stv')",'Request your own SMS sender name, so receipt texts come from your business name instead of NYANSATEK.']
   ];
   el.innerHTML=`
   <div class="card gd-intro">
@@ -3868,6 +3876,67 @@ function printStmt(vid){
 }
 
 // ── MASTER ────────────────────────────────────────────────────────
+// ── SENDER NAME (SMS) ─────────────────────────────────────────
+// A business asks for its own SMS sender name here; NYANSATEK registers
+// it with Hubtel and enters it in the master console once approved. The
+// send function then uses it automatically (and falls back to NYANSATEK
+// if it is ever rejected).
+const OWNER_ALERT_PHONE='0536340578';
+async function notifyOwnerSenderRequest(bizName,sender){
+  try{
+    await sb.functions.invoke('pos-send-receipt-sms',{body:{phone:OWNER_ALERT_PHONE,
+      message:`NYANSATEK POS: ${bizName} requested the SMS sender name "${sender}". Register it on Hubtel, then enter it in the master console (Businesses).`}});
+  }catch(e){console.warn('Could not text the sender-name request alert:',e);}
+}
+async function loadSettingsView(){
+  const el=document.getElementById('stv');if(!el)return;
+  el.innerHTML='<div class="es">Loading...</div>';
+  let approved='',requested='';
+  try{
+    const[{data:org},{data:req}]=await Promise.all([
+      sb.from('organizations').select('sms_sender_id').eq('id',prof.org_id).maybeSingle(),
+      sb.from('org_sms_settings').select('requested_sender_id').eq('org_id',prof.org_id).maybeSingle()
+    ]);
+    approved=org?.sms_sender_id||'';requested=req?.requested_sender_id||'';
+  }catch(e){}
+  el.innerHTML=`<div class="card" style="max-width:720px;">
+    <h2>Sender name</h2>
+    <p class="hint">The name customers see as the sender of your receipt texts. Today your texts come from <b>${E(approved||'NYANSATEK')}</b>.</p>
+    ${approved?`<p class="st-ok">Your business’s own sender name <b>${E(approved)}</b> is approved and in use.</p>`:''}
+    <p class="hint">${approved?'To change it, request a new name below.':'To send texts under your business name, request it below.'} Sender names must be 3–11 letters or numbers (for example <b>MAKOLAMART</b>), and every name must be registered with the mobile networks, which takes about two weeks. Until it is approved, your texts keep coming from ${E(approved||'NYANSATEK')}.</p>
+    <div class="fg" style="max-width:320px;"><label>Requested sender name</label>
+      <input type="text" id="st-sender" maxlength="11" value="${E(requested)}" placeholder="e.g. MAKOLAMART" oninput="this.value=this.value.replace(/[^A-Za-z0-9 ]/g,'')"></div>
+    ${requested&&requested!==approved?`<p class="st-pend">Requested: <b>${E(requested)}</b> — waiting for NYANSATEK to register it with the networks.</p>`:''}
+    <button class="btn ba" onclick="requestSenderId()">Request this sender name</button>
+  </div>`;
+}
+async function requestSenderId(){
+  const v=(document.getElementById('st-sender')?.value||'').trim();
+  if(!/^[A-Za-z0-9 ]{3,11}$/.test(v)){alert('Use 3 to 11 letters or numbers, for example MAKOLAMART.');return;}
+  let prev='';
+  try{const{data}=await sb.from('org_sms_settings').select('requested_sender_id').eq('org_id',prof.org_id).maybeSingle();prev=data?.requested_sender_id||'';}catch(e){}
+  L(true);
+  const{error}=await sb.from('org_sms_settings').upsert({org_id:prof.org_id,requested_sender_id:v,updated_at:new Date().toISOString()},{onConflict:'org_id'});
+  L(false);
+  if(error){alert('Could not save your request: '+error.message);return;}
+  if(v!==prev)await notifyOwnerSenderRequest(prof.businessName||prof.display_name||'A business',v);
+  await loadSettingsView();
+  alert('Request sent. NYANSATEK will register "'+v+'" with the networks. Your texts keep coming from the current sender until it is approved.');
+}
+async function saveOrgSender(orgId){
+  const raw=(document.getElementById('osend-'+orgId)?.value||'').trim();
+  if(raw&&!/^[A-Za-z0-9 ]{3,11}$/.test(raw)){alert('Sender ID must be 3–11 letters or numbers.');return;}
+  const org=orgList.find(o=>o.id===orgId);
+  if(raw&&raw!==(org?.sms_sender_id||'')&&!confirm('Only set "'+raw+'" once it is APPROVED on the NYANSATEK Hubtel account — unregistered sender names are blocked by the networks. (If Hubtel rejects it, texts automatically fall back to NYANSATEK.) Continue?'))return;
+  L(true);
+  const{error}=await sb.from('organizations').update({sms_sender_id:raw||null}).eq('id',orgId);
+  L(false);
+  if(error){alert('Error: '+error.message);return;}
+  if(org)org.sms_sender_id=raw||null;
+  alert(raw?'Sender ID saved — this business’s texts now come from '+raw+'.':'Sender ID cleared — this business’s texts come from NYANSATEK again.');
+  loadOrgs();
+}
+
 async function initMaster(){
   buildNav('master');
   document.getElementById('hbiz').innerText='NYANSATEK — Master Console';
@@ -3877,14 +3946,23 @@ async function initMaster(){
 }
 
 async function loadOrgs(){
-  L(true);const{data}=await sb.from('organizations').select('*').order('business_name');L(false);
+  L(true);
+  const[{data},reqRes]=await Promise.all([
+    sb.from('organizations').select('*').order('business_name'),
+    sb.from('org_sms_settings').select('org_id,requested_sender_id').then(r=>r,()=>({data:[]}))
+  ]);
+  L(false);
   orgList=data||[];
+  const senderReq={};(reqRes?.data||[]).forEach(r=>{if(r.requested_sender_id)senderReq[r.org_id]=r.requested_sender_id;});
   const tb=document.querySelector('#ot tbody');tb.innerHTML='';
   orgList.forEach(o=>{
     const tr=document.createElement('tr');
     tr.innerHTML=`<td><strong>${E(o.business_name)}</strong></td><td>${E(o.contact_email||'—')}</td>
     <td><span class="badge ${o.is_active?'bg':'br'}">${o.is_active?'Active':'Inactive'}</span></td>
-    <td>${new Date(o.created_at).toLocaleDateString()}</td>`;
+    <td>${new Date(o.created_at).toLocaleDateString()}</td>
+    <td><input type="text" maxlength="11" id="osend-${o.id}" value="${E(o.sms_sender_id||'')}" placeholder="NYANSATEK" title="Set only after Hubtel approves this name" style="width:120px;padding:4px 6px;border:1px solid var(--b);border-radius:6px;font-size:.78rem;">
+      ${senderReq[o.id]&&senderReq[o.id]!==o.sms_sender_id?`<div style="font-size:.7rem;color:#8a5700;margin-top:2px;">Requested: <b>${E(senderReq[o.id])}</b></div>`:''}</td>
+    <td><button class="btn bsm" onclick="saveOrgSender('${o.id}')">Save</button></td>`;
     tb.appendChild(tr);
   });
   ['morg','mlo'].forEach(id=>{
