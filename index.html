@@ -268,6 +268,9 @@ footer strong{color:var(--a);}
   .print-letterhead b{display:block;font-size:14pt;color:#17264a;}
   .print-letterhead span{display:block;font-size:9pt;color:#333;}}
 /* SETTINGS */
+.st-docs{background:var(--bg);border-radius:var(--r);padding:12px 14px;margin:4px 0 14px;font-size:.84rem;}
+.st-docs ol{padding-left:20px;display:grid;gap:5px;}
+.st-docs b{color:var(--p);}
 .st-ok{background:#e2f5ec;color:#0f6b43;border-radius:8px;padding:8px 10px;font-size:.82rem;margin-bottom:8px;}
 .st-pend{background:#fdf0d9;color:#8a5700;border-radius:8px;padding:8px 10px;font-size:.82rem;margin-bottom:10px;}
 /* HOW TO USE */
@@ -4004,6 +4007,54 @@ async function notifyOwnerSenderRequest(bizName,sender){
       message:`NYANSATEK POS: ${bizName} requested the SMS sender name "${sender}". Register it on Hubtel, then enter it in the master console (Businesses).`}});
   }catch(e){console.warn('Could not text the sender-name request alert:',e);}
 }
+// ── SENDER NAME: documents needed + printable authorisation letter ─
+function senderDocsHtml(){
+  return `<div class="st-docs">
+    <b>What you’ll need to provide</b>
+    <p class="hint" style="margin:4px 0 8px;">The networks only approve a sender name when it clearly belongs to you. After you request a name, send scans of these to NYANSATEK on <b>0536 340 578</b>:</p>
+    <ol>
+      <li>An <b>authorisation letter</b> on your business letterhead, signed by the owner or director and stamped, allowing NYANSATEK to use the name for you. Use <b>Print authorisation letter</b> below — it is filled in for you.</li>
+      <li><b>Proof your business is registered</b>: your Registrar-General business registration certificate.</li>
+      <li>A copy of the <b>Ghana Card</b> of the person who signs the letter.</li>
+    </ol>
+    <p class="hint" style="margin-top:8px;">Choose a name that clearly points to your business (for example your name plus initials). A plain common word on its own is usually rejected.</p>
+  </div>`;
+}
+function printSenderLetter(){
+  const v=(document.getElementById('st-sender')?.value||'').trim();
+  const sid=/^[A-Za-z0-9 ]{3,11}$/.test(v)?v.toUpperCase():'[SENDER NAME]';
+  const name=E(prof?.businessName||'[Business NAME]');
+  const contact=[prof?.address,prof?.phone?'Tel: '+prof?.phone:'',null?'Email: '+null:''].filter(Boolean).map(E).join(' &nbsp;|&nbsp; ');
+  const lg=(typeof safeLogo==='function')?safeLogo():null;
+  printIF(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Sender ID authorisation letter</title><style>
+    @page{size:A4;margin:15mm 20mm;}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:10.5pt;line-height:1.42;color:#111;}
+    .lh{display:flex;align-items:center;gap:14px;border-bottom:2px solid #17264a;padding-bottom:8px;margin-bottom:16px;}
+    .lh img{width:22mm;height:22mm;object-fit:contain;}
+    .lh h1{font-size:16pt;margin:0;color:#17264a;text-transform:uppercase;}
+    .lh p{margin:2px 0 0;font-size:9.5pt;color:#333;}
+    p{margin:0 0 9px;} ul{margin:0 0 9px 18px;padding:0;} li{margin-bottom:2px;}
+    .blank{color:#b45309;}
+    .sig{margin-top:34px;} .sig .line{border-top:1px solid #111;width:70mm;margin-bottom:4px;}
+    .stamp{margin-top:12px;width:38mm;height:24mm;border:1px dashed #999;display:flex;align-items:center;justify-content:center;font-size:8.5pt;color:#888;}
+  </style></head><body>
+    <div class="lh">${lg?`<img src="${lg}" alt="">`:''}<div><h1>${name}</h1>${contact?`<p>${contact}</p>`:''}</div></div>
+    <p>${new Date().toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'})}</p>
+    <p>The Messaging Compliance Team<br>Hubtel Limited<br>65 Hotel Road, Kokomlemle<br>Accra</p>
+    <p>Dear Sir/Madam,</p>
+    <p><b>RE: AUTHORISATION TO USE THE SMS SENDER ID "${E(sid)}"</b></p>
+    <p>${name} hereby authorises <b>NYANSATEK</b> to register and use the SMS Sender ID <b>${E(sid)}</b> on our behalf through its Hubtel account.</p>
+    <p>NYANSATEK is our appointed provider for the NYANSATEK Elite POS, which we use to run our business. The Sender ID will be used only to send messages from ${name} to our own customers, namely:</p>
+    <ul><li>sales receipts sent to customers who ask for them;</li><li>credit invoice and payment confirmations;</li><li>account and service notices from our business.</li></ul>
+    <p>The Sender ID <b>${E(sid)}</b> stands for ${name} and will not be used for any other organisation, for promotional messages, or by any other party. We take responsibility for the content of messages sent in our name, and we will inform Hubtel in writing if we withdraw this authorisation.</p>
+    <p>Our business is registered with <span class="blank">[registration body]</span>, registration number <span class="blank">[registration number]</span>. A copy of our registration certificate is attached.</p>
+    <p>For verification, please contact the undersigned on <span class="blank">[phone number]</span>${prof?.phone?' or the business on '+E(prof?.phone):''}.</p>
+    <p>Yours faithfully,</p>
+    <div class="sig"><div class="line"></div><span class="blank">[Full name]</span><br><span class="blank">[Owner / Managing Director]</span><br>${name}</div>
+    <div class="stamp">Business stamp</div>
+  </body></html>`);
+}
+
 async function loadSettingsView(){
   const el=document.getElementById('stv');if(!el)return;
   el.innerHTML='<div class="es">Loading...</div>';
@@ -4019,11 +4070,15 @@ async function loadSettingsView(){
     <h2>Sender name</h2>
     <p class="hint">The name customers see as the sender of your receipt texts. Today your texts come from <b>${E(approved||'NYANSATEK')}</b>.</p>
     ${approved?`<p class="st-ok">Your business’s own sender name <b>${E(approved)}</b> is approved and in use.</p>`:''}
-    <p class="hint">${approved?'To change it, request a new name below.':'To send texts under your business name, request it below.'} Sender names must be 3–11 letters or numbers (for example <b>MAKOLAMART</b>), and every name must be registered with the mobile networks, which takes about two weeks. Until it is approved, your texts keep coming from ${E(approved||'NYANSATEK')}.</p>
+    <p class="hint">${approved?'To change it, request a new name below.':'To send texts under your business name, request it below.'} Sender names must be 3–11 letters or numbers (for example <b>MAKOLAMART</b>), and every name must be approved by the mobile networks, which usually takes a few days once your documents are in. Until it is approved, your texts keep coming from ${E(approved||'NYANSATEK')}.</p>
     <div class="fg" style="max-width:320px;"><label>Requested sender name</label>
       <input type="text" id="st-sender" maxlength="11" value="${E(requested)}" placeholder="e.g. MAKOLAMART" oninput="this.value=this.value.replace(/[^A-Za-z0-9 ]/g,'')"></div>
     ${requested&&requested!==approved?`<p class="st-pend">Requested: <b>${E(requested)}</b> — waiting for NYANSATEK to register it with the networks.</p>`:''}
-    <button class="btn ba" onclick="requestSenderId()">Request this sender name</button>
+    ${senderDocsHtml()}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn ba" onclick="requestSenderId()">Request this sender name</button>
+      <button class="btn" style="background:#fff;color:var(--p);border:1px solid var(--b);" onclick="printSenderLetter()">Print authorisation letter</button>
+    </div>
   </div>`;
 }
 async function requestSenderId(){
