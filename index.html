@@ -252,6 +252,21 @@ td{padding:9px 10px;border-bottom:1px solid #edf0f4;vertical-align:middle;}
 /* FOOTER */
 footer{background:var(--p);color:var(--g);text-align:center;padding:9px;font-size:.75rem;flex-shrink:0;}
 footer strong{color:var(--a);}
+/* LOGO */
+.side .foot img.biz-logo{width:34px;height:34px;object-fit:contain;background:#fff;border-radius:8px;padding:2px;flex:none;}
+.side .foot{gap:8px;}
+.side .foot>div{flex:1;min-width:0;}
+.logo-card{max-width:720px;margin-bottom:14px;}
+.logo-row{display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
+.logo-box{width:112px;height:112px;border:1px dashed #b9c9e8;border-radius:var(--r);display:flex;align-items:center;justify-content:center;background:#fff;flex:none;}
+.logo-box img{max-width:100%;max-height:100%;object-fit:contain;padding:6px;}
+.logo-box span{font-size:.75rem;color:var(--g);}
+.logo-txt{flex:1;min-width:220px;}
+.print-letterhead{display:none;}
+@media print{.print-letterhead{display:flex;align-items:center;gap:12px;border-bottom:2px solid #17264a;padding-bottom:8px;margin-bottom:12px;}
+  .print-letterhead img{width:18mm;height:18mm;object-fit:contain;}
+  .print-letterhead b{display:block;font-size:14pt;color:#17264a;}
+  .print-letterhead span{display:block;font-size:9pt;color:#333;}}
 /* SETTINGS */
 .st-ok{background:#e2f5ec;color:#0f6b43;border-radius:8px;padding:8px 10px;font-size:.82rem;margin-bottom:8px;}
 .st-pend{background:#fdf0d9;color:#8a5700;border-radius:8px;padding:8px 10px;font-size:.82rem;margin-bottom:10px;}
@@ -1977,7 +1992,7 @@ async function initTenant(){
   document.getElementById('sb').style.display='block';
   activeOrg=prof.org_id;
   setDef('sh-s','sh-e','pr-s','pr-e','is-s','is-e','ex-dt','si-dt');
-  await loadInv(prof.org_id);await refSales();
+  await loadInv(prof.org_id);await refSales();await loadBranding();
   swV(prof.role==='admin'?'ov':'cv');toggleTen();
   updateOfflineUI();
   if(navigator.onLine)drainAllQueues();
@@ -2059,7 +2074,7 @@ function renderGuide(){
     ['SME Ledger → Income Statement',"gdLed('is')",'Sales, costs and expenses for a period. Add expenses such as rent or electricity here.'],
     ['SME Ledger → Void / Return Sale',"gdLed('vo')",'Cancel a sale for a return or warranty issue; the items go back into stock.'],
     ['Billing',"swV('bv')",'Your NYANSATEK subscription: plan, renewal date, renew or upgrade.'],
-    ['Settings',"swV('stv')",'Request your own SMS sender name, so receipt texts come from your business name instead of NYANSATEK.']
+    ['Settings',"swV('stv')",'Upload your business logo for receipts, credit invoices and statements, and request your own SMS sender name.']
   ];
   el.innerHTML=`
   <div class="card gd-intro">
@@ -2069,6 +2084,7 @@ function renderGuide(){
   </div>
   ${sec('setup','Setting up your shop (do these in order)',`
     ${ol([
+      `Upload your business logo in Settings so it prints on every receipt. ${btn("swV('stv')")}`,
       `Add your products: name, selling price, cost price, barcode if it has one, and the stock you have now. ${btn("gdInv('cr')")}`,
       `Check the <b>Current Inventory</b> table on the right of Admin Inventory — fix any price by typing in it and pressing Enter. ${btn("swV('av')")}`,
       `Create a login for each cashier. ${btn("swV('chv')")}`,
@@ -2755,7 +2771,7 @@ td{padding:7px 9px;border-bottom:1px solid #ddd;font-size:9pt;font-weight:700;co
 .footer{text-align:center;margin-top:24px;font-size:8.5pt;color:#333;border-top:1px solid #ddd;padding-top:10px;font-weight:700;}
 </style></head><body>
 <div class="hdr">
-  <div><h1>${biz}</h1>${bizAddr?`<p style="color:#000;font-size:9pt;margin-top:3px;font-weight:700;">${bizAddr}</p>`:''}${bizPhone?`<p style="color:#000;font-size:9pt;font-weight:700;">${bizPhone}</p>`:''}<p style="color:#000;font-size:9pt;margin-top:3px;font-weight:700;">Date: ${new Date().toLocaleDateString()}</p></div>
+  ${safeLogo()?`<img src="${safeLogo()}" alt="" style="width:20mm;height:20mm;object-fit:contain;flex:none;margin-right:12px;">`:''}<div style="flex:1;"><h1>${biz}</h1>${bizAddr?`<p style="color:#000;font-size:9pt;margin-top:3px;font-weight:700;">${bizAddr}</p>`:''}${bizPhone?`<p style="color:#000;font-size:9pt;font-weight:700;">${bizPhone}</p>`:''}<p style="color:#000;font-size:9pt;margin-top:3px;font-weight:700;">Date: ${new Date().toLocaleDateString()}</p></div>
   <div class="inv-meta"><strong>CREDIT INVOICE</strong>Invoice No: <b>${E(invId)}</b><br>Due Date: <b style="color:#c00;">${dueDate||'—'}</b>${cashierLine?`<br>Issued by: <b>${cashierLine}</b>`:''}</div>
 </div>
 <div class="cust"><p><b>Bill To:</b></p><p>${E(cname)}</p>${cphone?`<p>Phone: ${E(cphone)}</p>`:''}</div>
@@ -2798,6 +2814,7 @@ td:nth-child(2),td:nth-child(3),td:nth-child(4){text-align:right;white-space:now
 .ft{text-align:center;border-top:1px solid #000;margin-top:5px;padding-top:5px;font-size:9px;color:#000;font-weight:700;}
 </style></head><body>
 <div class="hdr">
+  ${safeLogo()?`<img src="${safeLogo()}" alt="" style="width:20mm;height:20mm;object-fit:contain;display:block;margin:0 auto 3px;filter:grayscale(1) contrast(1.15);">`:''}
   <h2>${biz}</h2>
   ${bizAddr?`<div class="dt">${bizAddr}</div>`:''}
   ${bizPhone?`<div class="dt">${bizPhone}</div>`:''}
@@ -3870,12 +3887,111 @@ async function genIncomeSt(){
 
 function printStmt(vid){
   const el=document.getElementById(vid);el.classList.add('pt');
+  const lh=document.createElement('div');lh.className='print-letterhead';
+  lh.innerHTML=`${safeLogo()?`<img src="${safeLogo()}" alt="">`:''}<div><b>${E(prof?.businessName||prof?.display_name||'')}</b>${prof?.address?`<span>${E(prof.address)}</span>`:''}${prof?.phone?`<span>${E(prof.phone)}</span>`:''}</div>`;
+  el.prepend(lh);
   document.body.classList.add('printing-statement');
   window.print();
+  lh.remove();
   document.body.classList.remove('printing-statement');el.classList.remove('pt');
 }
 
 // ── MASTER ────────────────────────────────────────────────────────
+// ── LOGO (uploaded by the admin in Settings) ──────────────────
+// Stored as a small square image data URL in org_branding (same approach as
+// photos), cached on the device so it still prints offline.
+let brandLogo=null;
+const LOGO_RE=/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+function safeLogo(){return (typeof brandLogo==='string'&&LOGO_RE.test(brandLogo))?brandLogo:null;}
+function logoCacheKey(){return 'nyansatek_logo_'+(prof?.org_id||'');}
+async function loadBranding(){
+  try{
+    const{data,error}=await sb.from('org_branding').select('logo_data').eq('org_id',prof?.org_id).maybeSingle();
+    if(error)throw error;
+    brandLogo=data?.logo_data||null;
+    try{brandLogo?localStorage.setItem(logoCacheKey(),brandLogo):localStorage.removeItem(logoCacheKey());}catch(e){}
+  }catch(e){
+    try{brandLogo=localStorage.getItem(logoCacheKey())||null;}catch(_){brandLogo=null;}
+  }
+  applyBrandLogo();
+}
+// Resize any uploaded picture onto a square canvas (logo centred, transparent
+// padding) so every printout can place it without distortion.
+function processLogoFile(file){
+  return new Promise((resolve,reject)=>{
+    if(!file||!/^image\//.test(file.type)){reject(new Error('Please choose a picture file (PNG or JPG).'));return;}
+    if(file.size>8*1024*1024){reject(new Error('That picture is too large (over 8 MB). Please choose a smaller one.'));return;}
+    const rd=new FileReader();
+    rd.onerror=()=>reject(new Error('Could not read that file.'));
+    rd.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('That file is not a picture this browser can open.'));
+      img.onload=()=>{
+        const make=(size,type,q)=>{
+          const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d');
+          if(type==='image/jpeg'){x.fillStyle='#fff';x.fillRect(0,0,size,size);}
+          const s=Math.min(size/img.width,size/img.height);const w=img.width*s,h=img.height*s;
+          x.imageSmoothingQuality='high';x.drawImage(img,(size-w)/2,(size-h)/2,w,h);
+          return c.toDataURL(type,q);
+        };
+        let out=make(360,'image/png');
+        if(out.length>350000)out=make(360,'image/jpeg',0.9);
+        if(out.length>350000)out=make(280,'image/jpeg',0.82);
+        resolve(out);
+      };
+      img.src=rd.result;
+    };
+    rd.readAsDataURL(file);
+  });
+}
+async function uploadLogo(input){
+  const file=input?.files?.[0];if(!file)return;
+  let dataUrl;
+  try{dataUrl=await processLogoFile(file);}catch(e){alert(e.message);input.value='';return;}
+  L(true);
+  const{error}=await sb.from('org_branding').upsert({org_id:prof?.org_id,logo_data:dataUrl,updated_at:new Date().toISOString()},{onConflict:'org_id'});
+  L(false);input.value='';
+  if(error){alert('Could not save the logo: '+error.message);return;}
+  brandLogo=dataUrl;try{localStorage.setItem(logoCacheKey(),dataUrl);}catch(e){}
+  applyBrandLogo();await loadSettingsView();
+  alert('Logo saved. It now appears on sales receipts, credit invoices, printed statements and the sidebar.');
+}
+async function removeLogo(){
+  if(!confirm('Remove the logo? Printouts will go back to showing your initials.'))return;
+  L(true);
+  const{error}=await sb.from('org_branding').upsert({org_id:prof?.org_id,logo_data:null,updated_at:new Date().toISOString()},{onConflict:'org_id'});
+  L(false);
+  if(error){alert('Could not remove the logo: '+error.message);return;}
+  brandLogo=null;try{localStorage.removeItem(logoCacheKey());}catch(e){}
+  applyBrandLogo();await loadSettingsView();
+}
+function logoCardHtml(){
+  const lg=safeLogo();
+  return `<div class="card logo-card">
+    <h2>Business logo</h2>
+    <div class="logo-row">
+      <div class="logo-box">${lg?`<img src="${lg}" alt="Business logo">`:'<span>No logo yet</span>'}</div>
+      <div class="logo-txt">
+        <p class="hint">Your logo appears on sales receipts, credit invoices, printed statements and the sidebar. A square logo on a white or clear background looks best; PNG or JPG.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <label class="btn ba" style="cursor:pointer;">${lg?'Change logo':'Upload logo'}<input type="file" accept="image/png,image/jpeg,image/webp" style="display:none;" onchange="uploadLogo(this)"></label>
+          ${lg?'<button class="btn" style="background:#fff;color:var(--d);border:1px solid var(--d);" onclick="removeLogo()">Remove logo</button>':''}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function applyBrandLogo(){
+  const lg=safeLogo();
+  const f=document.querySelector('.side .foot');
+  if(f){
+    let im=f.querySelector('img.biz-logo');
+    if(lg){if(!im){im=document.createElement('img');im.className='biz-logo';im.alt='';f.prepend(im);}im.src=lg;}
+    else if(im)im.remove();
+  }
+}
+
 // ── SENDER NAME (SMS) ─────────────────────────────────────────
 // A business asks for its own SMS sender name here; NYANSATEK registers
 // it with Hubtel and enters it in the master console once approved. The
@@ -3899,7 +4015,7 @@ async function loadSettingsView(){
     ]);
     approved=org?.sms_sender_id||'';requested=req?.requested_sender_id||'';
   }catch(e){}
-  el.innerHTML=`<div class="card" style="max-width:720px;">
+  el.innerHTML=`${logoCardHtml()}<div class="card" style="max-width:720px;">
     <h2>Sender name</h2>
     <p class="hint">The name customers see as the sender of your receipt texts. Today your texts come from <b>${E(approved||'NYANSATEK')}</b>.</p>
     ${approved?`<p class="st-ok">Your business’s own sender name <b>${E(approved)}</b> is approved and in use.</p>`:''}
