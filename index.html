@@ -308,6 +308,16 @@ details.gd>summary:focus-visible{outline:2px solid var(--a);outline-offset:-2px;
   body.pr-receipt #app,body.pr-stmt #app{display:none!important;}
   body.pr-receipt #pframe,body.pr-stmt #pframe{display:block!important;position:absolute;top:0;left:0;width:100%;}
 }
+/* phones and tablets */
+@media (max-width:860px){
+  .card>table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;max-width:100%}
+  .nav{scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+}
+@media (pointer:coarse){
+  nav button{min-height:38px;padding:8px 12px;font-size:.8rem}
+  input,select,textarea{font-size:16px}
+}
+@media (pointer:coarse){button[onclick*="type==='password'"]{min-height:36px;min-width:48px;padding:0 8px}}
 </style>
      <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
