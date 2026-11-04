@@ -4232,5 +4232,90 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<script>
+/* NYANSATEK: Show/Hide button on every password field (including ones added later). */
+(function () {
+  if (window.__ntPw) return; window.__ntPw = 1;
+  var css = document.createElement('style');
+  css.textContent =
+    '.ntpw-wrap{position:relative;display:block}.ntpw-wrap.ntpw-inline{display:inline-block;vertical-align:middle}' +
+    '.ntpw-wrap>input{box-sizing:border-box}' +
+    '.ntpw-btn{position:absolute;top:50%;right:6px;transform:translateY(-50%);margin:0;border:0;background:transparent;cursor:pointer;' +
+    'font:700 12.5px/1 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.02em;padding:0 8px;min-height:32px;min-width:44px;' +
+    'border-radius:7px;opacity:.8;color:inherit;-webkit-tap-highlight-color:transparent}' +
+    '.ntpw-btn:hover{opacity:1}.ntpw-btn:focus-visible{outline:2px solid currentColor;outline-offset:1px;opacity:1}' +
+    '@media print{.ntpw-btn{display:none}}';
+  (document.head || document.documentElement).appendChild(css);
+
+  // does this field already have its own show/hide control next to it?
+  function hasOwnToggle(inp) {
+    var box = inp.parentElement;
+    for (var depth = 0; box && depth < 2; depth++, box = box.parentElement) {
+      if (depth > 0 && box.querySelectorAll('input').length > 1) break; // a box with other fields: their controls aren't ours
+      var els = box.querySelectorAll('button,[role=button],span,i,a,svg,label');
+      for (var i = 0; i < els.length; i++) {
+        var b = els[i]; if (b === inp || b.contains(inp) || b.closest('.ntpw-wrap') || b.querySelector('.ntpw-btn')) continue;
+        var txt = (b.textContent || '').trim(), oc = b.getAttribute('onclick') || '', al = b.getAttribute('aria-label') || '', cl = (b.getAttribute('class') || '') + ' ' + (b.id || '');
+        if ((/^(show|hide)$/i.test(txt)) || /type|password|togglePw|showPw/i.test(oc) || /(show|hide) password/i.test(al) || /(^|[\s_-])(eye|pwt|pwtoggle|pw-toggle|toggle-pw|showpw|pass-toggle)/i.test(cl)) return true;
+      }
+    }
+    return false;
+  }
+
+  function add(inp) {
+    if (inp.dataset.ntpw) return; inp.dataset.ntpw = '1';
+    if (hasOwnToggle(inp)) return;
+    var cs = getComputedStyle(inp), wrap = document.createElement('span');
+    wrap.className = 'ntpw-wrap';
+    var parentW = inp.parentElement ? inp.parentElement.clientWidth : 0;
+    var fullWidth = cs.display === 'block' || /100%/.test(inp.style.width) || (parentW && inp.offsetWidth >= parentW - 2);
+    if (!fullWidth && inp.offsetWidth) { wrap.classList.add('ntpw-inline'); wrap.style.width = inp.offsetWidth + 'px'; }
+    // keep the field's outside margins on the wrapper so the layout doesn't shift
+    wrap.style.marginTop = cs.marginTop; wrap.style.marginBottom = cs.marginBottom; wrap.style.marginLeft = cs.marginLeft; wrap.style.marginRight = cs.marginRight;
+    inp.parentNode.insertBefore(wrap, inp); wrap.appendChild(inp);
+    inp.style.margin = '0'; if (!fullWidth && inp.offsetWidth) inp.style.width = '100%';
+    var pr = parseFloat(cs.paddingRight) || 0; if (pr < 58) inp.style.paddingRight = '58px';
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'ntpw-btn'; btn.textContent = 'Show';
+    btn.setAttribute('aria-label', 'Show password'); btn.setAttribute('aria-pressed', 'false');
+    btn.style.color = cs.color;
+    btn.addEventListener('mousedown', function (e) { e.preventDefault(); }); // keep focus and the keyboard in the field
+    btn.addEventListener('click', function () {
+      var show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      btn.textContent = show ? 'Hide' : 'Show';
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      btn.setAttribute('aria-pressed', String(show));
+    });
+    wrap.appendChild(btn);
+  }
+  function hideAll(root) {
+    var list = (root || document).querySelectorAll('input[data-ntpw]');
+    for (var i = 0; i < list.length; i++) {
+      var inp = list[i]; if (inp.type !== 'text') continue;
+      var b = inp.parentElement && inp.parentElement.querySelector('.ntpw-btn');
+      if (b) { inp.type = 'password'; b.textContent = 'Show'; b.setAttribute('aria-label', 'Show password'); b.setAttribute('aria-pressed', 'false'); }
+    }
+  }
+  function scan(root) {
+    var list = (root.querySelectorAll ? root : document).querySelectorAll('input[type=password]:not([data-ntpw])');
+    for (var i = 0; i < list.length; i++) add(list[i]);
+  }
+  // before any form is sent, hide passwords again (some apps check the field type, and browsers only offer to save hidden passwords)
+  document.addEventListener('submit', function (e) { hideAll(e.target); }, true);
+  document.addEventListener('click', function (e) { var t = e.target.closest && e.target.closest('button[type=submit],input[type=submit]'); if (t && t.form) hideAll(t.form); }, true);
+  var start = function () {
+    scan(document);
+    new MutationObserver(function (ms) {
+      for (var i = 0; i < ms.length; i++) {
+        var m = ms[i];
+        if (m.type === 'attributes') { if (m.target.type === 'password' && !m.target.dataset.ntpw) add(m.target); continue; }
+        for (var j = 0; j < m.addedNodes.length; j++) { var n = m.addedNodes[j]; if (n.nodeType === 1) { if (n.matches && n.matches('input[type=password]')) add(n); else scan(n); } }
+      }
+    }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['type'] });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+</script>
 </body>
 </html>
