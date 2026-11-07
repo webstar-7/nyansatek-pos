@@ -318,6 +318,38 @@ details.gd>summary:focus-visible{outline:2px solid var(--a);outline-offset:-2px;
   input,select,textarea{font-size:16px}
 }
 @media (pointer:coarse){button[onclick*="type==='password'"]{min-height:36px;min-width:48px;padding:0 8px}}
+
+/* Tenant SMS (master) */
+.tsms{display:grid;gap:14px}
+.tsms-auto{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.tsms-auto .hint{flex:1;min-width:240px}
+.tsms-switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;white-space:nowrap}
+.tsms-switch input{position:absolute;opacity:0;width:1px;height:1px}
+.tsms-switch span{width:42px;height:24px;border-radius:999px;background:#cfd5de;position:relative;transition:background .15s;flex:none}
+.tsms-switch span::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+.tsms-switch input:checked+span{background:var(--s)}
+.tsms-switch input:checked+span::after{transform:translateX(18px)}
+.tsms-switch input:focus-visible+span{outline:2px solid var(--a);outline-offset:2px}
+.tsms-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tsms-filters .tb{background:#fff;border:1px solid var(--b);padding:6px 12px;font-size:.76rem;font-weight:600;cursor:pointer;color:var(--g);border-radius:999px}
+.tsms-filters .tb.on{background:var(--p);border-color:var(--p);color:#fff}
+.tsms-tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tsms-tw table{min-width:640px}
+.tsms-tw td,.tsms-tw th{white-space:nowrap}
+.tsms-tw td.msg{white-space:normal;min-width:240px;max-width:420px;font-size:.76rem;color:var(--t)}
+.tsms-pt{display:flex;gap:6px;align-items:center}
+.tsms-pt input{padding:4px 6px;border:1px solid var(--b);border-radius:6px;font-size:.78rem}
+.tsms-tpl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.tsms-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.76rem;color:var(--g);margin:-4px 0 10px}
+.tsms-meta .warn{color:#8a5700;font-weight:650}
+.tsms-preview{background:#f6f8fb;border:1px dashed var(--b);border-radius:10px;padding:10px 12px;font-size:.8rem;margin-bottom:12px;white-space:pre-wrap}
+.tsms-preview small{display:block;color:var(--g);margin-bottom:4px;font-weight:600}
+.tsms-today{margin-top:10px;border:1px solid var(--b);border-radius:10px;overflow:hidden}
+.tsms-today .row{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-top:1px solid var(--b);font-size:.8rem}
+.tsms-today .row:first-child{border-top:0}
+.tsms-today .row b{white-space:nowrap}
+.tsms-muted{color:var(--g)}
+@media (max-width:640px){.tsms-today .row{flex-direction:column;gap:4px}}
 </style>
      <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -877,6 +909,57 @@ details.gd>summary:focus-visible{outline:2px solid var(--a);outline-offset:-2px;
     </div>
 
     <!-- MASTER VIEWS -->
+    <div id="msmsv" class="view">
+      <div class="tsms">
+        <div class="card">
+          <h2>Automatic renewal reminders</h2>
+          <div class="tsms-auto">
+            <label class="tsms-switch"><input type="checkbox" id="tsms-auto" onchange="tsmsSetAuto(this.checked)"><span></span><b id="tsms-auto-lbl">…</b></label>
+            <div class="hint" style="margin:0">Sent from <b>NYANSATEK</b> at 9:00 every morning, at most one text per tenant per day, never the same reminder twice:
+              <b>7 days</b> and <b>3 days</b> before the renewal date, <b>on the day</b>, then <b>1 day</b> and <b>7 days</b> after if it is still unpaid.
+              The wording matches how each tenant pays (MoMo prompt, card, or renew in Billing).</div>
+          </div>
+          <div class="hint" id="tsms-last" style="margin-top:10px"></div>
+          <div id="tsms-today"></div>
+        </div>
+
+        <div class="card">
+          <h2>Tenants</h2>
+          <div class="tsms-filters" id="tsms-filters">
+            <button type="button" class="tb on" data-f="all">All</button>
+            <button type="button" class="tb" data-f="active">Active</button>
+            <button type="button" class="tb" data-f="soon">Due in 14 days</button>
+            <button type="button" class="tb" data-f="overdue">Overdue or paused</button>
+            <button type="button" class="tb" data-f="nodate">No renewal date</button>
+          </div>
+          <div class="tsms-tw"><table id="tsms-table"><thead><tr>
+            <th style="width:34px"><input type="checkbox" id="tsms-all" title="Select all shown" aria-label="Select all shown"></th>
+            <th>Tenant</th><th>Phone</th><th>Pays by</th><th>Paid until</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+          <p class="hint" style="margin-top:8px">Phone numbers come from the tenant's contact number, then its admin's phone, then its MoMo number. Tenants who are billed automatically get their renewal date from payments; for the rest you can set it here so reminders go out.</p>
+        </div>
+
+        <div class="card">
+          <h2>Send a message</h2>
+          <div class="tsms-tpl">
+            <span class="hint" style="margin:0">Start from:</span>
+            <button type="button" class="btn bsm" style="background:#fff;color:var(--p)" data-tpl="renew">Renewal reminder</button>
+            <button type="button" class="btn bsm" style="background:#fff;color:var(--p)" data-tpl="notice">Service notice</button>
+            <button type="button" class="btn bsm" style="background:#fff;color:var(--p)" data-tpl="thanks">Thank you</button>
+          </div>
+          <div class="fg"><label for="tsms-msg">Message</label>
+            <textarea id="tsms-msg" rows="4" maxlength="480" placeholder="Type your message. {name} becomes the tenant's name and {date} their renewal date."></textarea></div>
+          <div class="tsms-meta"><span id="tsms-count">0 characters</span><span id="tsms-cost"></span></div>
+          <div class="tsms-preview" id="tsms-preview" hidden></div>
+          <button type="button" class="btn ba" id="tsms-send" onclick="tsmsSend()" disabled>Send to selected tenants</button>
+        </div>
+
+        <div class="card">
+          <h2>Sent messages</h2>
+          <div class="tsms-tw"><table id="tsms-log"><thead><tr><th>When</th><th>Tenant</th><th>Type</th><th>Status</th><th>Message</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
     <div id="mv" class="view">
       <div class="card">
         <h2>Registered Businesses</h2>
@@ -1981,13 +2064,14 @@ function swV(v){
   if(v==='bv')loadBillingInfo();
   if(v==='ov')loadOverview();
   if(v==='hv')renderGuide();
+  if(v==='msmsv'&&window.tsmsLoad)tsmsLoad();
   if(v==='stv')loadSettingsView();
 }
 
 function buildNav(role){
   const nav=document.getElementById('nav');nav.innerHTML='';
   const tabs=role==='master'
-    ?[['mv','Businesses'],['miv','Inv. Manager'],['mlv','Financial Ledger']]
+    ?[['mv','Businesses'],['msmsv','Tenant SMS'],['miv','Inv. Manager'],['mlv','Financial Ledger']]
     :role==='admin'
     ?[['ov','Overview'],['cv','Cashier'],['av','Admin Inventory'],['chv','Cashiers'],['lv','SME Ledger'],['bv','Billing'],['stv','Settings'],['hv','How to use']]
     :[['cv','Cashier'],['hv','How to use']];
@@ -4315,6 +4399,118 @@ if('serviceWorker' in navigator){
     }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['type'] });
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+</script>
+
+<script>
+/* Tenant SMS (master console): messages to tenants and automatic renewal reminders.
+   All sending happens in the master-tenant-sms Supabase function, which checks the caller is master. */
+(function(){
+  let T=null, filter='all', selected=new Set();
+  const $=id=>document.getElementById(id);
+  const KIND={broadcast:'Message',before_7:'Reminder: 7 days before',before_3:'Reminder: 3 days before',due:'Reminder: due today',overdue_1:'Reminder: 1 day overdue',overdue_7:'Reminder: 7 days overdue'};
+  const PAY={momo:'MoMo (automatic)',card:'Card (automatic)'};
+  const fmtD=d=>d?new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):'—';
+  const fmtT=d=>new Date(d).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  const shortName=s=>{s=String(s||'').trim().replace(/\s+/g,' ');return s.length>26?s.slice(0,25).trim()+'.':s;};
+  const parts=t=>{const gsm=/^[\n\r A-Za-z0-9@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ!"#¤%&'()*+,\-./:;<=>?¡ÄÖÑÜ§¿äöñüà^{}\\\[~\]|€]*$/.test(t);const n=t.length,one=gsm?160:70,m=gsm?153:67;return{n:n<=one?1:Math.ceil(n/m),gsm};};
+  async function call(body){
+    const{data,error}=await sb.functions.invoke('master-tenant-sms',{body});
+    if(error){let m=error.message;try{const j=await error.context.json();if(j&&j.error)m=j.error;}catch(e){}throw new Error(m);}
+    if(data&&data.error)throw new Error(data.error);
+    return data;
+  }
+  function statusBadge(t){
+    if(t.is_active===false)return'<span class="badge br">Inactive</span>';
+    if(t.subscription_status==='suspended')return'<span class="badge br">Paused</span>';
+    if(t.days_left==null)return'<span class="badge by">No renewal date</span>';
+    if(t.days_left<0)return`<span class="badge br">${-t.days_left} day${t.days_left===-1?'':'s'} overdue</span>`;
+    if(t.days_left===0)return'<span class="badge by">Due today</span>';
+    if(t.days_left<=14)return`<span class="badge by">${t.days_left} day${t.days_left===1?'':'s'} left</span>`;
+    return'<span class="badge bg">Active</span>';
+  }
+  const passes=t=>filter==='all'||(filter==='active'&&t.is_active!==false&&t.subscription_status!=='suspended')||(filter==='soon'&&t.days_left!=null&&t.days_left>=0&&t.days_left<=14)
+    ||(filter==='overdue'&&(t.subscription_status==='suspended'||(t.days_left!=null&&t.days_left<0)))||(filter==='nodate'&&t.days_left==null);
+  function renderTenants(){
+    const rows=T.tenants.filter(passes);
+    $('tsms-table').querySelector('tbody').innerHTML=rows.map(t=>`<tr>
+      <td><input type="checkbox" data-id="${t.id}" ${selected.has(t.id)?'checked':''} ${t.phone?'':'disabled title="No valid phone number"'} aria-label="Select ${E(t.name)}"></td>
+      <td><strong>${E(t.name)}</strong></td>
+      <td>${t.phone?'0'+E(t.phone.slice(3)):`<span class="badge br" title="${E(t.phone_raw||'')}">${t.phone_raw?'Invalid number':'No number'}</span>`}</td>
+      <td>${E(PAY[t.payment_channel]||'Manual')}</td>
+      <td>${t.auto_billed?fmtD(t.paid_through_date):`<span class="tsms-pt"><input type="date" value="${t.paid_through_date||''}" data-pt="${t.id}" aria-label="Paid until for ${E(t.name)}"><button type="button" class="btn bsm" data-ptsave="${t.id}">Save</button></span>`}</td>
+      <td>${statusBadge(t)}</td></tr>`).join('')||'<tr><td colspan="6" class="tsms-muted">No tenants match this filter.</td></tr>';
+    const boxes=[...$('tsms-table').querySelectorAll('tbody input[type=checkbox]:not(:disabled)')];
+    $('tsms-all').checked=boxes.length>0&&boxes.every(b=>b.checked);
+    updateCompose();
+  }
+  function renderAuto(){
+    const s=T.settings||{};
+    $('tsms-auto').checked=!!s.auto_enabled; $('tsms-auto-lbl').textContent=s.auto_enabled?'On':'Off';
+    const r=s.last_run_summary;
+    $('tsms-last').innerHTML=s.last_run_at?`Last run: ${fmtT(s.last_run_at)}${r&&r.skipped?' (skipped: switched off)':r?` · ${r.sent||0} sent${r.failed?`, <b style="color:#a82c2c">${r.failed} failed</b>`:''}`:''}`:'Not run yet. The first automatic run is at 9:00 tomorrow.';
+    const due=T.tenants.filter(t=>t.reminder_today);
+    $('tsms-today').innerHTML=due.length?`<div class="tsms-today">${due.map(t=>`<div class="row"><b>${E(t.name)}</b><span class="tsms-muted">${E(KIND[t.reminder_today.kind])}${t.phone?'':' · <span style="color:#a82c2c">no valid number</span>'}</span><span>${E(t.reminder_today.text)}</span></div>`).join('')}</div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="btn bsm" onclick="tsmsRunNow()">Send these ${due.length} reminder${due.length===1?'':'s'} now</button><span class="hint" style="margin:0">Otherwise they go out automatically at 9:00${s.auto_enabled?'':' (when switched on)'}.</span></div>`
+      :'<p class="hint" style="margin:10px 0 0">No reminders are due today.</p>';
+  }
+  function renderLog(){
+    $('tsms-log').querySelector('tbody').innerHTML=(T.log||[]).map(l=>`<tr><td>${fmtT(l.created_at)}</td><td>${E(l.tenant_name||'—')}</td><td>${E(KIND[l.kind]||l.kind)}</td>
+      <td>${l.status==='sent'?'<span class="badge bg">Sent</span>':l.status==='failed'?`<span class="badge br" title="${E(l.error||'')}">Failed</span>`:'<span class="badge by">Sending</span>'}</td>
+      <td class="msg">${E(l.message)}${l.status==='failed'&&l.error?`<div style="color:#a82c2c;margin-top:2px">${E(l.error)}</div>`:''}</td></tr>`).join('')||'<tr><td colspan="5" class="tsms-muted">Nothing sent yet.</td></tr>';
+  }
+  function updateCompose(){
+    const msg=$('tsms-msg').value, ids=[...selected].filter(id=>T&&T.tenants.some(t=>t.id===id&&t.phone));
+    const first=T&&T.tenants.find(t=>ids.includes(t.id));
+    const fill=t=>msg.replace(/\{name\}/gi,shortName(t.name)).replace(/\{date\}/gi,t.paid_through_date?fmtD(t.paid_through_date):'your renewal date');
+    let total=0,worst=1,uni=false;
+    ids.forEach(id=>{const t=T.tenants.find(x=>x.id===id),p=parts(fill(t));total+=p.n;worst=Math.max(worst,p.n);if(!p.gsm)uni=true;});
+    const p=parts(first?fill(first):msg);
+    $('tsms-count').innerHTML=`${(first?fill(first):msg).length} characters · ${p.n} text${p.n===1?'':'s'} each${uni?' · <span class="warn">contains special characters (e.g. ₵), so each text holds only 70</span>':''}`;
+    $('tsms-cost').innerHTML=ids.length?`<b>${ids.length}</b> tenant${ids.length===1?'':'s'} selected · <b>${total}</b> text${total===1?'':'s'} in total`:'Select tenants in the table above';
+    const pv=$('tsms-preview'); pv.hidden=!(first&&msg.trim()); if(first&&msg.trim())pv.innerHTML=`<small>Preview for ${E(first.name)}</small>${E(fill(first))}`;
+    $('tsms-send').disabled=!(ids.length&&msg.trim());
+    $('tsms-send').textContent=ids.length?`Send to ${ids.length} tenant${ids.length===1?'':'s'}`:'Send to selected tenants';
+  }
+  async function load(){
+    try{ L(true); T=await call({action:'overview'}); selected=new Set([...selected].filter(id=>T.tenants.some(t=>t.id===id)));
+      renderAuto(); renderTenants(); renderLog(); }
+    catch(e){ alert('Could not load tenants: '+e.message); }
+    finally{ L(false); }
+  }
+  window.tsmsLoad=load;
+  window.tsmsSetAuto=async on=>{
+    try{ await call({action:'set_auto',enabled:on}); T.settings.auto_enabled=on; renderAuto(); }
+    catch(e){ alert(e.message); $('tsms-auto').checked=!on; }
+  };
+  window.tsmsRunNow=async()=>{
+    const n=T.tenants.filter(t=>t.reminder_today&&t.phone).length;
+    if(!confirm(`Send today's renewal reminders now (${n} text${n===1?'':'s'})? Each reminder is only ever sent once, so the 9:00 run won't repeat them.`))return;
+    try{ L(true); const r=await call({action:'run_reminders'}); L(false);
+      alert(`Reminders: ${r.summary.sent} sent${r.summary.failed?`, ${r.summary.failed} failed (see Sent messages)`:''}${r.summary.already?`, ${r.summary.already} already sent earlier`:''}.`); load(); }
+    catch(e){ L(false); alert(e.message); }
+  };
+  window.tsmsSend=async()=>{
+    const msg=$('tsms-msg').value.trim(), ids=[...selected].filter(id=>T.tenants.some(t=>t.id===id&&t.phone));
+    const total=$('tsms-cost').textContent.match(/(\d+) texts? in total/);
+    if(!confirm(`Send this message to ${ids.length} tenant${ids.length===1?'':'s'}${total?` (${total[1]} text${total[1]==='1'?'':'s'})`:''}?\n\nTexts are charged on the NYANSATEK Hubtel account.`))return;
+    try{ L(true); const r=await call({action:'send',tenant_ids:ids,message:msg}); L(false);
+      alert(`${r.sent} sent${r.failed?`, ${r.failed} failed (see Sent messages)`:''}.`); if(!r.failed){$('tsms-msg').value='';selected.clear();} load(); }
+    catch(e){ L(false); alert(e.message); }
+  };
+  document.addEventListener('DOMContentLoaded',()=>{
+    const v=$('msmsv'); if(!v)return;
+    $('tsms-filters').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;filter=b.dataset.f;$('tsms-filters').querySelectorAll('.tb').forEach(x=>x.classList.toggle('on',x===b));renderTenants();});
+    $('tsms-table').addEventListener('change',e=>{const c=e.target.closest('input[type=checkbox][data-id]');if(!c)return;c.checked?selected.add(c.dataset.id):selected.delete(c.dataset.id);renderTenants();});
+    $('tsms-all').addEventListener('change',e=>{T.tenants.filter(passes).filter(t=>t.phone).forEach(t=>e.target.checked?selected.add(t.id):selected.delete(t.id));renderTenants();});
+    $('tsms-table').addEventListener('click',async e=>{const b=e.target.closest('[data-ptsave]');if(!b)return;const id=b.dataset.ptsave,inp=$('tsms-table').querySelector(`[data-pt="${id}"]`);
+      try{L(true);await call({action:'set_paid_through',tenant_id:id,date:inp.value||null});L(false);load();}catch(err){L(false);alert(err.message);}});
+    $('tsms-msg').addEventListener('input',updateCompose);
+    const TPL={renew:()=>'Hi {name}, a reminder that your '+((T&&T.product)||'NYANSATEK')+' plan renews on {date}. Renew in Billing to keep your account active. Thank you!',
+      notice:'Hi {name}, NYANSATEK will carry out maintenance tonight from 10pm to 11pm. The app may be briefly unavailable. Thank you for your patience.',
+      thanks:'Hi {name}, thank you for choosing NYANSATEK. If you need help at any time, contact NYANSATEK support.'};
+    document.querySelectorAll('[data-tpl]').forEach(b=>b.addEventListener('click',()=>{const v=TPL[b.dataset.tpl];$('tsms-msg').value=typeof v==='function'?v():v;updateCompose();$('tsms-msg').focus();}));
+  });
 })();
 </script>
 </body>
