@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nyansatek-pos-v3'; // bumped: navigation is now network-first (see below)
+const CACHE_NAME = 'nyansatek-pos-v4'; // bumped: navigation is now network-first (see below)
 const APP_SHELL = [
   './',              // the actual page, whatever it's served as (index.html) — was './pos.html', which doesn't exist and broke install entirely
   './manifest.json',

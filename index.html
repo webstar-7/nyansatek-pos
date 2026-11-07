@@ -1879,12 +1879,9 @@ document.getElementById('lf').addEventListener('submit',async e=>{
   const biz=document.getElementById('lb').value.trim(),pw=document.getElementById('lp').value;
   const btn=document.getElementById('lbtn');btn.disabled=true;btn.innerText='Signing in...';
   try{
-    const{data:row}=await sb.from('login_lookup').select('login_email').ilike('business_name',biz).maybeSingle();
-    let loginEmail=row?.login_email;
-    if(!loginEmail){
-      const{data:staffRow}=await sb.from('staff_login_lookup').select('login_email').ilike('login_username',biz).maybeSingle();
-      loginEmail=staffRow?.login_email;
-    }
+    // the server turns an exact business name or cashier username into that one login email (no lists exposed)
+    const{data:loginEmail,error:le}=await sb.rpc('resolve_login_email',{p_login:biz});
+    if(le)throw new Error('Could not reach the server. Check your internet connection and try again.');
     if(!loginEmail)throw new Error('Business name / username or password is incorrect.');
     const{error:ae}=await sb.auth.signInWithPassword({email:loginEmail,password:pw});
     if(ae)throw new Error('Business name / username or password is incorrect.');
