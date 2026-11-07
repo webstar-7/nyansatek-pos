@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nyansatek-pos-v5'; // bumped: navigation is now network-first (see below)
+const CACHE_NAME = 'nyansatek-pos-v6'; // bumped: navigation is now network-first (see below)
 const APP_SHELL = [
   './',              // the actual page, whatever it's served as (index.html) — was './pos.html', which doesn't exist and broke install entirely
   './manifest.json',
@@ -46,7 +46,7 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
 
-  if (req.method !== 'GET' || url.origin !== self.location.origin) {
+  if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.endsWith('.mp4')) {
     return; // let the browser handle it normally
   }
 
