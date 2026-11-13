@@ -18,9 +18,10 @@
 <script>
      const SUPABASE_URL = "https://kqwqbohoeltlbwcopeug.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_T6oCd3aRO0OPheQXEkmvRA_nvIhEPcv";
-// SMS is sent via /.netlify/functions/send-receipt-sms, which holds the
-// Hubtel Client ID/Secret server-side -- see sendSMS() below. No SMS
-// credentials belong in this file; anything here is visible in page source.
+// SMS is sent via the Supabase Edge Function pos-send-receipt-sms (signed-in
+// users only), which holds the Hubtel Client ID/Secret server-side -- see
+// sendSMS() below. No SMS credentials belong in this file; anything here is
+// visible in page source.
 const PAYSTACK_PUBLIC_KEY = "pk_live_f06348c9521967084c78419c709c740c7d3b51d2"; // same pk_live_... key already used in the storefront's js/checkout.js -- this is the PUBLIC key, safe to expose here
 const BILLING_API_BASE = "https://nyansatek.systems/.netlify/functions"; // renew/upgrade endpoints are centralized on the storefront -- see their _lib/cors.js for why this cross-origin call is allowed
 </script>
