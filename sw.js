@@ -51,7 +51,7 @@ self.addEventListener('fetch', event => {
   }
   // Public online-shop pages (/s/<shop>, /t/<order>) are for customers, not the till:
   // never answer them with the till's cached page.
-  if (/^\/(s|t)\//.test(url.pathname) || url.pathname === '/shop.html') return;
+  if (url.pathname.startsWith('/shop/')) return;
 
   // Navigation requests (loading the page itself) are NETWORK-FIRST.
   // This is an actively-developed app -- every reload while online

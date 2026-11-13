@@ -4263,7 +4263,7 @@ async function loadOnlineCfg(){
     addOrdersTab();
   }catch(e){onlineCfg=null;}
 }
-function storeUrl(){return onlineCfg?.store_slug?location.origin+'/s/'+onlineCfg.store_slug:'';}
+function storeUrl(){return onlineCfg?.store_slug?location.origin+'/shop/?s='+onlineCfg.store_slug:'';}
 function mkCatOptions(sel){
   const kids=pid=>mkCats.filter(c=>(c.parent_id||null)===pid);
   let out='<option value="">Choose a category</option>';
@@ -4362,7 +4362,7 @@ async function renderOnlineShopCard(){
       <button class="btn" style="background:#fff;color:var(--p);border:1px solid var(--b);" onclick="copyStoreLink()">Copy link</button>
       <a class="btn ba" href="${E(url)}" target="_blank" rel="noopener">View my online shop</a>
       <a class="btn" style="background:#25D366;color:#fff;" href="https://wa.me/?text=${encodeURIComponent('Shop with us online: '+url)}" target="_blank" rel="noopener">Share on WhatsApp</a></div>`:'<p class="st-pend">Choose a web address below and save to open your shop page.</p>'}
-    <div class="fg" style="margin-top:12px;"><label>Web address</label><div class="os-row"><span class="hint">${E(location.origin)}/s/</span><input type="text" id="os-slug" maxlength="60" value="${E(slugGuess)}" style="flex:1;min-width:160px;" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'')"></div></div>
+    <div class="fg" style="margin-top:12px;"><label>Web address</label><div class="os-row"><span class="hint">${E(location.origin)}/shop/?s=</span><input type="text" id="os-slug" maxlength="60" value="${E(slugGuess)}" style="flex:1;min-width:160px;" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'')"></div></div>
     <div class="fg"><label>Shop name online</label><input type="text" id="os-name" maxlength="80" value="${E(c.store_name||prof.businessName||'')}"></div>
     <div class="fg"><label>Short description (optional)</label><input type="text" id="os-tag" maxlength="140" value="${E(c.store_tagline||'')}" placeholder="e.g. Electricals and building materials, Kumasi"></div>
     <div class="fg"><label>MoMo number customers pay</label><input type="tel" id="os-momo" value="${E(c.momo_number?'0'+c.momo_number.slice(3):'')}" placeholder="024XXXXXXX"></div>
