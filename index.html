@@ -4368,6 +4368,8 @@ async function renderOnlineShopCard(){
     <div class="fg"><label>MoMo number customers pay</label><input type="tel" id="os-momo" value="${E(c.momo_number?'0'+c.momo_number.slice(3):'')}" placeholder="024XXXXXXX"></div>
     <div class="fg"><label>Name on the MoMo account</label><input type="text" id="os-momoname" maxlength="80" value="${E(c.momo_name||'')}"></div>
     <div class="fg"><label>WhatsApp number for orders</label><input type="tel" id="os-wa" value="${E(c.whatsapp_number?'0'+c.whatsapp_number.slice(3):'')}" placeholder="024XXXXXXX"></div>
+    <div class="fg"><label>Shop address (where NYANSATEK riders collect orders)</label><input type="text" id="os-addr" maxlength="300" value="${E(c.shop_address||'')}" placeholder="Street, area, landmark"></div>
+    <div class="fg"><label>Shop phone for riders</label><input type="tel" id="os-phone" value="${E(c.shop_phone?'0'+c.shop_phone.slice(3):'')}" placeholder="024XXXXXXX"></div>
     <label class="os-chk"><input type="checkbox" id="os-enabled"${c.store_enabled===false?'':' checked'}> <span>My shop page is open for orders</span></label>
     <button class="btn ba" onclick="saveOnlineShop()">Save online shop</button>
     <h3 style="margin:18px 0 6px;">nyansatek.market</h3>
@@ -4379,7 +4381,7 @@ async function saveOnlineShop(requestMarket){
   const v=id=>document.getElementById(id).value.trim();
   const payload={store_slug:v('os-slug'),store_name:v('os-name'),store_tagline:v('os-tag'),momo_number:v('os-momo'),
     momo_name:v('os-momoname'),whatsapp_number:v('os-wa'),store_enabled:document.getElementById('os-enabled').checked,
-    logo_url:onlineCfg?.logo_url||null,request_marketplace:!!requestMarket};
+    shop_address:v('os-addr'),shop_phone:v('os-phone'),logo_url:onlineCfg?.logo_url||null,request_marketplace:!!requestMarket};
   if(!payload.store_slug){alert('Choose a web address for your shop.');return;}
   L(true);
   const{error}=await sb.rpc('save_online_settings',{p:payload});
