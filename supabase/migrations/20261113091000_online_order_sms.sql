@@ -64,3 +64,12 @@ $$;
 drop trigger if exists online_order_events_sms on public.online_order_events;
 create trigger online_order_events_sms after insert on public.online_order_events
   for each row execute function public._order_event_sms();
+
+-- secret check for the edge function (service role only); the secret itself is created in Vault
+-- outside version control: select vault.create_secret('<random>', 'order_sms_secret', '...');
+create or replace function public._order_sms_secret_ok(p_secret text)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from vault.decrypted_secrets where name = 'order_sms_secret' and decrypted_secret = p_secret);
+$$;
+revoke all on function public._order_sms_secret_ok(text) from public, anon, authenticated;
+grant execute on function public._order_sms_secret_ok(text) to service_role;
