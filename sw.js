@@ -49,6 +49,9 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.endsWith('.mp4')) {
     return; // let the browser handle it normally
   }
+  // Public online-shop pages (/s/<shop>, /t/<order>) are for customers, not the till:
+  // never answer them with the till's cached page.
+  if (/^\/(s|t)\//.test(url.pathname) || url.pathname === '/shop.html') return;
 
   // Navigation requests (loading the page itself) are NETWORK-FIRST.
   // This is an actively-developed app -- every reload while online

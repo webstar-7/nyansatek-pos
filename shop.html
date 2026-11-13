@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Online shop · NYANSATEK</title>
+<meta name="robots" content="index,follow">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{--p:#17264a;--a:#d1a03a;--bg:#f3f4f7;--b:#e2e6ec;--g:#667487;--ok:#127a46;--bad:#b42318;--font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font);}
+body{background:var(--bg);color:#111827;min-height:100vh;}
+a{color:var(--p);}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px;}
+header.top{background:var(--p);color:#fff;padding:18px 0 16px;}
+header.top .row{display:flex;gap:12px;align-items:center;}
+.logo{width:48px;height:48px;border-radius:12px;background:#fff;object-fit:cover;flex:none;}
+.shopname{font-size:1.25rem;font-weight:800;line-height:1.2;}
+.tagline{font-size:.88rem;opacity:.85;margin-top:2px;}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;background:var(--a);color:#1a1405;border-radius:999px;padding:2px 8px;margin-top:6px;text-decoration:none;}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;}
+.search{width:100%;padding:11px 14px;border:1px solid var(--b);border-radius:12px;font-size:1rem;background:#fff;}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-top:8px;scrollbar-width:none;}
+.chip{flex:none;border:1px solid var(--b);background:#fff;border-radius:999px;padding:6px 12px;font-size:.85rem;cursor:pointer;color:#344054;}
+.chip.on{background:var(--p);color:#fff;border-color:var(--p);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:6px 0 120px;}
+.card{background:#fff;border:1px solid var(--b);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;}
+.card img,.card .noimg{width:100%;aspect-ratio:1/1;object-fit:cover;background:#eef0f4;display:block;}
+.card .noimg{display:flex;align-items:center;justify-content:center;color:#98a2b3;font-size:.8rem;}
+.card .body{padding:10px;display:flex;flex-direction:column;gap:4px;flex:1;}
+.card .name{font-size:.9rem;font-weight:600;line-height:1.25;}
+.card .desc{font-size:.78rem;color:var(--g);line-height:1.3;}
+.card .price{font-weight:800;color:var(--p);margin-top:auto;}
+.card .oos{font-size:.78rem;color:var(--bad);font-weight:600;}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-size:.92rem;font-weight:700;cursor:pointer;background:var(--p);color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.btn.sec{background:#fff;color:var(--p);border:1px solid var(--b);}
+.btn.wa{background:#25D366;color:#fff;}
+.btn.gold{background:var(--a);color:#1a1405;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.qty{display:flex;align-items:center;gap:6px;}
+.qty button{width:32px;height:32px;border-radius:8px;border:1px solid var(--b);background:#fff;font-size:1.1rem;cursor:pointer;}
+.qty span{min-width:22px;text-align:center;font-weight:700;}
+.cartbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--b);padding:10px 16px calc(10px + env(safe-area-inset-bottom));z-index:10;display:none;}
+.cartbar .wrap{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:0;}
+.sheet{position:fixed;inset:0;background:rgba(16,24,40,.45);z-index:20;display:none;}
+.sheet.on{display:block;}
+.panel{position:absolute;right:0;top:0;bottom:0;width:min(480px,100%);background:#fff;overflow-y:auto;padding:16px 16px 40px;}
+.panel h2{font-size:1.1rem;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.line{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--b);}
+.line img{width:48px;height:48px;border-radius:8px;object-fit:cover;background:#eef0f4;flex:none;}
+.line .n{flex:1;font-size:.9rem;}
+.fg{margin:10px 0;}
+.fg label{display:block;font-size:.8rem;font-weight:600;color:#344054;margin-bottom:4px;}
+.fg input,.fg select,.fg textarea{width:100%;padding:10px 12px;border:1px solid var(--b);border-radius:10px;font-size:1rem;background:#fff;}
+.seg{display:flex;gap:6px;}
+.seg label{flex:1;border:1px solid var(--b);border-radius:10px;padding:10px;cursor:pointer;font-size:.9rem;display:flex;gap:6px;align-items:flex-start;}
+.seg label.dis{opacity:.5;cursor:not-allowed;}
+.sum{background:#f8f9fb;border:1px solid var(--b);border-radius:12px;padding:12px;margin:12px 0;font-size:.92rem;}
+.sum div{display:flex;justify-content:space-between;padding:2px 0;}
+.sum .tot{font-weight:800;font-size:1rem;border-top:1px solid var(--b);margin-top:6px;padding-top:6px;}
+.note{font-size:.82rem;color:var(--g);line-height:1.4;}
+.err{color:var(--bad);font-size:.88rem;margin:8px 0;font-weight:600;}
+.empty{text-align:center;color:var(--g);padding:60px 16px;}
+.box{background:#fff;border:1px solid var(--b);border-radius:14px;padding:16px;margin:14px 0;}
+.steps{list-style:none;margin:6px 0;}
+.steps li{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:.92rem;color:#98a2b3;}
+.steps li .dot{width:12px;height:12px;border-radius:50%;background:#d0d5dd;margin-top:4px;flex:none;}
+.steps li.done{color:#111827;}
+.steps li.done .dot{background:var(--ok);}
+.steps li.now{color:#111827;font-weight:700;}
+.steps li.now .dot{background:var(--a);box-shadow:0 0 0 4px rgba(209,160,58,.25);}
+.big{font-size:1.6rem;font-weight:800;letter-spacing:.12em;color:var(--p);}
+.status{display:inline-block;border-radius:999px;padding:4px 10px;font-size:.8rem;font-weight:700;background:#eef0f4;}
+.status.good{background:#e7f6ee;color:var(--ok);}
+.status.bad{background:#fdecea;color:var(--bad);}
+footer{text-align:center;font-size:.78rem;color:var(--g);padding:20px 0 90px;}
+</style>
+</head>
+<body>
+<div id="app"><div class="empty">Loading…</div></div>
+
+<script>
+const SUPABASE_URL = "https://kqwqbohoeltlbwcopeug.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_T6oCd3aRO0OPheQXEkmvRA_nvIhEPcv"; // publishable key: safe to be public
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+const MARKET_URL = "https://nyansatek.market"; // switch to the live address once the domain is bought
+
+const E = s => s == null ? '' : String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const GH = n => 'GH₵' + Number(n || 0).toFixed(2);
+const RANK = { motorbike: 1, car: 2, van: 3, truck: 4 };
+const VEH = { motorbike: 'motorbike', car: 'car', van: 'van', truck: 'truck' };
+const app = document.getElementById('app');
+const store = { get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
+                set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} } };
+const errMsg = e => (e && (e.message || e.error_description)) || 'Something went wrong. Please try again.';
+
+// ---------- routing: /s/<shop> = shop page, /t/<token> = order tracking ----------
+const parts = location.pathname.split('/').filter(Boolean);
+if (parts[0] === 't' && parts[1]) showTracking(parts[1]);
+else if (parts[0] === 's' && parts[1]) showShop(decodeURIComponent(parts[1]).toLowerCase());
+else app.innerHTML = '<div class="empty">Shop not found.</div>';
+
+// ===================================================================== SHOP PAGE
+let S = { shop: null, products: [], cat: '', q: '', cart: {}, zones: [], fees: [], points: [] };
+
+async function showShop(slug) {
+  const { data, error } = await sb.rpc('store_catalog', { p_slug: slug });
+  if (error || !data) { app.innerHTML = '<div class="empty">This shop is not open online right now.</div>'; return; }
+  S.shop = data.shop; S.products = data.products || [];
+  S.cart = store.get('cart:' + slug) || {};
+  for (const id in S.cart) if (!S.products.some(p => p.id === id && p.in_stock)) delete S.cart[id];
+  document.title = S.shop.name + ' · Shop online';
+  renderShop();
+  const [z, f, pt] = await Promise.all([
+    sb.from('delivery_zones').select('id,name,description').eq('active', true).order('sort').order('name'),
+    sb.from('delivery_zone_fees').select('zone_id,vehicle,fee'),
+    sb.from('pickup_points').select('id,name,address,landmark,hours,phone').eq('active', true).order('name')]);
+  S.zones = z.data || []; S.fees = f.data || []; S.points = pt.data || [];
+}
+
+function saveCart() { store.set('cart:' + S.shop.slug, S.cart); }
+function cartLines() { return Object.entries(S.cart).map(([id, qty]) => ({ p: S.products.find(x => x.id === id), qty })).filter(l => l.p); }
+function cartCount() { return cartLines().reduce((a, l) => a + l.qty, 0); }
+function cartTotal() { return cartLines().reduce((a, l) => a + l.qty * Number(l.p.price), 0); }
+function cartVehicle() { let v = 'motorbike'; cartLines().forEach(l => { if (RANK[l.p.delivery_size] > RANK[v]) v = l.p.delivery_size; }); return v; }
+
+function renderShop() {
+  const sh = S.shop;
+  const cats = [...new Set(S.products.map(p => p.category).filter(Boolean))].sort();
+  app.innerHTML = `
+  <header class="top"><div class="wrap row">
+    ${sh.logo_url ? `<img class="logo" src="${E(sh.logo_url)}" alt="">` : ''}
+    <div><div class="shopname">${E(sh.name)}</div>${sh.tagline ? `<div class="tagline">${E(sh.tagline)}</div>` : ''}
+    ${sh.on_market ? `<a class="pill" href="${MARKET_URL}" target="_blank" rel="noopener">Also on nyansatek.market</a>` : ''}</div>
+  </div></header>
+  <div class="bar"><div class="wrap">
+    <input class="search" id="q" type="search" placeholder="Search ${E(sh.name)}" value="${E(S.q)}">
+    ${cats.length > 1 ? `<div class="chips"><button class="chip${S.cat ? '' : ' on'}" data-cat="">All</button>${cats.map(c => `<button class="chip${S.cat === c ? ' on' : ''}" data-cat="${E(c)}">${E(c)}</button>`).join('')}</div>` : ''}
+  </div></div>
+  <div class="wrap"><div class="grid" id="grid"></div></div>
+  <footer>Online shop by <a href="https://nyansatek.systems" target="_blank" rel="noopener">NYANSATEK</a></footer>
+  <div class="cartbar" id="cartbar"><div class="wrap"><div><b id="cb-count"></b><div class="note" id="cb-total"></div></div><button class="btn gold" onclick="openCart()">View cart</button></div></div>
+  <div class="sheet" id="sheet" onclick="if(event.target===this)closeCart()"><div class="panel" id="panel"></div></div>`;
+  document.getElementById('q').addEventListener('input', e => { S.q = e.target.value; renderGrid(); });
+  app.querySelectorAll('.chip').forEach(b => b.onclick = () => { S.cat = b.dataset.cat; app.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === b)); renderGrid(); });
+  renderGrid(); renderCartBar();
+}
+
+function renderGrid() {
+  const q = S.q.trim().toLowerCase();
+  const list = S.products.filter(p => (!S.cat || p.category === S.cat) && (!q || p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)));
+  const g = document.getElementById('grid');
+  if (!list.length) { g.innerHTML = '<div class="empty" style="grid-column:1/-1">No products found.</div>'; return; }
+  g.innerHTML = list.map(p => {
+    const inCart = S.cart[p.id] || 0;
+    return `<div class="card">
+      ${p.photo_url ? `<img src="${E(p.photo_url)}" alt="${E(p.name)}" loading="lazy">` : '<div class="noimg">No photo</div>'}
+      <div class="body"><div class="name">${E(p.name)}</div>${p.description ? `<div class="desc">${E(p.description)}</div>` : ''}
+      <div class="price">${GH(p.price)}</div>
+      ${!p.in_stock ? '<div class="oos">Sold out</div>'
+        : inCart ? `<div class="qty"><button onclick="setQty('${p.id}',-1)" aria-label="One less">−</button><span>${inCart}</span><button onclick="setQty('${p.id}',1)" aria-label="One more">+</button></div>`
+        : `<button class="btn" onclick="setQty('${p.id}',1)">Add to cart</button>`}
+      </div></div>`;
+  }).join('');
+}
+
+function setQty(id, d) {
+  const n = Math.max(0, Math.min(999, (S.cart[id] || 0) + d));
+  if (n) S.cart[id] = n; else delete S.cart[id];
+  saveCart(); renderGrid(); renderCartBar();
+  if (document.getElementById('sheet').classList.contains('on')) renderCartPanel();
+}
+function renderCartBar() {
+  const n = cartCount(), bar = document.getElementById('cartbar');
+  bar.style.display = n ? 'block' : 'none';
+  if (n) { document.getElementById('cb-count').textContent = n + (n === 1 ? ' item' : ' items'); document.getElementById('cb-total').textContent = GH(cartTotal()); }
+}
+function openCart() { renderCartPanel(); document.getElementById('sheet').classList.add('on'); }
+function closeCart() { document.getElementById('sheet').classList.remove('on'); }
+
+function waOrderText() {
+  const lines = cartLines().map(l => `• ${l.qty} × ${l.p.name} (${GH(l.p.price)})`).join('\n');
+  return `Hello ${S.shop.name}, I would like to order:\n${lines}\nTotal: ${GH(cartTotal())}`;
+}
+
+function renderCartPanel() {
+  const P = document.getElementById('panel'), lines = cartLines();
+  if (!lines.length) { P.innerHTML = '<h2>Your cart <button class="btn sec" onclick="closeCart()">Close</button></h2><div class="empty">Your cart is empty.</div>'; return; }
+  const veh = cartVehicle(), truck = veh === 'truck', sh = S.shop;
+  const saved = store.get('buyer') || {};
+  P.innerHTML = `<h2>Your cart <button class="btn sec" onclick="closeCart()">Close</button></h2>
+    ${lines.map(l => `<div class="line">${l.p.photo_url ? `<img src="${E(l.p.photo_url)}" alt="">` : '<img alt="">'}
+      <div class="n">${E(l.p.name)}<div class="note">${GH(l.p.price)} each</div></div>
+      <div class="qty"><button onclick="setQty('${l.p.id}',-1)">−</button><span>${l.qty}</span><button onclick="setQty('${l.p.id}',1)">+</button></div></div>`).join('')}
+    ${sh.whatsapp ? `<a class="btn wa" style="width:100%;margin-top:12px;" target="_blank" rel="noopener" href="https://wa.me/${E(sh.whatsapp)}?text=${encodeURIComponent(waOrderText())}">Order on WhatsApp instead</a>` : ''}
+    <h2 style="margin-top:18px;">Checkout</h2>
+    <div class="fg"><label>Your name</label><input id="c-name" autocomplete="name" value="${E(saved.name || '')}"></div>
+    <div class="fg"><label>Phone number</label><input id="c-phone" type="tel" autocomplete="tel" placeholder="024XXXXXXX" value="${E(saved.phone || '')}"></div>
+    <div class="fg"><label>How do you want to get it?</label><div class="seg">
+      <label><input type="radio" name="ful" value="delivery" checked> Delivery by a NYANSATEK ${VEH[veh]}</label>
+      <label class="${S.points.length ? '' : 'dis'}"><input type="radio" name="ful" value="pickup" ${S.points.length ? '' : 'disabled'}> Pick up at a NYANSATEK point</label></div></div>
+    <div id="ful-delivery">
+      <div class="fg"><label>Delivery area</label><select id="c-zone"><option value="">Choose your area</option>${S.zones.map(z => `<option value="${z.id}">${E(z.name)}</option>`).join('')}</select></div>
+      <div class="fg"><label>Address</label><input id="c-addr" autocomplete="street-address" placeholder="House number, street, area" value="${E(saved.addr || '')}"></div>
+      <div class="fg"><label>Landmark (optional)</label><input id="c-land" placeholder="e.g. opposite the Total filling station" value="${E(saved.land || '')}"></div>
+    </div>
+    <div id="ful-pickup" style="display:none;"><div class="fg"><label>Pickup point</label><select id="c-point"><option value="">Choose a pickup point</option>${S.points.map(p => `<option value="${p.id}">${E(p.name)} · ${E(p.address)}</option>`).join('')}</select></div>
+      <p class="note">Collect within 24 hours of the SMS saying it has arrived, or it goes back to the shop.</p></div>
+    <div class="fg"><label>Payment</label><div class="seg">
+      <label class="${sh.momo_number ? '' : 'dis'}"><input type="radio" name="pay" value="momo" ${sh.momo_number ? '' : 'disabled'} ${truck && sh.momo_number ? 'checked' : ''}> MoMo to the shop</label>
+      <label class="${truck ? 'dis' : ''}"><input type="radio" name="pay" value="pod" ${truck ? 'disabled' : 'checked'}> Pay when you receive it</label></div>
+      ${truck ? '<p class="note">This order needs a truck, so it must be paid by MoMo first.</p>' : ''}</div>
+    <div class="fg"><label>Note for the shop (optional)</label><textarea id="c-note" rows="2" maxlength="300"></textarea></div>
+    <div class="sum" id="c-sum"></div>
+    <div class="err" id="c-err"></div>
+    <button class="btn gold" style="width:100%;" id="c-go" onclick="placeOrder()">Place order</button>
+    <p class="note" style="margin-top:8px;">The shop confirms your order within 10 minutes. You'll get a tracking link and SMS updates.</p>`;
+  P.querySelectorAll('input[name=ful]').forEach(r => r.onchange = updateCheckout);
+  P.querySelectorAll('input[name=pay]').forEach(r => r.onchange = updateCheckout);
+  document.getElementById('c-zone').onchange = updateCheckout;
+  updateCheckout();
+}
+
+function checkoutState() {
+  const ful = (document.querySelector('input[name=ful]:checked') || {}).value || 'delivery';
+  const pay = (document.querySelector('input[name=pay]:checked') || {}).value || '';
+  const veh = cartVehicle(), zone = document.getElementById('c-zone')?.value || '';
+  const feeRow = S.fees.find(f => f.zone_id === zone && f.vehicle === veh);
+  const fee = ful === 'pickup' ? 0 : feeRow ? Number(feeRow.fee) : null;
+  return { ful, pay, veh, zone, fee };
+}
+function updateCheckout() {
+  const st = checkoutState();
+  document.getElementById('ful-delivery').style.display = st.ful === 'delivery' ? '' : 'none';
+  document.getElementById('ful-pickup').style.display = st.ful === 'pickup' ? '' : 'none';
+  const goods = cartTotal();
+  const feeTxt = st.ful === 'pickup' ? GH(0) : st.zone ? (st.fee == null ? 'Not available for a ' + st.veh + ' in this area' : GH(st.fee)) : 'Choose your area';
+  document.getElementById('c-sum').innerHTML = `<div><span>Items</span><span>${GH(goods)}</span></div>
+    <div><span>Delivery${st.ful === 'delivery' ? ' (' + st.veh + ')' : ''}</span><span>${feeTxt}</span></div>
+    <div class="tot"><span>Total</span><span>${GH(goods + (st.fee || 0))}</span></div>
+    ${st.pay === 'momo' ? `<div class="note" style="display:block;margin-top:6px;">After you place the order you'll see the shop's MoMo number to pay.</div>` : ''}`;
+}
+
+async function placeOrder() {
+  const st = checkoutState(), err = document.getElementById('c-err'), go = document.getElementById('c-go');
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  err.textContent = '';
+  if (!st.pay) { err.textContent = 'Choose how you will pay.'; return; }
+  if (st.ful === 'delivery' && st.zone && st.fee == null) { err.textContent = 'Delivery by ' + st.veh + ' is not available in this area yet. Try pickup.'; return; }
+  const payload = { channel: 'store', store_slug: S.shop.slug,
+    items: cartLines().map(l => ({ product_id: l.p.id, qty: l.qty })),
+    customer: { name: v('c-name'), phone: v('c-phone') }, fulfilment: st.ful, payment_method: st.pay, note: v('c-note') };
+  if (st.ful === 'delivery') Object.assign(payload, { zone_id: st.zone, address: v('c-addr'), landmark: v('c-land') });
+  else payload.pickup_point_id = v('c-point');
+  go.disabled = true; go.textContent = 'Placing order…';
+  const { data, error } = await sb.rpc('place_online_order', { p: payload });
+  go.disabled = false; go.textContent = 'Place order';
+  if (error) { err.textContent = errMsg(error); return; }
+  store.set('buyer', { name: v('c-name'), phone: v('c-phone'), addr: v('c-addr'), land: v('c-land') });
+  const mine = store.get('my-orders') || []; mine.unshift({ token: data.track_token, code: data.code, shop: S.shop.name, at: Date.now() });
+  store.set('my-orders', mine.slice(0, 30));
+  S.cart = {}; saveCart();
+  location.href = '/t/' + data.track_token;
+}
+
+// ===================================================================== TRACKING PAGE
+const STEPS_DELIVERY = [['placed', 'Order placed'], ['accepted', 'Shop confirmed'], ['ready', 'Packed and ready'], ['in_transit', 'On the way'], ['delivered', 'Delivered']];
+const STEPS_PICKUP = [['placed', 'Order placed'], ['accepted', 'Shop confirmed'], ['ready', 'Packed and ready'], ['in_transit', 'On the way to the pickup point'], ['at_pickup_point', 'Ready to collect'], ['collected', 'Collected']];
+const ORDER_OF = s => ({ placed: 0, accepted: 1, ready: 2, in_transit: 3, at_pickup_point: 4, delivered: 5, collected: 5, completed: 6 })[s] ?? -1;
+let trackTimer = null;
+
+async function showTracking(token) {
+  const { data: o, error } = await sb.rpc('get_online_order', { p_token: token });
+  if (error || !o) { app.innerHTML = '<div class="empty">Order not found. Check the link in your SMS.</div>'; return; }
+  document.title = 'Order ' + o.code + ' · ' + o.shop.name;
+  const steps = o.fulfilment === 'pickup' ? STEPS_PICKUP : STEPS_DELIVERY;
+  const done = o.status === 'completed' ? 99 : ORDER_OF(o.status);
+  const ended = ['cancelled', 'returning', 'returned'].includes(o.status);
+  const label = { placed: 'Waiting for the shop', accepted: 'Confirmed', ready: 'Ready', in_transit: 'On the way', at_pickup_point: 'Ready to collect',
+    delivered: 'Delivered', collected: 'Collected', completed: 'Completed', cancelled: 'Cancelled', returning: 'Not collected', returned: 'Returned to shop' }[o.status] || o.status;
+  const minsLeft = Math.max(0, Math.ceil((new Date(o.accept_deadline) - Date.now()) / 60000));
+  app.innerHTML = `<header class="top"><div class="wrap"><div class="shopname">Order ${E(o.code)}</div><div class="tagline">${E(o.shop.name)}</div></div></header>
+  <div class="wrap" style="max-width:640px;">
+    <div class="box"><span class="status ${ended ? 'bad' : ['delivered', 'collected', 'completed'].includes(o.status) ? 'good' : ''}">${E(label)}</span>
+      ${o.status === 'placed' ? `<p class="note" style="margin-top:8px;">The shop has ${minsLeft} minute${minsLeft === 1 ? '' : 's'} to confirm. If they don't, the order is cancelled automatically.</p>` : ''}
+      ${ended && o.cancel_reason ? `<p class="note" style="margin-top:8px;">${E(o.cancel_reason)}</p>` : ''}
+      ${!ended ? `<ul class="steps">${steps.map(([k, t], i) => `<li class="${ORDER_OF(k) < done || (i === steps.length - 1 && done >= ORDER_OF(k)) ? 'done' : ORDER_OF(k) === done ? 'now' : ''}"><span class="dot"></span>${E(t)}</li>`).join('')}</ul>` : ''}
+    </div>
+    ${o.payment_method === 'momo' && !o.payment_confirmed && !ended ? `<div class="box"><b>Pay by MoMo</b>
+      <p class="note" style="margin:6px 0;">Send <b>${GH(o.total)}</b> to the shop's MoMo number:</p>
+      <div class="big">${E('0' + String(o.shop.momo_number || '').slice(3))}</div>${o.shop.momo_name ? `<div class="note">${E(o.shop.momo_name)}</div>` : ''}
+      ${o.status === 'placed' ? `<div class="fg"><label>MoMo transaction ID (helps the shop find your payment)</label><input id="t-ref" value="${E(o.momo_txn_id || '')}"></div>
+      <button class="btn" onclick="addRef('${E(token)}')">Send transaction ID</button><div class="err" id="t-err"></div>` : ''}</div>` : ''}
+    ${!ended && !['delivered', 'collected', 'completed'].includes(o.status) ? `<div class="box"><b>Your ${o.fulfilment === 'pickup' ? 'collection' : 'delivery'} code</b>
+      <div class="big" style="margin:6px 0;">${E(o.delivery_code)}</div><p class="note">Give this code to the ${o.fulfilment === 'pickup' ? 'pickup point staff' : 'rider'} only when you receive your order.</p></div>` : ''}
+    ${o.fulfilment === 'pickup' && o.pickup_point ? `<div class="box"><b>Pickup point</b><p style="margin-top:6px;">${E(o.pickup_point.name)}<br><span class="note">${E(o.pickup_point.address)}${o.pickup_point.landmark ? ' · ' + E(o.pickup_point.landmark) : ''}${o.pickup_point.hours ? '<br>Open: ' + E(o.pickup_point.hours) : ''}</span></p>
+      ${o.pickup_deadline ? `<p class="note" style="margin-top:6px;">Collect by ${new Date(o.pickup_deadline).toLocaleString()}.</p>` : ''}</div>` : ''}
+    ${o.fulfilment === 'delivery' ? `<div class="box"><b>Delivery to</b><p class="note" style="margin-top:6px;">${E(o.address || '')}${o.landmark ? ' · ' + E(o.landmark) : ''}${o.zone ? '<br>' + E(o.zone) : ''}</p></div>` : ''}
+    <div class="box"><b>Items</b>${o.items.map(i => `<div class="sum" style="background:none;border:0;padding:4px 0;margin:0;"><div><span>${i.qty} × ${E(i.name)}</span><span>${GH(i.line_total)}</span></div></div>`).join('')}
+      <div class="sum"><div><span>Items</span><span>${GH(o.goods_total)}</span></div><div><span>Delivery</span><span>${GH(o.delivery_fee)}</span></div><div class="tot"><span>Total</span><span>${GH(o.total)}</span></div>
+      <div class="note" style="display:block;margin-top:4px;">${o.payment_method === 'momo' ? 'Paying by MoMo' + (o.payment_confirmed ? ' · payment confirmed by the shop' : '') : 'Pay when you receive it'}</div></div></div>
+    ${o.shop.whatsapp ? `<a class="btn wa" style="width:100%;" target="_blank" rel="noopener" href="https://wa.me/${E(o.shop.whatsapp)}?text=${encodeURIComponent('Hello, about my order ' + o.code)}">Message the shop on WhatsApp</a>` : ''}
+    ${o.shop.slug ? `<p style="text-align:center;margin:16px 0;"><a href="/s/${E(o.shop.slug)}">Back to ${E(o.shop.name)}</a></p>` : ''}
+  </div><footer>Keep this page: it's your order tracking link.</footer>`;
+  clearTimeout(trackTimer);
+  if (!['completed', 'cancelled', 'returned'].includes(o.status)) trackTimer = setTimeout(() => { if (!document.getElementById('t-ref') || document.activeElement !== document.getElementById('t-ref')) showTracking(token); else trackTimer = setTimeout(() => showTracking(token), 20000); }, 20000);
+}
+
+async function addRef(token) {
+  const ref = document.getElementById('t-ref').value.trim(), err = document.getElementById('t-err');
+  const { error } = await sb.rpc('add_order_momo_ref', { p_token: token, p_txn: ref });
+  if (error) { err.textContent = errMsg(error); return; }
+  showTracking(token);
+}
+</script>
+</body>
+</html>
