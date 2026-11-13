@@ -376,6 +376,11 @@ nav button.on{box-shadow:0 6px 18px rgba(209,160,58,.30);}
 .pc:hover{box-shadow:0 8px 18px rgba(37,99,235,.14);}
 .pn{font-size:11px;}
 .pg>.pgm{grid-column:1/-1;min-height:200px;}
+.pc .pimg{display:block;width:100%;height:64px;object-fit:cover;border-radius:8px;margin:-2px 0 6px;background:#f3f5f9;}
+.os-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.os-chk{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.9rem;}
+.os-chk input{margin-top:3px;}
+.os-link{font-family:monospace;background:#f3f5f9;border:1px solid var(--b);border-radius:6px;padding:6px 8px;word-break:break-all;}
 .srow input{border-radius:10px;transition:border-color .15s,box-shadow .15s,background .15s;}
 .srow input:focus{box-shadow:0 0 0 4px rgba(209,160,58,.16);}
 .cb{transition:all .15s;}
@@ -666,6 +671,18 @@ main>.view.on{animation:viewIn .3s ease both;}
               <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="ed-sell"></div>
               <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="ed-cost"></div>
               <div class="fg"><label>Quantity</label><input type="number" id="ed-qty" min="0"></div>
+              <div class="fg"><label>Photo</label>
+                <div class="os-row">
+                  <img id="ed-photo-prev" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--b);display:none;">
+                  <div>
+                    <input type="file" id="ed-photo" accept="image/*" style="display:none;" onchange="pickProductPhoto(this)">
+                    <button type="button" class="btn" style="background:#fff;color:var(--p);border:1px solid var(--b);" onclick="document.getElementById('ed-photo').click()">Add or change photo</button>
+                    <button type="button" id="ed-photo-rm" class="btn" style="background:#fff;color:#b42318;border:1px solid var(--b);display:none;" onclick="removeProductPhoto()">Remove photo</button>
+                    <div class="hint" id="ed-photo-msg" style="margin-top:4px;"></div>
+                  </div>
+                </div>
+              </div>
+              <div id="ed-online" style="display:none;"></div>
               <button class="btn bf ba" onclick="saveProductEdit('a')">Save Changes</button>
             </div>
           </div>
@@ -2156,6 +2173,7 @@ async function initTenant(){
   activeOrg=prof.org_id;
   setDef('sh-s','sh-e','pr-s','pr-e','is-s','is-e','ex-dt','si-dt');
   await loadInv(prof.org_id);await refSales();await loadBranding();
+  loadOnlineCfg();
   swV(prof.role==='admin'?'ov':'cv');toggleTen();
   updateOfflineUI();
   if(navigator.onLine)drainAllQueues();
@@ -2609,7 +2627,7 @@ function renderPG(){
   grid.innerHTML='';
   shown.forEach(it=>{
     const card=document.createElement('div');card.className='pc'+(it.stock<=0?' oos':'');
-    card.innerHTML=`<div class="pn" style="white-space:normal;font-size:12px;margin-bottom:3px;">${E(it.name)}</div>
+    card.innerHTML=`${it.photo_url?`<img class="pimg" src="${E(it.photo_url)}" alt="" loading="lazy">`:''}<div class="pn" style="white-space:normal;font-size:12px;margin-bottom:3px;">${E(it.name)}</div>
       <div class="pr">${GH(it.price)}</div>
       <div style="font-size:9.5px;color:var(--g);margin-top:2px;">${it.stock<=0?'Out of stock':it.stock+' in stock'}</div>`;
     if(it.stock>0)card.onclick=()=>addToCart(it.id);else card.title='Out of stock';
@@ -3483,7 +3501,8 @@ async function releaseToStock(transferId,maxRem){
 }
 
 // ── EDIT INVENTORY ───────────────────────────────────────────────
-let editProdId=null;
+let editProdId=null,pendingPhoto=null,photoRemoved=false;
+let onlineCfg=null,mkCats=[];
 function filterEditSearch(val,ctx){
   const listId=ctx==='m'?'med-sdlist':'ed-sdlist';
   const list=document.getElementById(listId);
@@ -3503,6 +3522,7 @@ function filterEditSearch(val,ctx){
       document.getElementById(pfx+'sell').value=(p.price||0).toFixed(2);
       document.getElementById(pfx+'cost').value=(p.cost_price||0).toFixed(2);
       document.getElementById(pfx+'qty').value=p.stock;
+      if(ctx!=='m')fillProductExtras(p);
       document.getElementById(pfx+'form').style.display='block';
     };
     list.appendChild(d);
@@ -3521,6 +3541,8 @@ async function saveProductEdit(ctx){
   if(!name){alert('Product name is required.');return;}
   const fields={name,barcode:barcode||null,price,cost_price,stock};
   const orgId=ctx==='m'?activeOrg:prof.org_id;
+  if(ctx!=='m'&&!collectProductExtras(fields))return;
+  if(ctx!=='m'&&pendingPhoto&&!navigator.onLine){alert('Adding a photo needs an internet connection. Connect and save again, or remove the new photo to save the other changes offline.');return;}
 
   const goOfflineEdit=async()=>{
     const prod=inv.find(i=>i.id===editProdId);
@@ -3539,9 +3561,11 @@ async function saveProductEdit(ctx){
 
   L(true);
   try{
+    if(ctx!=='m'&&pendingPhoto){fields.photo_url=await uploadProductPhoto(editProdId);}
     const{error}=await sb.from('products').update(fields).eq('id',editProdId);
     if(error)throw error;
     L(false);
+    pendingPhoto=null;photoRemoved=false;
     await loadInv(orgId);
     alert('Product updated successfully!');
   }catch(err){
@@ -4219,6 +4243,150 @@ function printSenderLetter(){
   </body></html>`);
 }
 
+// ===================== ONLINE SHOP (add-on) + PRODUCT PHOTOS =====================
+// Photos are free for every shop. The online-shop fields only appear once NYANSATEK
+// has switched the add-on on for this shop (shop_online_settings.addon_active).
+async function loadOnlineCfg(){
+  try{
+    const{data}=await sb.from('shop_online_settings').select('*').eq('org_id',prof.org_id).maybeSingle();
+    onlineCfg=data||null;
+    if(onlineCfg?.addon_active&&!mkCats.length){
+      const{data:cats}=await sb.from('market_categories').select('id,name,parent_id,sort').eq('active',true).order('sort').order('name');
+      mkCats=cats||[];
+    }
+  }catch(e){onlineCfg=null;}
+}
+function storeUrl(){return onlineCfg?.store_slug?location.origin+'/s/'+onlineCfg.store_slug:'';}
+function mkCatOptions(sel){
+  const kids=pid=>mkCats.filter(c=>(c.parent_id||null)===pid);
+  let out='<option value="">Choose a category</option>';
+  kids(null).forEach(top=>{
+    const sub=kids(top.id);
+    if(!sub.length){out+=`<option value="${top.id}"${top.id===sel?' selected':''}>${E(top.name)}</option>`;return;}
+    out+=`<optgroup label="${E(top.name)}">`+sub.map(c=>`<option value="${c.id}"${c.id===sel?' selected':''}>${E(c.name)}</option>`).join('')+'</optgroup>';
+  });
+  return out;
+}
+function fillProductExtras(p){
+  pendingPhoto=null;photoRemoved=false;
+  const prev=document.getElementById('ed-photo-prev'),rm=document.getElementById('ed-photo-rm');
+  document.getElementById('ed-photo-msg').textContent='';
+  if(p.photo_url){prev.src=p.photo_url;prev.style.display='block';rm.style.display='';}
+  else{prev.removeAttribute('src');prev.style.display='none';rm.style.display='none';}
+  const box=document.getElementById('ed-online');
+  if(!onlineCfg?.addon_active){box.style.display='none';box.innerHTML='';return;}
+  const approved=onlineCfg.marketplace_status==='approved';
+  const sizes=[['motorbike','Motorbike'],['car','Car'],['van','Van'],['truck','Truck (MoMo only, no pay on delivery)']];
+  box.innerHTML=`<div class="card" style="padding:12px;margin:8px 0;">
+    <h3 style="margin:0 0 6px;font-size:.95rem;">Online selling</h3>
+    <label class="os-chk"><input type="checkbox" id="ed-show-online"${p.show_online?' checked':''}> <span>Show in my online shop</span></label>
+    <label class="os-chk"><input type="checkbox" id="ed-list-market"${p.list_on_market?' checked':''}${approved?'':' disabled'}> <span>List on nyansatek.market (5% commission per marketplace sale)${approved?'':'<br><span class="hint">Available once your shop is approved for the marketplace (Settings → Online Shop).</span>'}</span></label>
+    <div class="fg"><label>Marketplace category</label><select id="ed-mkcat">${mkCatOptions(p.market_category_id)}</select></div>
+    <div class="fg"><label>Delivery size (which vehicle can carry it)</label><select id="ed-dsize">${sizes.map(([v,l])=>`<option value="${v}"${(p.delivery_size||'motorbike')===v?' selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="fg"><label>Description (optional)</label><textarea id="ed-desc" rows="2" maxlength="500" style="width:100%;">${E(p.description||'')}</textarea></div>
+  </div>`;
+  box.style.display='block';
+}
+function collectProductExtras(fields){
+  if(photoRemoved&&!pendingPhoto)fields.photo_url=null;
+  if(!onlineCfg?.addon_active||!document.getElementById('ed-show-online'))return true;
+  const prod=inv.find(i=>i.id===editProdId)||{};
+  const hasPhoto=!!pendingPhoto||(!photoRemoved&&!!prod.photo_url);
+  fields.show_online=document.getElementById('ed-show-online').checked;
+  fields.list_on_market=document.getElementById('ed-list-market').checked;
+  fields.market_category_id=document.getElementById('ed-mkcat').value||null;
+  fields.delivery_size=document.getElementById('ed-dsize').value;
+  fields.description=document.getElementById('ed-desc').value.trim()||null;
+  if(fields.list_on_market&&!hasPhoto){alert('Add a photo before listing this product on nyansatek.market.');return false;}
+  if(fields.list_on_market&&!fields.market_category_id){alert('Choose a marketplace category before listing this product on nyansatek.market.');return false;}
+  if((fields.show_online||fields.list_on_market)&&!(fields.price>0)){alert('Set a selling price before selling this product online.');return false;}
+  return true;
+}
+function pickProductPhoto(input){
+  const file=input.files&&input.files[0];input.value='';
+  if(!file)return;
+  if(!/^image\//.test(file.type)){alert('Please choose a photo.');return;}
+  const msg=document.getElementById('ed-photo-msg');msg.textContent='Preparing photo…';
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{
+    const max=1000,scale=Math.min(1,max/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+    c.toBlob(b=>{
+      if(!b){msg.textContent='Could not read that photo. Try another.';return;}
+      pendingPhoto=b;photoRemoved=false;
+      const prev=document.getElementById('ed-photo-prev');prev.src=URL.createObjectURL(b);prev.style.display='block';
+      document.getElementById('ed-photo-rm').style.display='';
+      msg.textContent='New photo ready. Press Save Changes to keep it.';
+    },'image/jpeg',0.82);
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);msg.textContent='Could not read that photo. Try another.';};
+  img.src=url;
+}
+function removeProductPhoto(){
+  pendingPhoto=null;photoRemoved=true;
+  const prev=document.getElementById('ed-photo-prev');prev.removeAttribute('src');prev.style.display='none';
+  document.getElementById('ed-photo-rm').style.display='none';
+  document.getElementById('ed-photo-msg').textContent='Photo will be removed when you press Save Changes.';
+}
+async function uploadProductPhoto(productId){
+  const path=`${prof.org_id}/${productId}-${Date.now()}.jpg`;
+  const{error}=await sb.storage.from('product-photos').upload(path,pendingPhoto,{contentType:'image/jpeg',upsert:false,cacheControl:'31536000'});
+  if(error)throw new Error('Photo upload failed: '+error.message);
+  return sb.storage.from('product-photos').getPublicUrl(path).data.publicUrl;
+}
+async function renderOnlineShopCard(){
+  const el=document.getElementById('os-card');if(!el)return;
+  await loadOnlineCfg();
+  const c=onlineCfg||{};
+  if(!c.addon_active){
+    el.innerHTML=`<div class="card" style="max-width:720px;"><h2>Online Shop</h2>
+      <p class="hint">Sell online with your own shop page: your products with photos and prices, orders by WhatsApp, MoMo or pay on delivery, and NYANSATEK riders to deliver. Shops on the Online Shop add-on can also list products on <b>nyansatek.market</b>, our marketplace.</p>
+      <p class="hint">Product photos are free for every shop: add them now under Admin Inventory → edit a product.</p>
+      <p class="st-pend">The Online Shop add-on is not switched on for your shop yet. Contact NYANSATEK to add it.</p></div>`;
+    return;
+  }
+  const url=storeUrl();
+  const slugGuess=c.store_slug||String(prof.businessName||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
+  const mk={none:'Not on the marketplace yet.',pending:'Request sent. NYANSATEK will review your shop.',approved:'Your shop is approved. Tick “List on nyansatek.market” on the products you want there.',suspended:'Your marketplace listings are paused. Contact NYANSATEK.'}[c.marketplace_status||'none'];
+  const hidden=c.listings_hidden_reason==='commission_overdue'?'<p class="st-pend">Your marketplace listings are hidden because a commission statement is overdue. They come back as soon as it is paid (Billing).</p>':'';
+  el.innerHTML=`<div class="card" style="max-width:720px;"><h2>Online Shop</h2>
+    ${url?`<p class="hint">Your shop page</p><div class="os-row"><span class="os-link" id="os-url">${E(url)}</span>
+      <button class="btn" style="background:#fff;color:var(--p);border:1px solid var(--b);" onclick="copyStoreLink()">Copy link</button>
+      <a class="btn ba" href="${E(url)}" target="_blank" rel="noopener">View my online shop</a>
+      <a class="btn" style="background:#25D366;color:#fff;" href="https://wa.me/?text=${encodeURIComponent('Shop with us online: '+url)}" target="_blank" rel="noopener">Share on WhatsApp</a></div>`:'<p class="st-pend">Choose a web address below and save to open your shop page.</p>'}
+    <div class="fg" style="margin-top:12px;"><label>Web address</label><div class="os-row"><span class="hint">${E(location.origin)}/s/</span><input type="text" id="os-slug" maxlength="60" value="${E(slugGuess)}" style="flex:1;min-width:160px;" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'')"></div></div>
+    <div class="fg"><label>Shop name online</label><input type="text" id="os-name" maxlength="80" value="${E(c.store_name||prof.businessName||'')}"></div>
+    <div class="fg"><label>Short description (optional)</label><input type="text" id="os-tag" maxlength="140" value="${E(c.store_tagline||'')}" placeholder="e.g. Electricals and building materials, Kumasi"></div>
+    <div class="fg"><label>MoMo number customers pay</label><input type="tel" id="os-momo" value="${E(c.momo_number?'0'+c.momo_number.slice(3):'')}" placeholder="024XXXXXXX"></div>
+    <div class="fg"><label>Name on the MoMo account</label><input type="text" id="os-momoname" maxlength="80" value="${E(c.momo_name||'')}"></div>
+    <div class="fg"><label>WhatsApp number for orders</label><input type="tel" id="os-wa" value="${E(c.whatsapp_number?'0'+c.whatsapp_number.slice(3):'')}" placeholder="024XXXXXXX"></div>
+    <label class="os-chk"><input type="checkbox" id="os-enabled"${c.store_enabled===false?'':' checked'}> <span>My shop page is open for orders</span></label>
+    <button class="btn ba" onclick="saveOnlineShop()">Save online shop</button>
+    <h3 style="margin:18px 0 6px;">nyansatek.market</h3>
+    <p class="hint">${mk}</p>${hidden}
+    ${(c.marketplace_status||'none')==='none'?'<button class="btn" style="background:#fff;color:var(--p);border:1px solid var(--b);" onclick="saveOnlineShop(true)">Request to join nyansatek.market</button>':''}
+  </div>`;
+}
+async function saveOnlineShop(requestMarket){
+  const v=id=>document.getElementById(id).value.trim();
+  const payload={store_slug:v('os-slug'),store_name:v('os-name'),store_tagline:v('os-tag'),momo_number:v('os-momo'),
+    momo_name:v('os-momoname'),whatsapp_number:v('os-wa'),store_enabled:document.getElementById('os-enabled').checked,
+    logo_url:onlineCfg?.logo_url||null,request_marketplace:!!requestMarket};
+  if(!payload.store_slug){alert('Choose a web address for your shop.');return;}
+  L(true);
+  const{error}=await sb.rpc('save_online_settings',{p:payload});
+  L(false);
+  if(error){alert(error.message);return;}
+  await renderOnlineShopCard();
+  alert(requestMarket?'Saved. Your request to join nyansatek.market has been sent.':'Online shop saved.');
+}
+function copyStoreLink(){
+  const url=storeUrl();if(!url)return;
+  (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(()=>alert('Link copied.'),()=>prompt('Copy your shop link:',url));
+}
+// =================================================================================
+
 async function loadSettingsView(){
   const el=document.getElementById('stv');if(!el)return;
   el.innerHTML='<div class="es">Loading...</div>';
@@ -4243,7 +4411,8 @@ async function loadSettingsView(){
       <button class="btn ba" onclick="requestSenderId()">Request this sender name</button>
       <button class="btn" style="background:#fff;color:var(--p);border:1px solid var(--b);" onclick="printSenderLetter()">Print authorisation letter</button>
     </div>
-  </div>`;
+  </div><div id="os-card"></div>`;
+  renderOnlineShopCard();
 }
 async function requestSenderId(){
   const v=(document.getElementById('st-sender')?.value||'').trim();
