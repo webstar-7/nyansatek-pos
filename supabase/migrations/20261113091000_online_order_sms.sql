@@ -32,7 +32,8 @@ begin
   select * into s from public.shop_online_settings where org_id = o.org_id;
   select * into cfg from public.market_settings where id;
   select coalesce(s.store_name, business_name) into v_shop from public.organizations where id = o.org_id;
-  v_link := case o.channel when 'market' then cfg.market_base_url else cfg.store_base_url end || '/t/' || o.track_token::text;
+  -- marketplace is on GitHub Pages (hash addresses); shop pages are on Netlify (clean addresses)
+  v_link := case o.channel when 'market' then cfg.market_base_url || '/#/t/' else cfg.store_base_url || '/t/' end || o.track_token::text;
   v_shop_phone := coalesce(s.whatsapp_number, s.momo_number);
   v_total := 'GHS' || to_char(o.goods_total + o.delivery_fee, 'FM999999990.00');
   select coalesce(sum(qty), 0) into v_items from public.online_order_items where order_id = o.id;

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>nyansatek.market · Shop from trusted local shops</title>
 <meta name="description" content="Shop from trusted local shops in one place. Delivery by NYANSATEK riders or pickup at NYANSATEK points. Pay by MoMo or on delivery.">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -85,7 +85,7 @@ footer{text-align:center;font-size:.8rem;color:var(--g);padding:24px 0 40px;line
 <body>
 <header class="top"><div class="wrap">
   <div class="row">
-    <a class="brand" href="/" data-link>nyansatek<span>.market</span></a>
+    <a class="brand" href="#/" data-link>nyansatek<span>.market</span></a>
     <input class="search" id="q" type="search" placeholder="Search products" enterkeyhint="search">
     <button class="cartbtn" onclick="go('/cart')" id="cartbtn">Cart</button>
   </div>
@@ -94,7 +94,7 @@ footer{text-align:center;font-size:.8rem;color:var(--g);padding:24px 0 40px;line
 <main class="wrap" id="app"><div class="empty">Loading…</div></main>
 <footer class="wrap">Every shop on nyansatek.market runs on NYANSATEK POS, so stock is live.<br>
 Delivery by NYANSATEK riders · Pickup at NYANSATEK points · Pay by MoMo or on delivery<br>
-<a href="/orders" data-link>My orders</a> · <a href="https://nyansatek.systems" target="_blank" rel="noopener">Sell on nyansatek.market</a></footer>
+<a href="#/orders" data-link>My orders</a> · <a href="https://nyansatek.systems" target="_blank" rel="noopener">Sell on nyansatek.market</a></footer>
 
 <script>
 const SUPABASE_URL = "https://kqwqbohoeltlbwcopeug.supabase.co";
@@ -120,7 +120,7 @@ REF.ready = (async () => {
     sb.from('pickup_points').select('id,name,address,landmark,hours').eq('active', true).order('name')]);
   REF.cats = c.data || []; REF.zones = z.data || []; REF.fees = f.data || []; REF.points = p.data || [];
   const tops = REF.cats.filter(x => !x.parent_id);
-  document.getElementById('nav').innerHTML = tops.map(t => `<a href="/c/${E(t.slug)}" data-link data-slug="${E(t.slug)}">${E(t.name)}</a>`).join('');
+  document.getElementById('nav').innerHTML = tops.map(t => `<a href="#/c/${E(t.slug)}" data-link data-slug="${E(t.slug)}">${E(t.name)}</a>`).join('');
 })();
 
 // ---------- carts: one per shop ----------
@@ -138,19 +138,21 @@ function addToCart(p, d = 1) {
 }
 
 // ---------- router ----------
-function go(path) { history.pushState({}, '', path); route(); window.scrollTo(0, 0); }
-document.addEventListener('click', e => { const a = e.target.closest('a[data-link]'); if (a) { e.preventDefault(); go(a.getAttribute('href')); } });
-window.addEventListener('popstate', route);
+// GitHub Pages hosting: addresses use #, e.g. nyansatek.market/#/c/drinks
+function go(path) { if (location.hash === '#' + path) route(); else location.hash = '#' + path; }
+window.addEventListener('hashchange', () => { route(); window.scrollTo(0, 0); });
+const curPath = () => (location.hash.slice(1) || '/').split('?')[0];
+const curQuery = () => new URLSearchParams((location.hash.split('?')[1]) || '');
 document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') go('/search?q=' + encodeURIComponent(e.target.value.trim())); });
 
 async function route() {
   await REF.ready;
-  const path = location.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+  const path = curPath().split('/').filter(Boolean).map(decodeURIComponent);
   document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', path[0] === 'c' && topSlugOf(path[1]) === a.dataset.slug));
   clearTimeout(trackTimer);
   if (!path.length) return home();
   if (path[0] === 'c') return category(path[1]);
-  if (path[0] === 'search') return search(new URLSearchParams(location.search).get('q') || '');
+  if (path[0] === 'search') return search(curQuery().get('q') || '');
   if (path[0] === 'shop') return shopPage(path[1]);
   if (path[0] === 'p') return product(path[1], path[2]);
   if (path[0] === 'cart') return cartPage();
@@ -168,7 +170,7 @@ async function listings(args) {
   return data || [];
 }
 function cardHtml(p) {
-  return `<a class="card" href="/p/${p.org_id}/${p.id}" data-link><img src="${E(p.photo_url)}" alt="${E(p.name)}" loading="lazy">
+  return `<a class="card" href="#/p/${p.org_id}/${p.id}" data-link><img src="${E(p.photo_url)}" alt="${E(p.name)}" loading="lazy">
     <div class="body"><div class="name">${E(p.name)}</div><div class="shop">${E(p.shop_name)}</div>
     <div class="price">${GH(p.price)}</div>${p.in_stock ? '' : '<div class="oos">Sold out</div>'}</div></a>`;
 }
@@ -193,7 +195,7 @@ function home() {
   document.title = 'nyansatek.market · Shop from trusted local shops';
   gridPage('New on nyansatek.market', `<div class="hero"><b>Shop from trusted local shops, in one place.</b>
     <p>Live stock from every shop. Delivery by NYANSATEK riders or pickup at a NYANSATEK point. Pay by MoMo or when you receive it.</p></div>
-    <h2 class="sec">Shop by category</h2><div class="cats">${tops.map(t => `<a class="cat" href="/c/${E(t.slug)}" data-link>${E(t.name)}<small>${REF.cats.filter(s => s.parent_id === t.id).slice(0, 3).map(s => E(s.name)).join(' · ')}</small></a>`).join('')}</div>`, {});
+    <h2 class="sec">Shop by category</h2><div class="cats">${tops.map(t => `<a class="cat" href="#/c/${E(t.slug)}" data-link>${E(t.name)}<small>${REF.cats.filter(s => s.parent_id === t.id).slice(0, 3).map(s => E(s.name)).join(' · ')}</small></a>`).join('')}</div>`, {});
 }
 function category(slug) {
   const c = REF.cats.find(x => x.slug === slug);
@@ -201,7 +203,7 @@ function category(slug) {
   const top = c.parent_id ? REF.cats.find(x => x.id === c.parent_id) : c;
   const subs = REF.cats.filter(x => x.parent_id === top.id);
   document.title = c.name + ' · nyansatek.market';
-  gridPage(c.name, subs.length ? `<div class="chips" style="margin-top:14px;"><a class="chip${c.id === top.id ? ' on' : ''}" href="/c/${E(top.slug)}" data-link>All ${E(top.name)}</a>${subs.map(s => `<a class="chip${s.id === c.id ? ' on' : ''}" href="/c/${E(s.slug)}" data-link>${E(s.name)}</a>`).join('')}</div>` : '', { p_category: c.id });
+  gridPage(c.name, subs.length ? `<div class="chips" style="margin-top:14px;"><a class="chip${c.id === top.id ? ' on' : ''}" href="#/c/${E(top.slug)}" data-link>All ${E(top.name)}</a>${subs.map(s => `<a class="chip${s.id === c.id ? ' on' : ''}" href="#/c/${E(s.slug)}" data-link>${E(s.name)}</a>`).join('')}</div>` : '', { p_category: c.id });
 }
 function search(q) {
   document.getElementById('q').value = q;
@@ -223,13 +225,13 @@ async function product(orgId, id) {
   const render = () => {
     const inCart = CART[p.org_id]?.items[p.id]?.qty || 0;
     app.innerHTML = `<div class="pdp"><img src="${E(p.photo_url)}" alt="${E(p.name)}">
-      <div><div class="note"><a href="/c/${E(REF.cats.find(c => c.id === p.category_id)?.slug || '')}" data-link>${E(p.category_name)}</a></div>
+      <div><div class="note"><a href="#/c/${E(REF.cats.find(c => c.id === p.category_id)?.slug || '')}" data-link>${E(p.category_name)}</a></div>
       <h1 style="margin-top:4px;">${E(p.name)}</h1><div class="price">${GH(p.price)}</div>
-      <p class="note">Sold by <a href="/shop/${E(p.shop_slug)}" data-link>${E(p.shop_name)}</a> · delivered by NYANSATEK ${E(p.delivery_size)}</p>
+      <p class="note">Sold by <a href="#/shop/${E(p.shop_slug)}" data-link>${E(p.shop_name)}</a> · delivered by NYANSATEK ${E(p.delivery_size)}</p>
       ${p.description ? `<p style="margin:12px 0;line-height:1.5;">${E(p.description)}</p>` : ''}
       <div style="margin:16px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       ${!p.in_stock ? '<span class="status bad">Sold out</span>'
-        : inCart ? `<div class="qty"><button id="m">−</button><span>${inCart}</span><button id="pl">+</button></div><a class="btn gold" href="/cart" data-link>Go to cart</a>`
+        : inCart ? `<div class="qty"><button id="m">−</button><span>${inCart}</span><button id="pl">+</button></div><a class="btn gold" href="#/cart" data-link>Go to cart</a>`
         : '<button class="btn gold" id="add">Add to cart</button>'}</div>
       <p class="note">${p.delivery_size === 'truck' ? 'Truck delivery: pay by MoMo before delivery.' : 'Pay by MoMo or when you receive it.'}</p></div></div>`;
     const b = (id, d) => { const el = document.getElementById(id); if (el) el.onclick = () => { addToCart(p, d); render(); }; };
@@ -242,14 +244,14 @@ async function product(orgId, id) {
 function cartPage() {
   document.title = 'Cart · nyansatek.market';
   const shops = Object.entries(CART);
-  if (!shops.length) { app.innerHTML = '<h1>Your cart</h1><div class="empty">Your cart is empty. <a href="/" data-link>Start shopping</a></div>'; return; }
+  if (!shops.length) { app.innerHTML = '<h1>Your cart</h1><div class="empty">Your cart is empty. <a href="#/" data-link>Start shopping</a></div>'; return; }
   app.innerHTML = `<h1>Your cart</h1><p class="note">Each shop's items are ordered and delivered separately.</p>` + shops.map(([org, c]) => {
     const items = Object.values(c.items), total = items.reduce((a, i) => a + i.qty * Number(i.p.price), 0);
     return `<div class="box"><b>${E(c.shop.name)}</b>
       ${items.map(i => `<div class="line"><img src="${E(i.p.photo_url)}" alt=""><div class="n">${E(i.p.name)}<div class="note">${GH(i.p.price)} each</div></div>
         <div class="qty"><button data-org="${org}" data-id="${i.p.id}" data-d="-1">−</button><span>${i.qty}</span><button data-org="${org}" data-id="${i.p.id}" data-d="1">+</button></div></div>`).join('')}
       <div class="sum"><div class="tot"><span>Items</span><span>${GH(total)}</span></div></div>
-      <a class="btn gold" style="width:100%;" href="/checkout/${org}" data-link>Checkout ${E(c.shop.name)}</a></div>`;
+      <a class="btn gold" style="width:100%;" href="#/checkout/${org}" data-link>Checkout ${E(c.shop.name)}</a></div>`;
   }).join('');
   app.querySelectorAll('.qty button').forEach(btn => btn.onclick = () => { addToCart(CART[btn.dataset.org].items[btn.dataset.id].p, Number(btn.dataset.d)); cartPage(); });
 }
@@ -321,7 +323,7 @@ function myOrders() {
   const mine = store.get('my-orders') || [];
   document.title = 'My orders · nyansatek.market';
   app.innerHTML = `<h1>My orders</h1><p class="note">Orders placed on this phone.</p>` + (mine.length ? mine.map(o =>
-    `<a class="box" style="display:flex;justify-content:space-between;text-decoration:none;color:inherit;" href="/t/${E(o.token)}" data-link><span><b>${E(o.code)}</b><br><span class="note">${E(o.shop)}</span></span><span class="note">${new Date(o.at).toLocaleDateString()}</span></a>`).join('')
+    `<a class="box" style="display:flex;justify-content:space-between;text-decoration:none;color:inherit;" href="#/t/${E(o.token)}" data-link><span><b>${E(o.code)}</b><br><span class="note">${E(o.shop)}</span></span><span class="note">${new Date(o.at).toLocaleDateString()}</span></a>`).join('')
     : '<div class="empty">No orders yet.</div>');
 }
 
@@ -366,7 +368,7 @@ async function tracking(token) {
     tracking(token);
   };
   if (!['completed', 'cancelled', 'returned'].includes(o.status)) trackTimer = setTimeout(() => {
-    if (location.pathname === '/t/' + token && document.activeElement?.id !== 't-ref') tracking(token);
+    if (curPath() === '/t/' + token && document.activeElement?.id !== 't-ref') tracking(token);
   }, 20000);
 }
 
