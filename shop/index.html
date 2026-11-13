@@ -86,7 +86,7 @@ footer{text-align:center;font-size:.78rem;color:var(--g);padding:20px 0 90px;}
 const SUPABASE_URL = "https://kqwqbohoeltlbwcopeug.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_T6oCd3aRO0OPheQXEkmvRA_nvIhEPcv"; // publishable key: safe to be public
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
-const MARKET_URL = "https://nyansatek.market"; // switch to the live address once the domain is bought
+const MARKET_URL = "https://webstar-7.github.io/nyansatek-market"; // change to https://nyansatek.market once the domain is live
 
 const E = s => s == null ? '' : String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const GH = n => 'GH₵' + Number(n || 0).toFixed(2);
