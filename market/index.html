@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>nyansatek.market · Shop from trusted local shops</title>
+<meta name="description" content="Shop from trusted local shops in one place. Delivery by NYANSATEK riders or pickup at NYANSATEK points. Pay by MoMo or on delivery.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{--p:#17264a;--a:#d1a03a;--bg:#f3f4f7;--b:#e2e6ec;--g:#667487;--ok:#127a46;--bad:#b42318;--font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font);}
+body{background:var(--bg);color:#111827;min-height:100vh;}
+a{color:var(--p);}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px;}
+header.top{background:var(--p);color:#fff;position:sticky;top:0;z-index:15;}
+header.top .row{display:flex;gap:12px;align-items:center;padding:12px 0;}
+.brand{color:#fff;text-decoration:none;font-weight:800;font-size:1.15rem;white-space:nowrap;}
+.brand span{color:var(--a);}
+.search{flex:1;padding:10px 14px;border:0;border-radius:12px;font-size:1rem;min-width:0;}
+.cartbtn{background:var(--a);color:#1a1405;border:0;border-radius:12px;padding:10px 12px;font-weight:800;cursor:pointer;white-space:nowrap;}
+.nav{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none;}
+.nav a{flex:none;color:#fff;opacity:.85;text-decoration:none;font-size:.85rem;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.25);}
+.nav a.on{opacity:1;background:rgba(255,255,255,.15);}
+h1{font-size:1.3rem;margin:18px 0 6px;}
+h2.sec{font-size:1.05rem;margin:22px 0 10px;}
+.hero{background:linear-gradient(135deg,#17264a,#22386b);color:#fff;border-radius:18px;padding:22px;margin:16px 0;}
+.hero b{color:var(--a);}
+.hero p{opacity:.9;margin-top:6px;font-size:.95rem;line-height:1.45;}
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+.cat{background:#fff;border:1px solid var(--b);border-radius:14px;padding:14px;text-decoration:none;color:#111827;font-weight:600;font-size:.92rem;}
+.cat small{display:block;color:var(--g);font-weight:400;margin-top:4px;font-size:.78rem;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;}
+.chip{border:1px solid var(--b);background:#fff;border-radius:999px;padding:6px 12px;font-size:.85rem;text-decoration:none;color:#344054;}
+.chip.on{background:var(--p);color:#fff;border-color:var(--p);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:12px;padding-bottom:30px;}
+.card{background:#fff;border:1px solid var(--b);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit;}
+.card img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#eef0f4;display:block;}
+.card .body{padding:10px;display:flex;flex-direction:column;gap:3px;flex:1;}
+.card .name{font-size:.9rem;font-weight:600;line-height:1.25;}
+.card .shop{font-size:.76rem;color:var(--g);}
+.card .price{font-weight:800;color:var(--p);margin-top:auto;}
+.card .oos{font-size:.76rem;color:var(--bad);font-weight:600;}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-size:.92rem;font-weight:700;cursor:pointer;background:var(--p);color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.btn.sec{background:#fff;color:var(--p);border:1px solid var(--b);}
+.btn.gold{background:var(--a);color:#1a1405;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.pdp{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;margin:18px 0 40px;}
+.pdp img{width:100%;border-radius:16px;background:#eef0f4;aspect-ratio:1/1;object-fit:cover;}
+.pdp .price{font-size:1.5rem;font-weight:800;color:var(--p);margin:8px 0;}
+@media(max-width:720px){.pdp{grid-template-columns:1fr;}}
+.qty{display:flex;align-items:center;gap:6px;}
+.qty button{width:34px;height:34px;border-radius:8px;border:1px solid var(--b);background:#fff;font-size:1.1rem;cursor:pointer;}
+.qty span{min-width:24px;text-align:center;font-weight:700;}
+.box{background:#fff;border:1px solid var(--b);border-radius:14px;padding:16px;margin:14px 0;}
+.line{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--b);}
+.line img{width:52px;height:52px;border-radius:8px;object-fit:cover;background:#eef0f4;flex:none;}
+.line .n{flex:1;font-size:.9rem;}
+.fg{margin:10px 0;}
+.fg label{display:block;font-size:.8rem;font-weight:600;color:#344054;margin-bottom:4px;}
+.fg input,.fg select,.fg textarea{width:100%;padding:10px 12px;border:1px solid var(--b);border-radius:10px;font-size:1rem;background:#fff;}
+.seg{display:flex;gap:6px;flex-wrap:wrap;}
+.seg label{flex:1;min-width:150px;border:1px solid var(--b);border-radius:10px;padding:10px;cursor:pointer;font-size:.9rem;display:flex;gap:6px;align-items:flex-start;}
+.seg label.dis{opacity:.5;cursor:not-allowed;}
+.sum{background:#f8f9fb;border:1px solid var(--b);border-radius:12px;padding:12px;margin:12px 0;font-size:.92rem;}
+.sum div{display:flex;justify-content:space-between;padding:2px 0;}
+.sum .tot{font-weight:800;font-size:1rem;border-top:1px solid var(--b);margin-top:6px;padding-top:6px;}
+.note{font-size:.82rem;color:var(--g);line-height:1.4;}
+.err{color:var(--bad);font-size:.88rem;margin:8px 0;font-weight:600;}
+.empty{text-align:center;color:var(--g);padding:50px 16px;}
+.steps{list-style:none;margin:6px 0;}
+.steps li{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:.92rem;color:#98a2b3;}
+.steps li .dot{width:12px;height:12px;border-radius:50%;background:#d0d5dd;margin-top:4px;flex:none;}
+.steps li.done{color:#111827;} .steps li.done .dot{background:var(--ok);}
+.steps li.now{color:#111827;font-weight:700;} .steps li.now .dot{background:var(--a);box-shadow:0 0 0 4px rgba(209,160,58,.25);}
+.big{font-size:1.6rem;font-weight:800;letter-spacing:.12em;color:var(--p);}
+.status{display:inline-block;border-radius:999px;padding:4px 10px;font-size:.8rem;font-weight:700;background:#eef0f4;}
+.status.good{background:#e7f6ee;color:var(--ok);} .status.bad{background:#fdecea;color:var(--bad);}
+.more{display:flex;justify-content:center;margin:6px 0 30px;}
+footer{text-align:center;font-size:.8rem;color:var(--g);padding:24px 0 40px;line-height:1.6;}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="row">
+    <a class="brand" href="/" data-link>nyansatek<span>.market</span></a>
+    <input class="search" id="q" type="search" placeholder="Search products" enterkeyhint="search">
+    <button class="cartbtn" onclick="go('/cart')" id="cartbtn">Cart</button>
+  </div>
+  <nav class="nav" id="nav"></nav>
+</div></header>
+<main class="wrap" id="app"><div class="empty">Loading…</div></main>
+<footer class="wrap">Every shop on nyansatek.market runs on NYANSATEK POS, so stock is live.<br>
+Delivery by NYANSATEK riders · Pickup at NYANSATEK points · Pay by MoMo or on delivery<br>
+<a href="/orders" data-link>My orders</a> · <a href="https://nyansatek.systems" target="_blank" rel="noopener">Sell on nyansatek.market</a></footer>
+
+<script>
+const SUPABASE_URL = "https://kqwqbohoeltlbwcopeug.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_T6oCd3aRO0OPheQXEkmvRA_nvIhEPcv"; // publishable key: safe to be public
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+const PAGE = 40;
+
+const E = s => s == null ? '' : String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const GH = n => 'GH₵' + Number(n || 0).toFixed(2);
+const RANK = { motorbike: 1, car: 2, van: 3, truck: 4 };
+const store = { get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
+                set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} } };
+const errMsg = e => (e && (e.message || e.error_description)) || 'Something went wrong. Please try again.';
+const app = document.getElementById('app');
+
+// reference data, loaded once
+const REF = { cats: [], zones: [], fees: [], points: [], ready: null };
+REF.ready = (async () => {
+  const [c, z, f, p] = await Promise.all([
+    sb.from('market_categories').select('id,name,slug,parent_id,sort').eq('active', true).order('sort').order('name'),
+    sb.from('delivery_zones').select('id,name').eq('active', true).order('sort').order('name'),
+    sb.from('delivery_zone_fees').select('zone_id,vehicle,fee'),
+    sb.from('pickup_points').select('id,name,address,landmark,hours').eq('active', true).order('name')]);
+  REF.cats = c.data || []; REF.zones = z.data || []; REF.fees = f.data || []; REF.points = p.data || [];
+  const tops = REF.cats.filter(x => !x.parent_id);
+  document.getElementById('nav').innerHTML = tops.map(t => `<a href="/c/${E(t.slug)}" data-link data-slug="${E(t.slug)}">${E(t.name)}</a>`).join('');
+})();
+
+// ---------- carts: one per shop ----------
+// cart = { [org_id]: { shop: {name, slug}, items: { [product_id]: {qty, p:{...listing}} } } }
+let CART = store.get('market-cart') || {};
+const saveCart = () => { store.set('market-cart', CART); updateCartBtn(); };
+const cartCount = () => Object.values(CART).reduce((a, c) => a + Object.values(c.items).reduce((b, i) => b + i.qty, 0), 0);
+function updateCartBtn() { const n = cartCount(); document.getElementById('cartbtn').textContent = n ? `Cart (${n})` : 'Cart'; }
+function addToCart(p, d = 1) {
+  const c = CART[p.org_id] || (CART[p.org_id] = { shop: { name: p.shop_name, slug: p.shop_slug }, items: {} });
+  const cur = c.items[p.id]?.qty || 0, n = Math.max(0, Math.min(999, cur + d));
+  if (n) c.items[p.id] = { qty: n, p }; else delete c.items[p.id];
+  if (!Object.keys(c.items).length) delete CART[p.org_id];
+  saveCart();
+}
+
+// ---------- router ----------
+function go(path) { history.pushState({}, '', path); route(); window.scrollTo(0, 0); }
+document.addEventListener('click', e => { const a = e.target.closest('a[data-link]'); if (a) { e.preventDefault(); go(a.getAttribute('href')); } });
+window.addEventListener('popstate', route);
+document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') go('/search?q=' + encodeURIComponent(e.target.value.trim())); });
+
+async function route() {
+  await REF.ready;
+  const path = location.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', path[0] === 'c' && topSlugOf(path[1]) === a.dataset.slug));
+  clearTimeout(trackTimer);
+  if (!path.length) return home();
+  if (path[0] === 'c') return category(path[1]);
+  if (path[0] === 'search') return search(new URLSearchParams(location.search).get('q') || '');
+  if (path[0] === 'shop') return shopPage(path[1]);
+  if (path[0] === 'p') return product(path[1], path[2]);
+  if (path[0] === 'cart') return cartPage();
+  if (path[0] === 'checkout') return checkout(path[1]);
+  if (path[0] === 't') return tracking(path[1]);
+  if (path[0] === 'orders') return myOrders();
+  app.innerHTML = '<div class="empty">Page not found.</div>';
+}
+function topSlugOf(slug) { const c = REF.cats.find(x => x.slug === slug); if (!c) return null; if (!c.parent_id) return c.slug; return REF.cats.find(x => x.id === c.parent_id)?.slug; }
+
+// ---------- listings ----------
+async function listings(args) {
+  const { data, error } = await sb.rpc('market_listings', Object.assign({ p_category: null, p_q: null, p_org: null, p_limit: PAGE, p_offset: 0 }, args));
+  if (error) throw error;
+  return data || [];
+}
+function cardHtml(p) {
+  return `<a class="card" href="/p/${p.org_id}/${p.id}" data-link><img src="${E(p.photo_url)}" alt="${E(p.name)}" loading="lazy">
+    <div class="body"><div class="name">${E(p.name)}</div><div class="shop">${E(p.shop_name)}</div>
+    <div class="price">${GH(p.price)}</div>${p.in_stock ? '' : '<div class="oos">Sold out</div>'}</div></a>`;
+}
+async function gridPage(title, intro, args) {
+  app.innerHTML = `${intro || ''}<h1>${E(title)}</h1><div class="grid" id="grid"><div class="empty" style="grid-column:1/-1">Loading…</div></div><div class="more" id="more"></div>`;
+  let offset = 0;
+  const load = async () => {
+    try {
+      const rows = await listings(Object.assign({}, args, { p_offset: offset }));
+      const g = document.getElementById('grid'); if (!g) return;
+      if (!offset) g.innerHTML = rows.length ? '' : '<div class="empty" style="grid-column:1/-1">Nothing here yet.</div>';
+      g.insertAdjacentHTML('beforeend', rows.map(cardHtml).join(''));
+      offset += rows.length;
+      document.getElementById('more').innerHTML = rows.length === PAGE ? '<button class="btn sec" id="morebtn">Show more</button>' : '';
+      const mb = document.getElementById('morebtn'); if (mb) mb.onclick = load;
+    } catch (e) { document.getElementById('grid').innerHTML = `<div class="empty" style="grid-column:1/-1">${E(errMsg(e))}</div>`; }
+  };
+  load();
+}
+function home() {
+  const tops = REF.cats.filter(x => !x.parent_id);
+  document.title = 'nyansatek.market · Shop from trusted local shops';
+  gridPage('New on nyansatek.market', `<div class="hero"><b>Shop from trusted local shops, in one place.</b>
+    <p>Live stock from every shop. Delivery by NYANSATEK riders or pickup at a NYANSATEK point. Pay by MoMo or when you receive it.</p></div>
+    <h2 class="sec">Shop by category</h2><div class="cats">${tops.map(t => `<a class="cat" href="/c/${E(t.slug)}" data-link>${E(t.name)}<small>${REF.cats.filter(s => s.parent_id === t.id).slice(0, 3).map(s => E(s.name)).join(' · ')}</small></a>`).join('')}</div>`, {});
+}
+function category(slug) {
+  const c = REF.cats.find(x => x.slug === slug);
+  if (!c) { app.innerHTML = '<div class="empty">Category not found.</div>'; return; }
+  const top = c.parent_id ? REF.cats.find(x => x.id === c.parent_id) : c;
+  const subs = REF.cats.filter(x => x.parent_id === top.id);
+  document.title = c.name + ' · nyansatek.market';
+  gridPage(c.name, subs.length ? `<div class="chips" style="margin-top:14px;"><a class="chip${c.id === top.id ? ' on' : ''}" href="/c/${E(top.slug)}" data-link>All ${E(top.name)}</a>${subs.map(s => `<a class="chip${s.id === c.id ? ' on' : ''}" href="/c/${E(s.slug)}" data-link>${E(s.name)}</a>`).join('')}</div>` : '', { p_category: c.id });
+}
+function search(q) {
+  document.getElementById('q').value = q;
+  document.title = (q ? q + ' · ' : '') + 'nyansatek.market';
+  gridPage(q ? `Results for “${q}”` : 'All products', '', { p_q: q || null });
+}
+async function shopPage(slug) {
+  const { data } = await sb.rpc('store_catalog', { p_slug: slug });
+  if (!data || !data.shop?.on_market) { app.innerHTML = '<div class="empty">This shop is not on nyansatek.market.</div>'; return; }
+  document.title = data.shop.name + ' · nyansatek.market';
+  gridPage(data.shop.name, data.shop.tagline ? `<p class="note" style="margin-top:14px;">${E(data.shop.tagline)}</p>` : '', { p_org: data.shop.org_id });
+}
+async function product(orgId, id) {
+  app.innerHTML = '<div class="empty">Loading…</div>';
+  let p;
+  try { const { data } = await sb.rpc('market_product', { p_id: id }); p = (data || [])[0]; } catch (e) {}
+  if (!p) { app.innerHTML = '<div class="empty">This product is no longer available.</div>'; return; }
+  document.title = p.name + ' · nyansatek.market';
+  const render = () => {
+    const inCart = CART[p.org_id]?.items[p.id]?.qty || 0;
+    app.innerHTML = `<div class="pdp"><img src="${E(p.photo_url)}" alt="${E(p.name)}">
+      <div><div class="note"><a href="/c/${E(REF.cats.find(c => c.id === p.category_id)?.slug || '')}" data-link>${E(p.category_name)}</a></div>
+      <h1 style="margin-top:4px;">${E(p.name)}</h1><div class="price">${GH(p.price)}</div>
+      <p class="note">Sold by <a href="/shop/${E(p.shop_slug)}" data-link>${E(p.shop_name)}</a> · delivered by NYANSATEK ${E(p.delivery_size)}</p>
+      ${p.description ? `<p style="margin:12px 0;line-height:1.5;">${E(p.description)}</p>` : ''}
+      <div style="margin:16px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      ${!p.in_stock ? '<span class="status bad">Sold out</span>'
+        : inCart ? `<div class="qty"><button id="m">−</button><span>${inCart}</span><button id="pl">+</button></div><a class="btn gold" href="/cart" data-link>Go to cart</a>`
+        : '<button class="btn gold" id="add">Add to cart</button>'}</div>
+      <p class="note">${p.delivery_size === 'truck' ? 'Truck delivery: pay by MoMo before delivery.' : 'Pay by MoMo or when you receive it.'}</p></div></div>`;
+    const b = (id, d) => { const el = document.getElementById(id); if (el) el.onclick = () => { addToCart(p, d); render(); }; };
+    b('add', 1); b('pl', 1); b('m', -1);
+  };
+  render();
+}
+
+// ---------- cart (grouped by shop) ----------
+function cartPage() {
+  document.title = 'Cart · nyansatek.market';
+  const shops = Object.entries(CART);
+  if (!shops.length) { app.innerHTML = '<h1>Your cart</h1><div class="empty">Your cart is empty. <a href="/" data-link>Start shopping</a></div>'; return; }
+  app.innerHTML = `<h1>Your cart</h1><p class="note">Each shop's items are ordered and delivered separately.</p>` + shops.map(([org, c]) => {
+    const items = Object.values(c.items), total = items.reduce((a, i) => a + i.qty * Number(i.p.price), 0);
+    return `<div class="box"><b>${E(c.shop.name)}</b>
+      ${items.map(i => `<div class="line"><img src="${E(i.p.photo_url)}" alt=""><div class="n">${E(i.p.name)}<div class="note">${GH(i.p.price)} each</div></div>
+        <div class="qty"><button data-org="${org}" data-id="${i.p.id}" data-d="-1">−</button><span>${i.qty}</span><button data-org="${org}" data-id="${i.p.id}" data-d="1">+</button></div></div>`).join('')}
+      <div class="sum"><div class="tot"><span>Items</span><span>${GH(total)}</span></div></div>
+      <a class="btn gold" style="width:100%;" href="/checkout/${org}" data-link>Checkout ${E(c.shop.name)}</a></div>`;
+  }).join('');
+  app.querySelectorAll('.qty button').forEach(btn => btn.onclick = () => { addToCart(CART[btn.dataset.org].items[btn.dataset.id].p, Number(btn.dataset.d)); cartPage(); });
+}
+
+function checkout(org) {
+  const c = CART[org];
+  if (!c) { go('/cart'); return; }
+  const items = Object.values(c.items);
+  let veh = 'motorbike'; items.forEach(i => { if (RANK[i.p.delivery_size] > RANK[veh]) veh = i.p.delivery_size; });
+  const goods = items.reduce((a, i) => a + i.qty * Number(i.p.price), 0), truck = veh === 'truck';
+  const saved = store.get('buyer') || {};
+  document.title = 'Checkout · nyansatek.market';
+  app.innerHTML = `<h1>Checkout: ${E(c.shop.name)}</h1><div class="box" style="max-width:620px;">
+    ${items.map(i => `<div class="line"><img src="${E(i.p.photo_url)}" alt=""><div class="n">${i.qty} × ${E(i.p.name)}</div><b>${GH(i.qty * i.p.price)}</b></div>`).join('')}
+    <div class="fg"><label>Your name</label><input id="c-name" autocomplete="name" value="${E(saved.name || '')}"></div>
+    <div class="fg"><label>Phone number</label><input id="c-phone" type="tel" autocomplete="tel" placeholder="024XXXXXXX" value="${E(saved.phone || '')}"></div>
+    <div class="fg"><label>How do you want to get it?</label><div class="seg">
+      <label><input type="radio" name="ful" value="delivery" checked> Delivery by a NYANSATEK ${E(veh)}</label>
+      <label class="${REF.points.length ? '' : 'dis'}"><input type="radio" name="ful" value="pickup" ${REF.points.length ? '' : 'disabled'}> Pick up at a NYANSATEK point</label></div></div>
+    <div id="ful-delivery">
+      <div class="fg"><label>Delivery area</label><select id="c-zone"><option value="">Choose your area</option>${REF.zones.map(z => `<option value="${z.id}">${E(z.name)}</option>`).join('')}</select></div>
+      <div class="fg"><label>Address</label><input id="c-addr" autocomplete="street-address" placeholder="House number, street, area" value="${E(saved.addr || '')}"></div>
+      <div class="fg"><label>Landmark (optional)</label><input id="c-land" value="${E(saved.land || '')}"></div></div>
+    <div id="ful-pickup" style="display:none;"><div class="fg"><label>Pickup point</label><select id="c-point"><option value="">Choose a pickup point</option>${REF.points.map(p => `<option value="${p.id}">${E(p.name)} · ${E(p.address)}</option>`).join('')}</select></div>
+      <p class="note">Collect within 24 hours of the SMS saying it has arrived, or it goes back to the shop.</p></div>
+    <div class="fg"><label>Payment</label><div class="seg">
+      <label><input type="radio" name="pay" value="momo" ${truck ? 'checked' : ''}> MoMo to the shop</label>
+      <label class="${truck ? 'dis' : ''}"><input type="radio" name="pay" value="pod" ${truck ? 'disabled' : 'checked'}> Pay when you receive it</label></div>
+      ${truck ? '<p class="note">This order needs a truck, so it must be paid by MoMo first.</p>' : ''}</div>
+    <div class="fg"><label>Note for the shop (optional)</label><textarea id="c-note" rows="2" maxlength="300"></textarea></div>
+    <div class="sum" id="c-sum"></div><div class="err" id="c-err"></div>
+    <button class="btn gold" style="width:100%;" id="c-go">Place order</button>
+    <p class="note" style="margin-top:8px;">The shop confirms within 10 minutes. You'll get a tracking link and SMS updates.</p></div>`;
+  const state = () => {
+    const ful = document.querySelector('input[name=ful]:checked').value, pay = (document.querySelector('input[name=pay]:checked') || {}).value;
+    const zone = document.getElementById('c-zone').value, row = REF.fees.find(f => f.zone_id === zone && f.vehicle === veh);
+    return { ful, pay, zone, fee: ful === 'pickup' ? 0 : row ? Number(row.fee) : null };
+  };
+  const upd = () => {
+    const s = state();
+    document.getElementById('ful-delivery').style.display = s.ful === 'delivery' ? '' : 'none';
+    document.getElementById('ful-pickup').style.display = s.ful === 'pickup' ? '' : 'none';
+    const feeTxt = s.ful === 'pickup' ? GH(0) : s.zone ? (s.fee == null ? 'Not available for a ' + veh + ' in this area' : GH(s.fee)) : 'Choose your area';
+    document.getElementById('c-sum').innerHTML = `<div><span>Items</span><span>${GH(goods)}</span></div><div><span>Delivery</span><span>${feeTxt}</span></div><div class="tot"><span>Total</span><span>${GH(goods + (s.fee || 0))}</span></div>`;
+  };
+  app.querySelectorAll('input[name=ful],input[name=pay]').forEach(r => r.onchange = upd);
+  document.getElementById('c-zone').onchange = upd; upd();
+  document.getElementById('c-go').onclick = async () => {
+    const s = state(), err = document.getElementById('c-err'), btn = document.getElementById('c-go'), v = id => document.getElementById(id).value.trim();
+    err.textContent = '';
+    if (!s.pay) { err.textContent = 'Choose how you will pay.'; return; }
+    if (s.ful === 'delivery' && s.zone && s.fee == null) { err.textContent = 'Delivery by ' + veh + ' is not available in this area yet. Try pickup.'; return; }
+    const p = { channel: 'market', org_id: org, items: items.map(i => ({ product_id: i.p.id, qty: i.qty })),
+      customer: { name: v('c-name'), phone: v('c-phone') }, fulfilment: s.ful, payment_method: s.pay, note: v('c-note') };
+    if (s.ful === 'delivery') Object.assign(p, { zone_id: s.zone, address: v('c-addr'), landmark: v('c-land') }); else p.pickup_point_id = v('c-point');
+    btn.disabled = true; btn.textContent = 'Placing order…';
+    const { data, error } = await sb.rpc('place_online_order', { p });
+    btn.disabled = false; btn.textContent = 'Place order';
+    if (error) { err.textContent = errMsg(error); return; }
+    store.set('buyer', { name: v('c-name'), phone: v('c-phone'), addr: v('c-addr'), land: v('c-land') });
+    const mine = store.get('my-orders') || []; mine.unshift({ token: data.track_token, code: data.code, shop: c.shop.name, at: Date.now() }); store.set('my-orders', mine.slice(0, 50));
+    delete CART[org]; saveCart();
+    go('/t/' + data.track_token);
+  };
+}
+
+// ---------- my orders (kept on this phone) ----------
+function myOrders() {
+  const mine = store.get('my-orders') || [];
+  document.title = 'My orders · nyansatek.market';
+  app.innerHTML = `<h1>My orders</h1><p class="note">Orders placed on this phone.</p>` + (mine.length ? mine.map(o =>
+    `<a class="box" style="display:flex;justify-content:space-between;text-decoration:none;color:inherit;" href="/t/${E(o.token)}" data-link><span><b>${E(o.code)}</b><br><span class="note">${E(o.shop)}</span></span><span class="note">${new Date(o.at).toLocaleDateString()}</span></a>`).join('')
+    : '<div class="empty">No orders yet.</div>');
+}
+
+// ---------- order tracking ----------
+const STEPS_DELIVERY = [['placed', 'Order placed'], ['accepted', 'Shop confirmed'], ['ready', 'Packed and ready'], ['in_transit', 'On the way'], ['delivered', 'Delivered']];
+const STEPS_PICKUP = [['placed', 'Order placed'], ['accepted', 'Shop confirmed'], ['ready', 'Packed and ready'], ['in_transit', 'On the way to the pickup point'], ['at_pickup_point', 'Ready to collect'], ['collected', 'Collected']];
+const ORDER_OF = s => ({ placed: 0, accepted: 1, ready: 2, in_transit: 3, at_pickup_point: 4, delivered: 5, collected: 5, completed: 6 })[s] ?? -1;
+let trackTimer = null;
+async function tracking(token) {
+  const { data: o, error } = await sb.rpc('get_online_order', { p_token: token });
+  if (error || !o) { app.innerHTML = '<div class="empty">Order not found. Check the link in your SMS.</div>'; return; }
+  document.title = 'Order ' + o.code + ' · nyansatek.market';
+  const steps = o.fulfilment === 'pickup' ? STEPS_PICKUP : STEPS_DELIVERY;
+  const done = o.status === 'completed' ? 99 : ORDER_OF(o.status);
+  const ended = ['cancelled', 'returning', 'returned'].includes(o.status);
+  const finished = ['delivered', 'collected', 'completed'].includes(o.status);
+  const label = { placed: 'Waiting for the shop', accepted: 'Confirmed', ready: 'Ready', in_transit: 'On the way', at_pickup_point: 'Ready to collect',
+    delivered: 'Delivered', collected: 'Collected', completed: 'Completed', cancelled: 'Cancelled', returning: 'Not collected', returned: 'Returned to shop' }[o.status] || o.status;
+  const minsLeft = Math.max(0, Math.ceil((new Date(o.accept_deadline) - Date.now()) / 60000));
+  app.innerHTML = `<h1>Order ${E(o.code)}</h1><p class="note">${E(o.shop.name)}</p><div style="max-width:640px;">
+    <div class="box"><span class="status ${ended ? 'bad' : finished ? 'good' : ''}">${E(label)}</span>
+      ${o.status === 'placed' ? `<p class="note" style="margin-top:8px;">The shop has ${minsLeft} minute${minsLeft === 1 ? '' : 's'} to confirm. If they don't, the order is cancelled automatically.</p>` : ''}
+      ${ended && o.cancel_reason ? `<p class="note" style="margin-top:8px;">${E(o.cancel_reason)}</p>` : ''}
+      ${!ended ? `<ul class="steps">${steps.map(([k, t], i) => `<li class="${ORDER_OF(k) < done || (i === steps.length - 1 && done >= ORDER_OF(k)) ? 'done' : ORDER_OF(k) === done ? 'now' : ''}"><span class="dot"></span>${E(t)}</li>`).join('')}</ul>` : ''}</div>
+    ${o.payment_method === 'momo' && !o.payment_confirmed && !ended ? `<div class="box"><b>Pay by MoMo</b>
+      <p class="note" style="margin:6px 0;">Send <b>${GH(o.total)}</b> to the shop's MoMo number:</p>
+      <div class="big">${E('0' + String(o.shop.momo_number || '').slice(3))}</div>${o.shop.momo_name ? `<div class="note">${E(o.shop.momo_name)}</div>` : ''}
+      ${o.status === 'placed' ? `<div class="fg"><label>MoMo transaction ID</label><input id="t-ref" value="${E(o.momo_txn_id || '')}"></div>
+      <button class="btn" id="t-send">Send transaction ID</button><div class="err" id="t-err"></div>` : ''}</div>` : ''}
+    ${!ended && !finished ? `<div class="box"><b>Your ${o.fulfilment === 'pickup' ? 'collection' : 'delivery'} code</b><div class="big" style="margin:6px 0;">${E(o.delivery_code)}</div>
+      <p class="note">Give this code to the ${o.fulfilment === 'pickup' ? 'pickup point staff' : 'rider'} only when you receive your order.</p></div>` : ''}
+    ${o.fulfilment === 'pickup' && o.pickup_point ? `<div class="box"><b>Pickup point</b><p style="margin-top:6px;">${E(o.pickup_point.name)}<br><span class="note">${E(o.pickup_point.address)}${o.pickup_point.landmark ? ' · ' + E(o.pickup_point.landmark) : ''}${o.pickup_point.hours ? '<br>Open: ' + E(o.pickup_point.hours) : ''}</span></p>
+      ${o.pickup_deadline ? `<p class="note" style="margin-top:6px;">Collect by ${new Date(o.pickup_deadline).toLocaleString()}.</p>` : ''}</div>` : ''}
+    ${o.fulfilment === 'delivery' ? `<div class="box"><b>Delivery to</b><p class="note" style="margin-top:6px;">${E(o.address || '')}${o.landmark ? ' · ' + E(o.landmark) : ''}${o.zone ? '<br>' + E(o.zone) : ''}</p></div>` : ''}
+    <div class="box"><b>Items</b>${o.items.map(i => `<div class="sum" style="background:none;border:0;padding:4px 0;margin:0;"><div><span>${i.qty} × ${E(i.name)}</span><span>${GH(i.line_total)}</span></div></div>`).join('')}
+      <div class="sum"><div><span>Items</span><span>${GH(o.goods_total)}</span></div><div><span>Delivery</span><span>${GH(o.delivery_fee)}</span></div><div class="tot"><span>Total</span><span>${GH(o.total)}</span></div></div></div>
+    <p class="note" style="text-align:center;margin:10px 0 20px;">Keep this page: it's your order tracking link. Questions? Contact NYANSATEK.</p></div>`;
+  const send = document.getElementById('t-send');
+  if (send) send.onclick = async () => {
+    const { error } = await sb.rpc('add_order_momo_ref', { p_token: token, p_txn: document.getElementById('t-ref').value.trim() });
+    if (error) { document.getElementById('t-err').textContent = errMsg(error); return; }
+    tracking(token);
+  };
+  if (!['completed', 'cancelled', 'returned'].includes(o.status)) trackTimer = setTimeout(() => {
+    if (location.pathname === '/t/' + token && document.activeElement?.id !== 't-ref') tracking(token);
+  }, 20000);
+}
+
+updateCartBtn(); route();
+</script>
+</body>
+</html>
