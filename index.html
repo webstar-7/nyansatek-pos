@@ -380,6 +380,8 @@ nav button.on{box-shadow:0 6px 18px rgba(209,160,58,.30);}
 .os-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 .os-chk{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.9rem;}
 .os-chk input{margin-top:3px;}
+.olbadge{background:#b42318;color:#fff;border-radius:999px;font-size:10px;padding:1px 6px;margin-left:4px;}
+.btn.bdanger{background:#fff;color:#b42318;border:1px solid #f1c0bb;}
 .os-link{font-family:monospace;background:#f3f5f9;border:1px solid var(--b);border-radius:6px;padding:6px 8px;word-break:break-all;}
 .srow input{border-radius:10px;transition:border-color .15s,box-shadow .15s,background .15s;}
 .srow input:focus{box-shadow:0 0 0 4px rgba(209,160,58,.16);}
@@ -564,6 +566,9 @@ main>.view.on{animation:viewIn .3s ease both;}
   <main>
 
     <!-- OVERVIEW -->
+    <!-- ONLINE ORDERS -->
+    <div id="olv" class="view" style="padding:16px;overflow-y:auto;height:100%;"></div>
+
     <!-- SETTINGS -->
     <div id="stv" class="view" style="padding:16px;overflow-y:auto;height:100%;"></div>
 
@@ -2135,6 +2140,7 @@ function swV(v){
   if(v==='hv')renderGuide();
   if(v==='msmsv'&&window.tsmsLoad)tsmsLoad();
   if(v==='stv')loadSettingsView();
+  if(v==='olv')renderOnlineOrders();
 }
 
 const NAV_ICONS=(()=>{const P={
@@ -4254,6 +4260,7 @@ async function loadOnlineCfg(){
       const{data:cats}=await sb.from('market_categories').select('id,name,parent_id,sort').eq('active',true).order('sort').order('name');
       mkCats=cats||[];
     }
+    addOrdersTab();
   }catch(e){onlineCfg=null;}
 }
 function storeUrl(){return onlineCfg?.store_slug?location.origin+'/s/'+onlineCfg.store_slug:'';}
@@ -4386,6 +4393,96 @@ function copyStoreLink(){
   (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(()=>alert('Link copied.'),()=>prompt('Copy your shop link:',url));
 }
 // =================================================================================
+
+// ===================== ONLINE ORDERS INBOX =====================
+let olOrders=[],olTab='new',olTimer=null,olSeen=new Set(),olFirstLoad=true;
+NAV_ICONS.olv='<svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>';
+function addOrdersTab(){
+  if(!onlineCfg?.addon_active||document.getElementById('t-olv'))return;
+  const nav=document.getElementById('nav');if(!nav)return;
+  const b=document.createElement('button');b.id='t-olv';b.innerHTML=NAV_ICONS.olv+'<span>Orders</span><b class="olbadge" id="olbadge" style="display:none;"></b>';
+  b.onclick=()=>swV('olv');
+  const after=document.getElementById('t-cv');
+  if(after&&after.nextSibling)nav.insertBefore(b,after.nextSibling);else nav.appendChild(b);
+  pollOnlineOrders();clearInterval(olTimer);olTimer=setInterval(pollOnlineOrders,15000);
+}
+function olBeep(){
+  try{const c=new (window.AudioContext||window.webkitAudioContext)();[0,0.25].forEach(t=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=880;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(0.25,c.currentTime+t);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+t+0.2);o.start(c.currentTime+t);o.stop(c.currentTime+t+0.22);});}catch(e){}
+}
+async function pollOnlineOrders(){
+  if(!navigator.onLine||!prof?.org_id)return;
+  const since=new Date(Date.now()-14*864e5).toISOString();
+  const{data,error}=await sb.from('online_orders').select('*,online_order_items(name_snapshot,qty,price_snapshot,line_total),pickup_points(name,address),delivery_zones(name)')
+    .eq('org_id',prof.org_id).gte('created_at',since).order('created_at',{ascending:false}).limit(200);
+  if(error)return;
+  olOrders=data||[];
+  const fresh=olOrders.filter(o=>o.status==='placed');
+  const isNew=fresh.some(o=>!olSeen.has(o.id));
+  fresh.forEach(o=>olSeen.add(o.id));
+  if(isNew&&!olFirstLoad)olBeep();
+  olFirstLoad=false;
+  const badge=document.getElementById('olbadge');
+  if(badge){badge.textContent=fresh.length;badge.style.display=fresh.length?'':'none';}
+  if(document.getElementById('olv')?.classList.contains('on'))renderOnlineOrders();
+}
+function olBucket(o){
+  if(o.status==='placed')return 'new';
+  if(['completed','cancelled','returned'].includes(o.status))return 'done';
+  return 'active';
+}
+const OL_LABEL={placed:'Waiting for you',accepted:'Accepted',ready:'Ready for the rider',in_transit:'With the rider',at_pickup_point:'At the pickup point',
+  delivered:'Delivered',collected:'Collected',completed:'Completed',cancelled:'Cancelled',returning:'Coming back to you',returned:'Returned'};
+function renderOnlineOrders(){
+  const el=document.getElementById('olv');if(!el)return;
+  const counts={new:0,active:0,done:0};olOrders.forEach(o=>counts[olBucket(o)]++);
+  const list=olOrders.filter(o=>olBucket(o)===olTab);
+  const tab=(k,l)=>`<button class="tb${olTab===k?' on':''}" onclick="olTab='${k}';renderOnlineOrders()">${l} (${counts[k]})</button>`;
+  el.innerHTML=`<div class="card" style="max-width:860px;"><h2>Online orders</h2>
+    <p class="hint">Orders from your online shop and nyansatek.market. Accept new orders within 10 minutes or they cancel automatically.</p>
+    <div class="tbar" style="margin:10px 0;">${tab('new','New')}${tab('active','In progress')}${tab('done','Finished')}</div>
+    ${list.length?list.map(olCard).join(''):'<div class="es">No orders here.</div>'}</div>`;
+}
+function olCard(o){
+  const mins=Math.max(0,Math.ceil((new Date(o.accept_deadline)-Date.now())/60000));
+  const items=(o.online_order_items||[]).map(i=>`${i.qty} × ${E(i.name_snapshot)} <span style="float:right;">${GH(i.line_total)}</span>`).join('<br>');
+  const where=o.fulfilment==='delivery'?`Delivery (${E(o.vehicle)}) to ${E(o.address||'')}${o.landmark?' · '+E(o.landmark):''}${o.delivery_zones?.name?' · '+E(o.delivery_zones.name):''}`
+    :`Pickup at ${E(o.pickup_points?.name||'pickup point')}`;
+  const pay=o.payment_method==='momo'?`MoMo${o.momo_txn_id?' · transaction ID <b>'+E(o.momo_txn_id)+'</b>':' · customer has not sent a transaction ID yet'}`:'Pay on delivery';
+  const btn=(a,l,cls='ba')=>`<button class="btn ${cls}" onclick="olAction('${o.id}','${a}')">${l}</button>`;
+  let actions='';
+  if(o.status==='placed')actions=btn('accept',o.payment_method==='momo'?'MoMo received: accept':'Accept order')+btn('reject','Reject','bdanger');
+  else if(o.status==='accepted')actions=btn('ready','Packed: ready for the rider')+btn('cancel','Cancel order','bdanger');
+  else if(o.status==='ready')actions=btn('cancel','Cancel order','bdanger');
+  else if(['delivered','collected'].includes(o.status)&&o.payment_method==='pod'&&['with_rider','with_pickup_point'].includes(o.cash_status))
+    actions=btn('confirm_cash',`I received ${GH(o.goods_total)} cash`);
+  return `<div class="card" style="padding:12px;margin:10px 0;border-left:4px solid ${o.status==='placed'?'var(--a)':'var(--b)'};">
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+      <div><b>${E(o.code)}</b> · ${o.channel==='market'?'nyansatek.market':'Online shop'} · ${new Date(o.created_at).toLocaleString()}</div>
+      <div><b>${E(OL_LABEL[o.status]||o.status)}</b>${o.status==='placed'?` · <span style="color:#b42318;">${mins} min left</span>`:''}</div></div>
+    <div class="hint" style="margin:6px 0;">${E(o.customer_name)} · <a href="tel:+${E(o.customer_phone)}">0${E(String(o.customer_phone).slice(3))}</a> · ${where}</div>
+    <div style="font-size:.9rem;line-height:1.6;">${items}</div>
+    <div style="margin-top:6px;font-size:.9rem;"><b>Items ${GH(o.goods_total)}</b>${o.channel==='market'?` · NYANSATEK commission 5%: ${GH(o.commission_amount)}`:''} · ${pay}</div>
+    ${o.customer_note?`<div class="hint" style="margin-top:4px;">Note: ${E(o.customer_note)}</div>`:''}
+    ${o.cancel_reason&&o.status==='cancelled'?`<div class="hint" style="margin-top:4px;">${E(o.cancel_reason)}${o.payment_method==='momo'&&o.payment_confirmed_at?' · refund the customer’s MoMo payment':''}</div>`:''}
+    ${actions?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">${actions}</div>`:''}</div>`;
+}
+async function olAction(id,action){
+  const o=olOrders.find(x=>x.id===id);
+  let note=null;
+  if(action==='reject'||action==='cancel'){
+    note=prompt(action==='reject'?'Why are you rejecting this order? (the customer sees this)':'Why are you cancelling? (the customer sees this)','Out of stock');
+    if(note===null)return;
+  }
+  if(action==='accept'&&o?.payment_method==='momo'&&!confirm(`Check your MoMo: did you receive ${GH(Number(o.goods_total)+Number(o.delivery_fee))} for ${o.code}? Accept only once the money is in.`))return;
+  if(action==='confirm_cash'&&!confirm(`Confirm you have received ${GH(o.goods_total)} cash for ${o.code}?`))return;
+  L(true);
+  const{error}=await sb.rpc('shop_order_action',{p_order:id,p_action:action,p_note:note});
+  L(false);
+  if(error){alert(error.message);}
+  await pollOnlineOrders();
+  if(action==='accept'||action==='reject'||action==='cancel'||action==='confirm_cash')loadInv(prof.org_id);
+}
+// ================================================================
 
 async function loadSettingsView(){
   const el=document.getElementById('stv');if(!el)return;
