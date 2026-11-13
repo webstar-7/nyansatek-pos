@@ -2,7 +2,7 @@
 // Caller must be signed in and pass public.is_market_ops(). Verify JWT: ON.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const ORIGINS = ['https://nyansatek.market', 'https://webstar-7.github.io'];
+const ORIGINS = ['https://nyansatek.store', 'https://www.nyansatek.store', 'https://webstar-7.github.io'];
 const cors = (o: string | null) => ({
   'Access-Control-Allow-Origin': o && ORIGINS.includes(o) ? o : ORIGINS[0],
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

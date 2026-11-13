@@ -4290,7 +4290,7 @@ function fillProductExtras(p){
   box.innerHTML=`<div class="card" style="padding:12px;margin:8px 0;">
     <h3 style="margin:0 0 6px;font-size:.95rem;">Online selling</h3>
     <label class="os-chk"><input type="checkbox" id="ed-show-online"${p.show_online?' checked':''}> <span>Show in my online shop</span></label>
-    <label class="os-chk"><input type="checkbox" id="ed-list-market"${p.list_on_market?' checked':''}${approved?'':' disabled'}> <span>List on nyansatek.market (5% commission per marketplace sale)${approved?'':'<br><span class="hint">Available once your shop is approved for the marketplace (Settings → Online Shop).</span>'}</span></label>
+    <label class="os-chk"><input type="checkbox" id="ed-list-market"${p.list_on_market?' checked':''}${approved?'':' disabled'}> <span>List on nyansatek.store (5% commission per marketplace sale)${approved?'':'<br><span class="hint">Available once your shop is approved for the marketplace (Settings → Online Shop).</span>'}</span></label>
     <div class="fg"><label>Marketplace category</label><select id="ed-mkcat">${mkCatOptions(p.market_category_id)}</select></div>
     <div class="fg"><label>Delivery size (which vehicle can carry it)</label><select id="ed-dsize">${sizes.map(([v,l])=>`<option value="${v}"${(p.delivery_size||'motorbike')===v?' selected':''}>${l}</option>`).join('')}</select></div>
     <div class="fg"><label>Description (optional)</label><textarea id="ed-desc" rows="2" maxlength="500" style="width:100%;">${E(p.description||'')}</textarea></div>
@@ -4307,8 +4307,8 @@ function collectProductExtras(fields){
   fields.market_category_id=document.getElementById('ed-mkcat').value||null;
   fields.delivery_size=document.getElementById('ed-dsize').value;
   fields.description=document.getElementById('ed-desc').value.trim()||null;
-  if(fields.list_on_market&&!hasPhoto){alert('Add a photo before listing this product on nyansatek.market.');return false;}
-  if(fields.list_on_market&&!fields.market_category_id){alert('Choose a marketplace category before listing this product on nyansatek.market.');return false;}
+  if(fields.list_on_market&&!hasPhoto){alert('Add a photo before listing this product on nyansatek.store.');return false;}
+  if(fields.list_on_market&&!fields.market_category_id){alert('Choose a marketplace category before listing this product on nyansatek.store.');return false;}
   if((fields.show_online||fields.list_on_market)&&!(fields.price>0)){alert('Set a selling price before selling this product online.');return false;}
   return true;
 }
@@ -4351,14 +4351,14 @@ async function renderOnlineShopCard(){
   const c=onlineCfg||{};
   if(!c.addon_active){
     el.innerHTML=`<div class="card" style="max-width:720px;"><h2>Online Shop</h2>
-      <p class="hint">Sell online with your own shop page: your products with photos and prices, orders by WhatsApp, MoMo or pay on delivery, and NYANSATEK riders to deliver. Shops on the Online Shop add-on can also list products on <b>nyansatek.market</b>, our marketplace.</p>
+      <p class="hint">Sell online with your own shop page: your products with photos and prices, orders by WhatsApp, MoMo or pay on delivery, and NYANSATEK riders to deliver. Shops on the Online Shop add-on can also list products on <b>nyansatek.store</b>, our marketplace.</p>
       <p class="hint">Product photos are free for every shop: add them now under Admin Inventory → edit a product.</p>
       <p class="st-pend">The Online Shop add-on is not switched on for your shop yet. Contact NYANSATEK to add it.</p></div>`;
     return;
   }
   const url=storeUrl();
   const slugGuess=c.store_slug||String(prof.businessName||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
-  const mk={none:'Not on the marketplace yet.',pending:'Request sent. NYANSATEK will review your shop.',approved:'Your shop is approved. Tick “List on nyansatek.market” on the products you want there.',suspended:'Your marketplace listings are paused. Contact NYANSATEK.'}[c.marketplace_status||'none'];
+  const mk={none:'Not on the marketplace yet.',pending:'Request sent. NYANSATEK will review your shop.',approved:'Your shop is approved. Tick “List on nyansatek.store” on the products you want there.',suspended:'Your marketplace listings are paused. Contact NYANSATEK.'}[c.marketplace_status||'none'];
   const hidden=c.listings_hidden_reason==='commission_overdue'?'<p class="st-pend">Your marketplace listings are hidden because a commission statement is overdue. They come back as soon as it is paid (Billing).</p>':'';
   el.innerHTML=`<div class="card" style="max-width:720px;"><h2>Online Shop</h2>
     ${url?`<p class="hint">Your shop page</p><div class="os-row"><span class="os-link" id="os-url">${E(url)}</span>
@@ -4375,9 +4375,9 @@ async function renderOnlineShopCard(){
     <div class="fg"><label>Shop phone for riders</label><input type="tel" id="os-phone" value="${E(c.shop_phone?'0'+c.shop_phone.slice(3):'')}" placeholder="024XXXXXXX"></div>
     <label class="os-chk"><input type="checkbox" id="os-enabled"${c.store_enabled===false?'':' checked'}> <span>My shop page is open for orders</span></label>
     <button class="btn ba" onclick="saveOnlineShop()">Save online shop</button>
-    <h3 style="margin:18px 0 6px;">nyansatek.market</h3>
+    <h3 style="margin:18px 0 6px;">nyansatek.store</h3>
     <p class="hint">${mk}</p>${hidden}
-    ${(c.marketplace_status||'none')==='none'?'<button class="btn" style="background:#fff;color:var(--p);border:1px solid var(--b);" onclick="saveOnlineShop(true)">Request to join nyansatek.market</button>':''}
+    ${(c.marketplace_status||'none')==='none'?'<button class="btn" style="background:#fff;color:var(--p);border:1px solid var(--b);" onclick="saveOnlineShop(true)">Request to join nyansatek.store</button>':''}
   </div>`;
 }
 async function saveOnlineShop(requestMarket){
@@ -4391,7 +4391,7 @@ async function saveOnlineShop(requestMarket){
   L(false);
   if(error){alert(error.message);return;}
   await renderOnlineShopCard();
-  alert(requestMarket?'Saved. Your request to join nyansatek.market has been sent.':'Online shop saved.');
+  alert(requestMarket?'Saved. Your request to join nyansatek.store has been sent.':'Online shop saved.');
 }
 function copyStoreLink(){
   const url=storeUrl();if(!url)return;
@@ -4443,7 +4443,7 @@ function renderOnlineOrders(){
   const list=olOrders.filter(o=>olBucket(o)===olTab);
   const tab=(k,l)=>`<button class="tb${olTab===k?' on':''}" onclick="olTab='${k}';renderOnlineOrders()">${l} (${counts[k]})</button>`;
   el.innerHTML=`<div class="card" style="max-width:860px;"><h2>Online orders</h2>
-    <p class="hint">Orders from your online shop and nyansatek.market. Accept new orders within 10 minutes or they cancel automatically.</p>
+    <p class="hint">Orders from your online shop and nyansatek.store. Accept new orders within 10 minutes or they cancel automatically.</p>
     <div class="tbar" style="margin:10px 0;">${tab('new','New')}${tab('active','In progress')}${tab('done','Finished')}</div>
     ${list.length?list.map(olCard).join(''):'<div class="es">No orders here.</div>'}</div>`;
 }
@@ -4462,7 +4462,7 @@ function olCard(o){
     actions=btn('confirm_cash',`I received ${GH(o.goods_total)} cash`);
   return `<div class="card" style="padding:12px;margin:10px 0;border-left:4px solid ${o.status==='placed'?'var(--a)':'var(--b)'};">
     <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-      <div><b>${E(o.code)}</b> · ${o.channel==='market'?'nyansatek.market':'Online shop'} · ${new Date(o.created_at).toLocaleString()}</div>
+      <div><b>${E(o.code)}</b> · ${o.channel==='market'?'nyansatek.store':'Online shop'} · ${new Date(o.created_at).toLocaleString()}</div>
       <div><b>${E(OL_LABEL[o.status]||o.status)}</b>${o.status==='placed'?` · <span style="color:#b42318;">${mins} min left</span>`:''}</div></div>
     <div class="hint" style="margin:6px 0;">${E(o.customer_name)} · <a href="tel:+${E(o.customer_phone)}">0${E(String(o.customer_phone).slice(3))}</a> · ${where}</div>
     <div style="font-size:.9rem;line-height:1.6;">${items}</div>
@@ -4503,7 +4503,7 @@ async function renderOnlineBilling(){
   const owed=(stm||[]).filter(s=>['issued','overdue'].includes(s.status)).reduce((a,s)=>a+Number(s.commission_amount),0);
   const badge=s=>s==='paid'?'<span class="badge bg">Paid</span>':s==='overdue'?'<span class="badge br">Overdue</span>':'<span class="badge" style="background:#fff3d6;color:#8a5a00;">Due</span>';
   const pending=(pays||[]).filter(p=>p.status==='submitted');
-  el.innerHTML=`<h2 style="margin-top:22px;">Online Shop &amp; nyansatek.market</h2>
+  el.innerHTML=`<h2 style="margin-top:22px;">Online Shop &amp; nyansatek.store</h2>
     <table style="margin-bottom:12px;"><tbody>
       <tr><td style="color:var(--g);width:160px;">Online Shop add-on</td><td>${c.addon_active?'<span class="badge bg">On</span>':'<span class="badge">Off</span>'}${c.addon_paid_through?' · paid until '+new Date(c.addon_paid_through+'T00:00:00').toLocaleDateString():''}</td></tr>
       <tr><td style="color:var(--g);">Price</td><td>${m.addon_price_monthly?GH(m.addon_price_monthly)+' / month':'—'}${m.addon_price_yearly?' · '+GH(m.addon_price_yearly)+' / year':''}</td></tr>
@@ -4517,7 +4517,7 @@ async function renderOnlineBilling(){
         <button class="btn ba" onclick="submitOnlinePayment('addon')">Send</button></div>
       ${pending.length?`<p class="st-pend" style="margin-top:8px;">Waiting for NYANSATEK to confirm: ${pending.map(p=>E(p.period)+' '+GH(p.amount)+' (ID '+E(p.momo_txn_id)+')').join(', ')}</p>`:''}</div>`:''}
     <h3 style="margin:14px 0 6px;">Commission statements</h3>
-    <p class="hint">One statement a month for your nyansatek.market sales, due ${m.commission_due_days||7} days after it is issued. ${m.overdue_grace_days||3} days after the due date, unpaid statements hide your marketplace listings until paid (your own shop page keeps working). Pay by MoMo to ${momo}.</p>
+    <p class="hint">One statement a month for your nyansatek.store sales, due ${m.commission_due_days||7} days after it is issued. ${m.overdue_grace_days||3} days after the due date, unpaid statements hide your marketplace listings until paid (your own shop page keeps working). Pay by MoMo to ${momo}.</p>
     ${c.listings_hidden_reason==='commission_overdue'?'<p class="st-pend">Your marketplace listings are hidden because a statement is overdue.</p>':''}
     ${(stm||[]).length?`<table><thead><tr><th>Month</th><th>Orders</th><th>Sales</th><th>Commission</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>${stm.map(s=>`<tr>
       <td>${E(month(s.period_month))}</td><td>${s.orders_count}</td><td>${GH(s.goods_total)}</td><td><b>${GH(s.commission_amount)}</b></td>
