@@ -494,6 +494,39 @@ main>.view.on{animation:viewIn .3s ease both;}
 </div>
 
 <!-- SMS MODAL -->
+<!-- STAFF SCREENING MODAL -->
+<div class="mo" id="scm" style="display:none;">
+  <div class="mc2" style="max-width:520px;width:94%;max-height:92vh;overflow:auto;text-align:left;">
+    <h3 id="sc-title">Staff screening</h3>
+    <p class="sub" id="sc-sub"></p>
+    <div class="fg"><label>Full legal name (as on their Ghana Card)</label><input type="text" id="sc-name"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px;">
+      <div class="fg"><label>Phone</label><input type="tel" id="sc-phone" placeholder="024XXXXXXX"></div>
+      <div class="fg"><label>Ghana Card number</label><input type="text" id="sc-card" placeholder="GHA-123456789-0" autocapitalize="characters"></div>
+      <div class="fg"><label>Emergency contact name</label><input type="text" id="sc-ename"></div>
+      <div class="fg"><label>Emergency contact phone</label><input type="tel" id="sc-ephone" placeholder="024XXXXXXX"></div>
+    </div>
+    <div style="border:1px solid var(--b);border-radius:10px;padding:10px;margin:6px 0 10px;">
+      <label style="display:flex;gap:8px;align-items:flex-start;font-size:.84rem;font-weight:600;"><input type="checkbox" id="sc-ver" style="width:18px;height:18px;margin-top:1px;"><span>I confirmed this person's identity with the NIA</span></label>
+      <div class="fg" style="margin-top:8px;"><label>How</label><select id="sc-method"><option value="">Choose…</option><option value="nia_app">NIA verification app</option><option value="nia_card_reader">NIA card reader (fingerprint on the card)</option><option value="nia_platform">NIA platform (IVSP)</option></select></div>
+      <p class="hint" id="sc-verinfo" style="margin:0;"></p>
+    </div>
+    <div id="sc-guar" style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px;">
+      <div class="fg"><label>Guarantor's name</label><input type="text" id="sc-gname"></div>
+      <div class="fg"><label>Guarantor's phone</label><input type="tel" id="sc-gphone" placeholder="024XXXXXXX"></div>
+    </div>
+    <div id="sc-health" style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px;">
+      <div class="fg"><label>Food handler's health certificate no.</label><input type="text" id="sc-hnum"></div>
+      <div class="fg"><label>Certificate expires on</label><input type="date" id="sc-hexp"></div>
+    </div>
+    <div class="fg"><label>Notes</label><input type="text" id="sc-notes" maxlength="500"></div>
+    <div style="display:flex;gap:7px;margin-top:5px;">
+      <button onclick="saveScreening()" class="btn bg2" style="flex:1;">Save</button>
+      <button onclick="document.getElementById('scm').style.display='none'" class="btn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="mo" id="smsm" style="display:none;">
   <div class="mc2">
     <h3>Send Purchase SMS</h3>
@@ -769,8 +802,9 @@ main>.view.on{animation:viewIn .3s ease both;}
           </div>
           <div>
             <h3 style="font-size:.88rem;margin-bottom:8px;color:var(--p);">Current Cashiers</h3>
-            <table id="cht"><thead><tr><th>Name</th><th>Username</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+            <table id="cht"><thead><tr><th>Name</th><th>Username</th><th>Status</th><th>Screening</th><th></th></tr></thead><tbody></tbody></table>
             <div id="ch-em" class="es" style="display:none;">No cashiers yet — create one on the left.</div>
+            <p class="hint" style="margin-top:10px;"><strong>Screening.</strong> Tap <em>Record</em> to keep each person's details and how you confirmed who they are. It does not stop them signing in. Confirm identity with the NIA (fingerprint or face), not by looking at the card, and never keep a photo or copy of anyone's Ghana Card.</p>
           </div>
         </div>
       </div>
@@ -2531,13 +2565,60 @@ async function callBillingEndpoint(endpoint,reference,extra){
   }
 }
 
+// ── STAFF SCREENING (admin) ──────────────────────────────────────
+// A record per staff login. Cashiers handle money: they need a guarantor. Kitchen staff handle food:
+// they need a health certificate. We keep the Ghana Card NUMBER and how it was verified, never a picture.
+let SCREEN={},SC_CUR=null;
+const scLocal=p=>p?'0'+String(p).slice(3):'';
+async function loadScreening(){
+  SCREEN={};
+  const{data}=await sb.from('staff_screening').select('*').eq('org_id',prof.org_id);
+  (data||[]).forEach(r=>SCREEN[r.staff_id]=r);
+}
+function screenState(c){
+  const r=SCREEN[c.id];
+  if(!r)return['br','Not screened'];
+  const kitchen=c.role==='kitchen';
+  const certOk=!!r.health_cert_expiry&&new Date(r.health_cert_expiry+'T23:59:59')>=new Date();
+  if(kitchen&&r.health_cert_expiry&&!certOk)return['br','Certificate expired'];
+  const extra=kitchen?certOk:!!(r.guarantor_name&&r.guarantor_phone);
+  return r.id_verified_at&&r.legal_name&&r.phone&&r.emergency_phone&&extra?['bg','Verified']:['by','In progress'];
+}
+function screenCell(c){const[k,l]=screenState(c);return `<td><span class="badge ${k}">${l}</span> <button class="btn bsm scr" style="margin-left:4px;">Record</button></td>`;}
+function openScreening(c){
+  SC_CUR=c;const r=SCREEN[c.id]||{},kitchen=c.role==='kitchen',v=(id,x)=>document.getElementById(id).value=x||'';
+  document.getElementById('sc-title').innerText='Screening: '+(c.full_name||c.login_username||'staff');
+  document.getElementById('sc-sub').innerText=kitchen?'Kitchen login. If this login is a shared screen, record the person in charge of it.':'Cashier login. Cashiers handle money, so record a guarantor too.';
+  v('sc-name',r.legal_name);v('sc-phone',scLocal(r.phone));v('sc-card',r.ghana_card_number);v('sc-ename',r.emergency_name);v('sc-ephone',scLocal(r.emergency_phone));
+  v('sc-gname',r.guarantor_name);v('sc-gphone',scLocal(r.guarantor_phone));v('sc-hnum',r.health_cert_number);v('sc-hexp',r.health_cert_expiry);v('sc-notes',r.notes);
+  document.getElementById('sc-ver').checked=!!r.id_verified_at;v('sc-method',r.id_verified_method);
+  document.getElementById('sc-verinfo').innerText=r.id_verified_at?'Verified on '+new Date(r.id_verified_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'.':'Looking at the card is not a check. Use the NIA app or an NIA card reader.';
+  document.getElementById('sc-guar').style.display=kitchen?'none':'grid';
+  document.getElementById('sc-health').style.display=kitchen?'grid':'none';
+  document.getElementById('scm').style.display='flex';
+}
+async function saveScreening(){
+  if(!SC_CUR)return;
+  const g=id=>document.getElementById(id).value.trim();
+  L(true);
+  const{data,error}=await sb.rpc('save_staff_screening',{p_staff:SC_CUR.id,p:{legal_name:g('sc-name'),phone:g('sc-phone'),ghana_card_number:g('sc-card'),
+    emergency_name:g('sc-ename'),emergency_phone:g('sc-ephone'),id_verified:document.getElementById('sc-ver').checked,id_verified_method:g('sc-method'),
+    guarantor_name:g('sc-gname'),guarantor_phone:g('sc-gphone'),health_cert_number:g('sc-hnum'),health_cert_expiry:g('sc-hexp'),notes:g('sc-notes')}});
+  L(false);
+  if(error){alert(error.message);return;}
+  SCREEN[SC_CUR.id]=data;
+  document.getElementById('scm').style.display='none';
+  await loadCashiers();
+}
+
 // ── CASHIER MANAGEMENT (admin) ───────────────────────────────────
 async function loadCashiers(){
   const tb=document.querySelector('#cht tbody'),em=document.getElementById('ch-em');
   if(!tb)return;
   L(true);
-  const{data,error}=await sb.from('profiles').select('id,full_name,login_username,is_active,created_at')
+  const{data,error}=await sb.from('profiles').select('id,full_name,login_username,is_active,created_at,role')
     .eq('org_id',prof.org_id).eq('role','cashier').order('full_name');
+  await loadScreening();
   L(false);
   tb.innerHTML='';
   if(error){em.style.display='block';em.innerText='Could not load cashiers: '+error.message;return;}
@@ -2548,8 +2629,10 @@ async function loadCashiers(){
     tr.innerHTML=`<td><strong>${E(c.full_name||'—')}</strong></td>
       <td style="font-family:monospace;">${E(c.login_username||'—')}</td>
       <td><span class="badge ${c.is_active?'bg':'br'}">${c.is_active?'Active':'Inactive'}</span></td>
-      <td><button class="btn bsm bd">Delete</button></td>`;
-    tr.querySelector('button').onclick=()=>deleteCashier(c.id,c.full_name);
+      ${screenCell(c)}
+      <td><button class="btn bsm bd del">Delete</button></td>`;
+    tr.querySelector('.scr').onclick=()=>openScreening(c);
+    tr.querySelector('.del').onclick=()=>deleteCashier(c.id,c.full_name);
     tb.appendChild(tr);
   });
 }
