@@ -2076,6 +2076,16 @@ async function boot2(){
     }
     prof.businessName=org?.business_name||prof.display_name||'Business';
 
+    // Restaurants and eateries have their own app. Their accounts live in the same
+    // database (organizations.vertical = 'food') but belong on nyansatek.rest.
+    if(org&&org.vertical==='food'){
+      await sb.auth.signOut();try{localStorage.removeItem(OFFLINE_SESSION_KEY);}catch(e){}
+      L(false);scr('l');
+      const eb=document.getElementById('le');
+      eb.innerHTML='This account belongs to a restaurant. Please sign in at <a href="https://nyansatek.rest">nyansatek.rest</a>.';eb.classList.add('on');
+      return;
+    }
+
     // Suspension is only enforced against org data we actually have. A
     // cached "suspended" flag is honored even offline (it's still real
     // information), but a total absence of org data does not lock
@@ -4260,7 +4270,7 @@ async function loadOnlineCfg(){
     const{data}=await sb.from('shop_online_settings').select('*').eq('org_id',prof.org_id).maybeSingle();
     onlineCfg=data||null;
     if(onlineCfg?.addon_active&&!mkCats.length){
-      const{data:cats}=await sb.from('market_categories').select('id,name,parent_id,sort').eq('active',true).order('sort').order('name');
+      const{data:cats}=await sb.from('market_categories').select('id,name,parent_id,sort').eq('active',true).eq('vertical','shop').order('sort').order('name');
       mkCats=cats||[];
     }
     addOrdersTab();
