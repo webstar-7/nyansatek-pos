@@ -674,6 +674,17 @@ main>.view.on{animation:viewIn .3s ease both;}
               <div class="fg"><label>Barcode (optional)</label><input type="text" id="abr"></div>
               <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="asp" required></div>
               <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="acp" value="0"></div>
+              <div class="fg"><label>Photo (optional)</label>
+                <div class="os-row">
+                  <img id="cr-photo-prev" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--b);display:none;">
+                  <div>
+                    <input type="file" id="cr-photo" accept="image/*" style="display:none;" onchange="pickNewPhoto(this)">
+                    <button type="button" class="btn" style="background:#fff;color:var(--p);border:1px solid var(--b);" onclick="document.getElementById('cr-photo').click()">Add a photo</button>
+                    <button type="button" id="cr-photo-rm" class="btn" style="background:#fff;color:#b42318;border:1px solid var(--b);display:none;" onclick="clearNewPhoto()">Remove photo</button>
+                    <div class="hint" id="cr-photo-msg" style="margin-top:4px;">Shown on the till and on your online shop.</div>
+                  </div>
+                </div>
+              </div>
               <div class="fg"><label>Initial Stock</label><input type="number" id="astk" min="0" required></div>
               <div class="fg"><label>Note</label><input type="text" id="anote" placeholder="e.g. Opening stock"></div>
               <button type="submit" class="btn bf">Save Product</button>
@@ -3288,8 +3299,9 @@ document.getElementById('apf').addEventListener('submit',async e=>{
         payload:{org_id:prof.org_id,barcode:br,name:nm,price:sp,cost_price:cp,stock:stk,added_by:prof.id,note:note||'Initial stock'}
       });
     }
-    L(false);e.target.reset();renderPG();renderInvTable('ait');updateOfflineUI();
-    alert(`You're offline — "${nm}" has been saved on this device and will sync automatically once you're back online.`);
+    const hadPhoto=!!newPhoto;
+    L(false);e.target.reset();clearNewPhoto();renderPG();renderInvTable('ait');updateOfflineUI();
+    alert(`You're offline — "${nm}" has been saved on this device and will sync automatically once you're back online.`+(hadPhoto?' The photo was not saved: add it under Admin Inventory → Edit when you are online.':''));
   };
 
   if(!navigator.onLine){await goOfflineCreate();return;}
@@ -3301,7 +3313,18 @@ document.getElementById('apf').addEventListener('submit',async e=>{
     if(error)throw error;
     await sb.from('inventory_log').insert({org_id:prof.org_id,product_id:prod.id,
       product_name_snapshot:nm,added_by:prof.id,qty_added:stk,stock_before:0,stock_after:stk,note:note||'Initial stock'});
-    L(false);e.target.reset();await loadInv(prof.org_id);alert('Product saved!');
+    // a photo picked on the Create form is saved with the new product (needs internet)
+    let photoNote='';
+    if(newPhoto){
+      try{
+        const path=`${prof.org_id}/${prod.id}-${Date.now()}.jpg`;
+        const up=await sb.storage.from('product-photos').upload(path,newPhoto,{contentType:'image/jpeg',upsert:false,cacheControl:'31536000'});
+        if(up.error)throw up.error;
+        const u=await sb.from('products').update({photo_url:sb.storage.from('product-photos').getPublicUrl(path).data.publicUrl}).eq('id',prod.id);
+        if(u.error)throw u.error;
+      }catch(pe){photoNote=' But the photo could not be saved. Add it under Admin Inventory → Edit.';}
+    }
+    L(false);e.target.reset();clearNewPhoto();await loadInv(prof.org_id);alert('Product saved!'+photoNote);
   }catch(error){
     if(isLikelyNetworkError(error)){await goOfflineCreate();}
     else{L(false);alert('Error: '+error.message);}
@@ -4425,6 +4448,37 @@ function pickProductPhoto(input){
   };
   img.onerror=()=>{URL.revokeObjectURL(url);msg.textContent='Could not read that photo. Try another.';};
   img.src=url;
+}
+// the photo picked on the Create form, waiting for the product to be saved
+let newPhoto=null;
+const CR_PHOTO_HINT='Shown on the till and on your online shop.';
+function pickNewPhoto(input){
+  const file=input.files&&input.files[0];input.value='';
+  if(!file)return;
+  if(!/^image\//.test(file.type)){alert('Please choose a photo.');return;}
+  const msg=document.getElementById('cr-photo-msg');msg.textContent='Preparing photo…';
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{
+    const max=1000,scale=Math.min(1,max/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+    c.toBlob(b=>{
+      if(!b){msg.textContent='Could not read that photo. Try another.';return;}
+      newPhoto=b;
+      const prev=document.getElementById('cr-photo-prev');prev.src=URL.createObjectURL(b);prev.style.display='block';
+      document.getElementById('cr-photo-rm').style.display='';
+      msg.textContent='Photo ready. Save to keep it.';
+    },'image/jpeg',0.82);
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);msg.textContent='Could not read that photo. Try another.';};
+  img.src=url;
+}
+function clearNewPhoto(){
+  newPhoto=null;
+  const prev=document.getElementById('cr-photo-prev');if(!prev)return;
+  prev.removeAttribute('src');prev.style.display='none';
+  document.getElementById('cr-photo-rm').style.display='none';
+  document.getElementById('cr-photo-msg').textContent=CR_PHOTO_HINT;
 }
 function removeProductPhoto(){
   pendingPhoto=null;photoRemoved=true;
