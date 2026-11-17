@@ -77,6 +77,7 @@ header.top .row{display:flex;gap:12px;align-items:center;}
 .status.good{background:#e7f6ee;color:var(--ok);}
 .status.bad{background:#fdecea;color:var(--bad);}
 footer{text-align:center;font-size:.78rem;color:var(--g);padding:20px 0 90px;}
+.age{display:flex;gap:8px;align-items:flex-start;background:#fff7e6;border:1px solid #f3dc9b;border-radius:10px;padding:10px 12px;margin:12px 0;font-size:.88rem;cursor:pointer;}.age input{margin-top:3px;}
 </style>
 </head>
 <body>
@@ -214,6 +215,7 @@ function renderCartPanel() {
       <label class="${truck ? 'dis' : ''}"><input type="radio" name="pay" value="pod" ${truck ? 'disabled' : 'checked'}> Pay when you receive it</label></div>
       ${truck ? '<p class="note">This order needs a truck, so it must be paid by MoMo first.</p>' : ''}</div>
     <div class="fg"><label>Note for the shop (optional)</label><textarea id="c-note" rows="2" maxlength="300"></textarea></div>
+    ${lines.some(l => l.p.age_restricted) ? `<label class="age"><input type="checkbox" id="c-age"> <span><b>I am 18 or older.</b> This order has alcohol. I'll show ID to the rider if asked.</span></label>` : ''}
     <div class="sum" id="c-sum"></div>
     <div class="err" id="c-err"></div>
     <button class="btn gold" style="width:100%;" id="c-go" onclick="placeOrder()">Place order</button>
@@ -249,10 +251,12 @@ async function placeOrder() {
   const v = id => (document.getElementById(id)?.value || '').trim();
   err.textContent = '';
   if (!st.pay) { err.textContent = 'Choose how you will pay.'; return; }
+  const alc = cartLines().some(l => l.p.age_restricted);
+  if (alc && !document.getElementById('c-age')?.checked) { err.textContent = 'This order has alcohol. Tick the box to confirm you are 18 or older.'; return; }
   if (st.ful === 'delivery' && st.zone && st.fee == null) { err.textContent = 'Delivery by ' + st.veh + ' is not available in this area yet. Try pickup.'; return; }
   const payload = { channel: 'store', store_slug: S.shop.slug,
     items: cartLines().map(l => ({ product_id: l.p.id, qty: l.qty })),
-    customer: { name: v('c-name'), phone: v('c-phone') }, fulfilment: st.ful, payment_method: st.pay, note: v('c-note') };
+    customer: { name: v('c-name'), phone: v('c-phone') }, fulfilment: st.ful, payment_method: st.pay, note: v('c-note'), age_confirmed: alc };
   if (st.ful === 'delivery') Object.assign(payload, { zone_id: st.zone, address: v('c-addr'), landmark: v('c-land') });
   else payload.pickup_point_id = v('c-point');
   go.disabled = true; go.textContent = 'Placing order…';
