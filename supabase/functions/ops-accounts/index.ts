@@ -67,16 +67,30 @@ Deno.serve(async (req) => {
       if (error) throw new Error(error.message);
       return out({ ok: true, login: '0' + String(r.phone).slice(3), password });
     }
+    if (b.action === 'create_team_member' || b.action === 'reset_team_password') {
+      const { data: master } = await asUser.rpc('ops_is_master');
+      if (master !== true) return out({ error: 'Only the NYANSATEK master account can manage team members.' }, 403);
+    }
+    if (b.action === 'reset_team_password') {
+      const { data: p } = await admin.from('profiles').select('id, role').eq('id', String(b.member_id || '')).maybeSingle();
+      if (!p || p.role !== 'market_ops') throw new Error('Team member not found.');
+      const { data: u } = await admin.auth.admin.getUserById(p.id);
+      const password = makePassword();
+      const { error } = await admin.auth.admin.updateUserById(p.id, { password });
+      if (error) throw new Error(error.message);
+      await admin.from('profiles').update({ must_change_password: true }).eq('id', p.id);
+      return out({ ok: true, login: u?.user?.email || '', password });
+    }
     if (b.action === 'create_team_member') {
       const email = String(b.email || '').trim().toLowerCase(), name = String(b.full_name || '').trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error('Enter a valid email address.');
       if (!name) throw new Error('Enter the person\'s name.');
       const password = makePassword();
       const { data: cu, error: ce } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: name } });
-      if (ce || !cu?.user) throw new Error(ce?.message || 'Could not create the login.');
+      if (ce || !cu?.user) throw new Error(ce?.message?.includes('already') ? 'This email already has a NYANSATEK login. Use a different email.' : (ce?.message || 'Could not create the login.'));
       // the till's sign-up trigger gives every new login a cashier profile; make it a team profile instead
       const { error: pe } = await admin.from('profiles').upsert({ id: cu.user.id, role: 'market_ops', org_id: null,
-        display_name: name, full_name: name, must_change_password: false, is_active: true });
+        display_name: name, full_name: name, must_change_password: true, is_active: true });
       if (pe) { await admin.auth.admin.deleteUser(cu.user.id); throw new Error(pe.message); }
       return out({ ok: true, login: email, password });
     }
