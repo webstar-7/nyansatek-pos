@@ -135,7 +135,8 @@ function renderShop() {
   <header class="top"><div class="wrap row">
     ${sh.logo_url ? `<img class="logo" src="${E(sh.logo_url)}" alt="">` : ''}
     <div><div class="shopname">${E(sh.name)}</div>${sh.tagline ? `<div class="tagline">${E(sh.tagline)}</div>` : ''}
-    ${sh.on_market ? `<a class="pill" href="${MARKET_URL}" target="_blank" rel="noopener">Also on nyansatek.store</a>` : ''}</div>
+    ${sh.on_market ? `<a class="pill" href="${MARKET_URL}" target="_blank" rel="noopener">Also on nyansatek.store</a>` : ''}
+    ${sh.is_open === false ? `<div class="tagline" style="font-weight:700;">Closed now${sh.opens_at ? ' · opens ' + E(sh.opens_at) : ''}. You can look around and order when it opens.</div>` : ''}</div>
   </div></header>
   <div class="bar"><div class="wrap">
     <input class="search" id="q" type="search" placeholder="Search ${E(sh.name)}" value="${E(S.q)}">
@@ -196,7 +197,7 @@ function renderCartPanel() {
     ${lines.map(l => `<div class="line">${l.p.photo_url ? `<img src="${E(l.p.photo_url)}" alt="">` : '<img alt="">'}
       <div class="n">${E(l.p.name)}<div class="note">${GH(l.p.price)} each</div></div>
       <div class="qty"><button onclick="setQty('${l.p.id}',-1)">−</button><span>${l.qty}</span><button onclick="setQty('${l.p.id}',1)">+</button></div></div>`).join('')}
-    ${sh.whatsapp ? `<a class="btn wa" style="width:100%;margin-top:12px;" target="_blank" rel="noopener" href="https://wa.me/${E(sh.whatsapp)}?text=${encodeURIComponent(waOrderText())}">Order on WhatsApp instead</a>` : ''}
+
     <h2 style="margin-top:18px;">Checkout</h2>
     <div class="fg"><label>Your name</label><input id="c-name" autocomplete="name" value="${E(saved.name || '')}"></div>
     <div class="fg"><label>Phone number</label><input id="c-phone" type="tel" autocomplete="tel" placeholder="024XXXXXXX" value="${E(saved.phone || '')}"></div>
@@ -216,8 +217,9 @@ function renderCartPanel() {
     ${lines.some(l => l.p.age_restricted) ? `<label class="age"><input type="checkbox" id="c-age"> <span><b>I am 18 or older.</b> This order has alcohol. I'll show ID to the rider if asked.</span></label>` : ''}
     <div class="sum" id="c-sum"></div>
     <div class="err" id="c-err"></div>
-    <button class="btn gold" style="width:100%;" id="c-go" onclick="placeOrder()">Place order</button>
-    <p class="note" style="margin-top:8px;">Next you will see the MoMo number to pay. You'll get a tracking link and SMS updates.</p>`;
+    ${S.shop.is_open === false ? `<p class="err">${E(S.shop.name)} is closed right now${S.shop.opens_at ? '. It opens at ' + E(S.shop.opens_at) : ''}.</p>`
+      : '<button class="btn gold" style="width:100%;" id="c-go" onclick="placeOrder()">Place order</button>'}
+    <p class="note" style="margin-top:8px;">Next you will see the MoMoPay merchant ID to pay. You'll get a tracking link and SMS updates.</p>`;
   P.querySelectorAll('input[name=ful]').forEach(r => r.onchange = updateCheckout);
   document.getElementById('c-zone').onchange = updateCheckout;
   updateCheckout();
@@ -285,8 +287,11 @@ async function showTracking(token) {
       ${!ended ? `<ul class="steps">${steps.map(([k, t], i) => `<li class="${ORDER_OF(k) < done || (i === steps.length - 1 && done >= ORDER_OF(k)) ? 'done' : ORDER_OF(k) === done ? 'now' : ''}"><span class="dot"></span>${E(t)}</li>`).join('')}</ul>` : ''}
     </div>
     ${o.payment_method === 'momo' && !o.payment_confirmed && !ended ? `<div class="box"><b>Pay by MoMo</b>
-      <p class="note" style="margin:6px 0;">Send <b>${GH(o.total)}</b> by MoMo to:</p>
-      <div class="big">${E('0' + String(o.pay_to.momo_number || '').slice(3))}</div>${o.pay_to.momo_name ? `<div class="note">${E(o.pay_to.momo_name)}</div>` : ''}
+      ${o.pay_to.merchant_id ? `<p class="note" style="margin:6px 0;">Pay <b>${GH(o.total)}</b> with MoMoPay to merchant ID:</p>
+      <div class="big">${E(o.pay_to.merchant_id)}</div>${o.pay_to.momo_name ? `<div class="note">${E(o.pay_to.momo_name)}</div>` : ''}
+      <p class="note" style="margin-top:6px;">On MTN MoMo: dial *170#, choose MoMoPay, then enter the merchant ID.</p>`
+      : `<p class="note" style="margin:6px 0;">Send <b>${GH(o.total)}</b> by MoMo to:</p>
+      <div class="big">${E('0' + String(o.pay_to.momo_number || '').slice(3))}</div>${o.pay_to.momo_name ? `<div class="note">${E(o.pay_to.momo_name)}</div>` : ''}`}
       <p class="note" style="margin-top:6px;">Use your order number <b>${E(o.code)}</b> as the reference.</p>
       ${o.status === 'placed' ? `<div class="fg"><label>MoMo transaction ID (helps us find your payment)</label><input id="t-ref" value="${E(o.momo_txn_id || '')}"></div>
       <button class="btn" onclick="addRef('${E(token)}')">Send transaction ID</button><div class="err" id="t-err"></div>` : ''}</div>` : ''}
@@ -300,7 +305,7 @@ async function showTracking(token) {
     <div class="box"><b>Items</b>${o.items.map(i => `<div class="sum" style="background:none;border:0;padding:4px 0;margin:0;"><div><span>${i.qty} × ${E(i.name)}</span><span>${GH(i.line_total)}</span></div></div>`).join('')}
       <div class="sum"><div><span>Items</span><span>${GH(o.goods_total)}</span></div>${o.fulfilment === 'delivery' ? `<div><span>Delivery</span><span>${Number(o.delivery_fee) ? GH(o.delivery_fee) : 'Paid to the rider on arrival'}</span></div>` : ''}<div class="tot"><span>Total</span><span>${GH(o.total)}</span></div>
       <div class="note" style="display:block;margin-top:4px;">Paid by MoMo${o.payment_confirmed ? ' · payment received' : ''}</div></div></div>
-    ${o.shop.whatsapp ? `<a class="btn wa" style="width:100%;" target="_blank" rel="noopener" href="https://wa.me/${E(o.shop.whatsapp)}?text=${encodeURIComponent('Hello, about my order ' + o.code)}">Message the shop on WhatsApp</a>` : ''}
+
     ${o.shop.slug ? `<p style="text-align:center;margin:16px 0;"><a href="/shop/?s=${E(o.shop.slug)}">Back to ${E(o.shop.name)}</a></p>` : ''}
   </div><footer>Keep this page: it's your order tracking link. Questions? Call or WhatsApp <a href="tel:0536340578">053 634 0578</a>.</footer>`;
   clearTimeout(trackTimer);

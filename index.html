@@ -4563,9 +4563,8 @@ function olBeep(){
 }
 async function pollOnlineOrders(){
   if(!navigator.onLine||!prof?.org_id)return;
-  const since=new Date(Date.now()-14*864e5).toISOString();
-  const{data,error}=await sb.from('online_orders').select('*,online_order_items(name_snapshot,qty,price_snapshot,base_price_snapshot,line_total),pickup_points(name,address),delivery_zones(name)')
-    .eq('org_id',prof.org_id).gte('created_at',since).order('created_at',{ascending:false}).limit(200);
+  // Customer details stay with NYANSATEK: shop_online_orders() returns the dishes, the area and the shop's own amounts.
+  const{data,error}=await sb.rpc('shop_online_orders',{p_days:14});
   if(error)return;
   olOrders=data||[];
   const fresh=olOrders.filter(o=>o.status==='placed'&&o.payment_confirmed_at);
@@ -4596,9 +4595,8 @@ function renderOnlineOrders(){
 }
 function olCard(o){
   const mins=Math.max(0,Math.ceil((new Date(o.accept_deadline)-Date.now())/60000)),paid=!!o.payment_confirmed_at;
-  const items=(o.online_order_items||[]).map(i=>`${i.qty} × ${E(i.name_snapshot)} <span style="float:right;">${GH(Number(i.base_price_snapshot??i.price_snapshot)*i.qty)}</span>`).join('<br>');
-  const where=o.fulfilment==='delivery'?`Delivery (${E(o.vehicle)}) to ${E(o.address||'')}${o.landmark?' · '+E(o.landmark):''}${o.delivery_zones?.name?' · '+E(o.delivery_zones.name):''}`
-    :`Pickup at ${E(o.pickup_points?.name||'pickup point')}`;
+  const items=(o.items||[]).map(i=>`${i.qty} × ${E(i.name)} <span style="float:right;">${GH(Number(i.price)*i.qty)}</span>`).join('<br>');
+  const where=o.fulfilment==='delivery'?`Delivery${o.zone?' to '+E(o.zone):''} · NYANSATEK sends the rider`:`Pickup at ${E(o.pickup_point||'pickup point')}`;
   const pay=paid?'Paid by MoMo to NYANSATEK':'Customer has not paid yet';
   const btn=(a,l,cls='ba')=>`<button class="btn ${cls}" onclick="olAction('${o.id}','${a}')">${l}</button>`;
   let actions='';
@@ -4609,9 +4607,9 @@ function olCard(o){
     <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
       <div><b>${E(o.code)}</b> · ${o.channel==='market'?'nyansatek.store':'Online shop'} · ${new Date(o.created_at).toLocaleString()}</div>
       <div><b>${o.status==='placed'?(paid?'Paid: NYANSATEK will call you':'Waiting for the customer to pay'):E(OL_LABEL[o.status]||o.status)}</b>${o.status==='placed'&&!paid?` · <span style="color:#b42318;">${mins} min left to pay</span>`:''}</div></div>
-    <div class="hint" style="margin:6px 0;">${E(o.customer_name)} · <a href="tel:+${E(o.customer_phone)}">0${E(String(o.customer_phone).slice(3))}</a> · ${where}</div>
+    <div class="hint" style="margin:6px 0;">${where}</div>
     <div style="font-size:.9rem;line-height:1.6;">${items}</div>
-    <div style="margin-top:6px;font-size:.9rem;"><b>You receive ${GH(o.base_total??o.goods_total)}</b> · ${pay}${o.payout_id?' · paid out to you':''}</div>
+    <div style="margin-top:6px;font-size:.9rem;"><b>You receive ${GH(o.base_total)}</b> · ${pay}${o.payout_id?' · paid out to you':''}</div>
     ${o.customer_note?`<div class="hint" style="margin-top:4px;">Note: ${E(o.customer_note)}</div>`:''}
     ${o.cancel_reason&&o.status==='cancelled'?`<div class="hint" style="margin-top:4px;">${E(o.cancel_reason)}${paid?' · NYANSATEK refunds the customer':''}</div>`:''}
     ${actions?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">${actions}</div>`:''}</div>`;
@@ -4640,12 +4638,12 @@ async function renderOnlineBilling(){
   await loadOnlineCfg();
   const[{data:pays},{data:owed}]=await Promise.all([
     sb.from('org_payouts').select('*').eq('org_id',prof.org_id).order('paid_at',{ascending:false}).limit(30),
-    sb.from('online_orders').select('base_total,goods_total').eq('org_id',prof.org_id).is('payout_id',null).not('payment_confirmed_at','is',null).in('status',['delivered','collected','completed'])]);
+    sb.rpc('shop_payout_due')]);
   const c=onlineCfg||{};
-  const due=(owed||[]).reduce((a,o)=>a+Number(o.base_total??o.goods_total),0);
+  const due=Number(owed?.amount||0),dueN=Number(owed?.orders||0);
   el.innerHTML=`<h2 style="margin-top:22px;">Online Shop &amp; nyansatek.store</h2>
     <p class="hint">Your online shop is free. Customers pay NYANSATEK by MoMo; NYANSATEK pays you your own prices for delivered orders by close of business${c.momo_number?', to 0'+E(c.momo_number.slice(3)):''}. Set your payout MoMo number under Settings.</p>
-    <table style="margin:10px 0;"><tbody><tr><td style="color:var(--g);width:200px;">Delivered, not yet paid to you</td><td><b>${GH(due)}</b> (${(owed||[]).length} order${(owed||[]).length===1?'':'s'})</td></tr></tbody></table>
+    <table style="margin:10px 0;"><tbody><tr><td style="color:var(--g);width:200px;">Delivered, not yet paid to you</td><td><b>${GH(due)}</b> (${dueN} order${dueN===1?'':'s'})</td></tr></tbody></table>
     ${(pays||[]).length?`<table><thead><tr><th>Day</th><th>Orders</th><th>Amount</th><th>MoMo ID</th><th>Paid</th></tr></thead><tbody>${pays.map(p=>`<tr>
       <td>${new Date(p.pay_date+'T00:00:00').toLocaleDateString()}</td><td>${p.orders_count}</td><td><b>${GH(p.amount)}</b></td><td>${E(p.momo_ref||'—')}</td><td>${new Date(p.paid_at).toLocaleString()}</td></tr>`).join('')}</tbody></table>`
       :'<div class="es">No payouts yet.</div>'}`;
