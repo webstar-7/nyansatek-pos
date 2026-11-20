@@ -201,7 +201,7 @@ function renderCartPanel() {
     <div class="fg"><label>Your name</label><input id="c-name" autocomplete="name" value="${E(saved.name || '')}"></div>
     <div class="fg"><label>Phone number</label><input id="c-phone" type="tel" autocomplete="tel" placeholder="024XXXXXXX" value="${E(saved.phone || '')}"></div>
     <div class="fg"><label>How do you want to get it?</label><div class="seg">
-      <label><input type="radio" name="ful" value="delivery" checked> Delivery by a NYANSATEK ${VEH[veh]}</label>
+      <label><input type="radio" name="ful" value="delivery" checked> Deliver to me</label>
       <label class="${S.points.length ? '' : 'dis'}"><input type="radio" name="ful" value="pickup" ${S.points.length ? '' : 'disabled'}> Pick up at a NYANSATEK point</label></div></div>
     <div id="ful-delivery">
       <div class="fg"><label>Delivery area</label><select id="c-zone"><option value="">Choose your area</option>${S.zones.map(z => `<option value="${z.id}">${E(z.name)}</option>`).join('')}</select></div>
@@ -210,50 +210,40 @@ function renderCartPanel() {
     </div>
     <div id="ful-pickup" style="display:none;"><div class="fg"><label>Pickup point</label><select id="c-point"><option value="">Choose a pickup point</option>${S.points.map(p => `<option value="${p.id}">${E(p.name)} · ${E(p.address)}</option>`).join('')}</select></div>
       <p class="note">Collect within 24 hours of the SMS saying it has arrived, or it goes back to the shop.</p></div>
-    <div class="fg"><label>Payment</label><div class="seg">
-      <label class="${sh.momo_number ? '' : 'dis'}"><input type="radio" name="pay" value="momo" ${sh.momo_number ? '' : 'disabled'} ${truck && sh.momo_number ? 'checked' : ''}> MoMo to the shop</label>
-      <label class="${truck ? 'dis' : ''}"><input type="radio" name="pay" value="pod" ${truck ? 'disabled' : 'checked'}> Pay when you receive it</label></div>
-      ${truck ? '<p class="note">This order needs a truck, so it must be paid by MoMo first.</p>' : ''}</div>
+    <div class="fg"><label>Payment</label><p class="note">You pay by MoMo to NYANSATEK after you place the order. NYANSATEK places your order with the shop as soon as the payment arrives.
+      For delivery, the rider charges a delivery fee when they bring it. Pay that to the rider.</p></div>
     <div class="fg"><label>Note for the shop (optional)</label><textarea id="c-note" rows="2" maxlength="300"></textarea></div>
     ${lines.some(l => l.p.age_restricted) ? `<label class="age"><input type="checkbox" id="c-age"> <span><b>I am 18 or older.</b> This order has alcohol. I'll show ID to the rider if asked.</span></label>` : ''}
     <div class="sum" id="c-sum"></div>
     <div class="err" id="c-err"></div>
     <button class="btn gold" style="width:100%;" id="c-go" onclick="placeOrder()">Place order</button>
-    <p class="note" style="margin-top:8px;">The shop confirms your order within 10 minutes. You'll get a tracking link and SMS updates.</p>`;
+    <p class="note" style="margin-top:8px;">Next you will see the MoMo number to pay. You'll get a tracking link and SMS updates.</p>`;
   P.querySelectorAll('input[name=ful]').forEach(r => r.onchange = updateCheckout);
-  P.querySelectorAll('input[name=pay]').forEach(r => r.onchange = updateCheckout);
   document.getElementById('c-zone').onchange = updateCheckout;
   updateCheckout();
 }
 
 function checkoutState() {
   const ful = (document.querySelector('input[name=ful]:checked') || {}).value || 'delivery';
-  const pay = (document.querySelector('input[name=pay]:checked') || {}).value || '';
   const veh = cartVehicle(), zone = document.getElementById('c-zone')?.value || '';
-  const feeRow = S.fees.find(f => f.zone_id === zone && f.vehicle === veh);
-  const fee = ful === 'pickup' ? 0 : feeRow ? Number(feeRow.fee) : null;
-  return { ful, pay, veh, zone, fee };
+  return { ful, pay: 'momo', veh, zone };
 }
 function updateCheckout() {
   const st = checkoutState();
   document.getElementById('ful-delivery').style.display = st.ful === 'delivery' ? '' : 'none';
   document.getElementById('ful-pickup').style.display = st.ful === 'pickup' ? '' : 'none';
   const goods = cartTotal();
-  const feeTxt = st.ful === 'pickup' ? GH(0) : st.zone ? (st.fee == null ? 'Not available for a ' + st.veh + ' in this area' : GH(st.fee)) : 'Choose your area';
   document.getElementById('c-sum').innerHTML = `<div><span>Items</span><span>${GH(goods)}</span></div>
-    <div><span>Delivery${st.ful === 'delivery' ? ' (' + st.veh + ')' : ''}</span><span>${feeTxt}</span></div>
-    <div class="tot"><span>Total</span><span>${GH(goods + (st.fee || 0))}</span></div>
-    ${st.pay === 'momo' ? `<div class="note" style="display:block;margin-top:6px;">After you place the order you'll see the shop's MoMo number to pay.</div>` : ''}`;
+    ${st.ful === 'delivery' ? '<div><span>Delivery</span><span>Paid to the rider on arrival</span></div>' : ''}
+    <div class="tot"><span>Pay by MoMo</span><span>${GH(goods)}</span></div>`;
 }
 
 async function placeOrder() {
   const st = checkoutState(), err = document.getElementById('c-err'), go = document.getElementById('c-go');
   const v = id => (document.getElementById(id)?.value || '').trim();
   err.textContent = '';
-  if (!st.pay) { err.textContent = 'Choose how you will pay.'; return; }
   const alc = cartLines().some(l => l.p.age_restricted);
   if (alc && !document.getElementById('c-age')?.checked) { err.textContent = 'This order has alcohol. Tick the box to confirm you are 18 or older.'; return; }
-  if (st.ful === 'delivery' && st.zone && st.fee == null) { err.textContent = 'Delivery by ' + st.veh + ' is not available in this area yet. Try pickup.'; return; }
   const payload = { channel: 'store', store_slug: S.shop.slug,
     items: cartLines().map(l => ({ product_id: l.p.id, qty: l.qty })),
     customer: { name: v('c-name'), phone: v('c-phone') }, fulfilment: st.ful, payment_method: st.pay, note: v('c-note'), age_confirmed: alc };
@@ -283,32 +273,36 @@ async function showTracking(token) {
   const steps = o.fulfilment === 'pickup' ? STEPS_PICKUP : STEPS_DELIVERY;
   const done = o.status === 'completed' ? 99 : ORDER_OF(o.status);
   const ended = ['cancelled', 'returning', 'returned'].includes(o.status);
-  const label = { placed: 'Waiting for the shop', accepted: 'Confirmed', ready: 'Ready', in_transit: 'On the way', at_pickup_point: 'Ready to collect',
+  const label = { placed: o.payment_confirmed ? 'Payment received' : 'Waiting for your payment', accepted: 'Confirmed', ready: 'Ready', in_transit: 'On the way', at_pickup_point: 'Ready to collect',
     delivered: 'Delivered', collected: 'Collected', completed: 'Completed', cancelled: 'Cancelled', returning: 'Not collected', returned: 'Returned to shop' }[o.status] || o.status;
   const minsLeft = Math.max(0, Math.ceil((new Date(o.accept_deadline) - Date.now()) / 60000));
   app.innerHTML = `<header class="top"><div class="wrap"><div class="shopname">Order ${E(o.code)}</div><div class="tagline">${E(o.shop.name)}</div></div></header>
   <div class="wrap" style="max-width:640px;">
     <div class="box"><span class="status ${ended ? 'bad' : ['delivered', 'collected', 'completed'].includes(o.status) ? 'good' : ''}">${E(label)}</span>
-      ${o.status === 'placed' ? `<p class="note" style="margin-top:8px;">The shop has ${minsLeft} minute${minsLeft === 1 ? '' : 's'} to confirm. If they don't, the order is cancelled automatically.</p>` : ''}
+      ${o.status === 'placed' ? `<p class="note" style="margin-top:8px;">${o.payment_confirmed ? 'NYANSATEK is placing your order with the shop now.'
+        : `Pay within ${minsLeft} minute${minsLeft === 1 ? '' : 's'}. If NYANSATEK doesn't receive your payment by then, the order is cancelled automatically.`}</p>` : ''}
       ${ended && o.cancel_reason ? `<p class="note" style="margin-top:8px;">${E(o.cancel_reason)}</p>` : ''}
       ${!ended ? `<ul class="steps">${steps.map(([k, t], i) => `<li class="${ORDER_OF(k) < done || (i === steps.length - 1 && done >= ORDER_OF(k)) ? 'done' : ORDER_OF(k) === done ? 'now' : ''}"><span class="dot"></span>${E(t)}</li>`).join('')}</ul>` : ''}
     </div>
     ${o.payment_method === 'momo' && !o.payment_confirmed && !ended ? `<div class="box"><b>Pay by MoMo</b>
-      <p class="note" style="margin:6px 0;">Send <b>${GH(o.total)}</b> to the shop's MoMo number:</p>
-      <div class="big">${E('0' + String(o.shop.momo_number || '').slice(3))}</div>${o.shop.momo_name ? `<div class="note">${E(o.shop.momo_name)}</div>` : ''}
-      ${o.status === 'placed' ? `<div class="fg"><label>MoMo transaction ID (helps the shop find your payment)</label><input id="t-ref" value="${E(o.momo_txn_id || '')}"></div>
+      <p class="note" style="margin:6px 0;">Send <b>${GH(o.total)}</b> to NYANSATEK's MoMo number:</p>
+      <div class="big">${E('0' + String(o.pay_to.momo_number || '').slice(3))}</div>${o.pay_to.momo_name ? `<div class="note">${E(o.pay_to.momo_name)}</div>` : ''}
+      <p class="note" style="margin-top:6px;">Use your order number <b>${E(o.code)}</b> as the reference.</p>
+      ${o.status === 'placed' ? `<div class="fg"><label>MoMo transaction ID (helps us find your payment)</label><input id="t-ref" value="${E(o.momo_txn_id || '')}"></div>
       <button class="btn" onclick="addRef('${E(token)}')">Send transaction ID</button><div class="err" id="t-err"></div>` : ''}</div>` : ''}
-    ${!ended && !['delivered', 'collected', 'completed'].includes(o.status) ? `<div class="box"><b>Your ${o.fulfilment === 'pickup' ? 'collection' : 'delivery'} code</b>
-      <div class="big" style="margin:6px 0;">${E(o.delivery_code)}</div><p class="note">Give this code to the ${o.fulfilment === 'pickup' ? 'pickup point staff' : 'rider'} only when you receive your order.</p></div>` : ''}
+    ${!ended && !['delivered', 'collected', 'completed'].includes(o.status) && o.fulfilment === 'pickup' ? `<div class="box"><b>Your collection code</b>
+      <div class="big" style="margin:6px 0;">${E(o.delivery_code)}</div><p class="note">Give this code to the pickup point staff only when you receive your order.</p></div>` : ''}
+    ${o.courier && !ended && !['delivered', 'collected', 'completed'].includes(o.status) ? `<div class="box"><b>Your rider</b><p style="margin-top:6px;">${E(o.courier.name)} · <a href="tel:0${E(String(o.courier.phone).slice(3))}">0${E(String(o.courier.phone).slice(3))}</a></p>
+      <p class="note">Pay the rider's delivery fee when your order arrives.</p></div>` : ''}
     ${o.fulfilment === 'pickup' && o.pickup_point ? `<div class="box"><b>Pickup point</b><p style="margin-top:6px;">${E(o.pickup_point.name)}<br><span class="note">${E(o.pickup_point.address)}${o.pickup_point.landmark ? ' · ' + E(o.pickup_point.landmark) : ''}${o.pickup_point.hours ? '<br>Open: ' + E(o.pickup_point.hours) : ''}</span></p>
       ${o.pickup_deadline ? `<p class="note" style="margin-top:6px;">Collect by ${new Date(o.pickup_deadline).toLocaleString()}.</p>` : ''}</div>` : ''}
     ${o.fulfilment === 'delivery' ? `<div class="box"><b>Delivery to</b><p class="note" style="margin-top:6px;">${E(o.address || '')}${o.landmark ? ' · ' + E(o.landmark) : ''}${o.zone ? '<br>' + E(o.zone) : ''}</p></div>` : ''}
     <div class="box"><b>Items</b>${o.items.map(i => `<div class="sum" style="background:none;border:0;padding:4px 0;margin:0;"><div><span>${i.qty} × ${E(i.name)}</span><span>${GH(i.line_total)}</span></div></div>`).join('')}
-      <div class="sum"><div><span>Items</span><span>${GH(o.goods_total)}</span></div><div><span>Delivery</span><span>${GH(o.delivery_fee)}</span></div><div class="tot"><span>Total</span><span>${GH(o.total)}</span></div>
-      <div class="note" style="display:block;margin-top:4px;">${o.payment_method === 'momo' ? 'Paying by MoMo' + (o.payment_confirmed ? ' · payment confirmed by the shop' : '') : 'Pay when you receive it'}</div></div></div>
+      <div class="sum"><div><span>Items</span><span>${GH(o.goods_total)}</span></div>${o.fulfilment === 'delivery' ? `<div><span>Delivery</span><span>${Number(o.delivery_fee) ? GH(o.delivery_fee) : 'Paid to the rider on arrival'}</span></div>` : ''}<div class="tot"><span>Total</span><span>${GH(o.total)}</span></div>
+      <div class="note" style="display:block;margin-top:4px;">Paid by MoMo to NYANSATEK${o.payment_confirmed ? ' · payment received' : ''}</div></div></div>
     ${o.shop.whatsapp ? `<a class="btn wa" style="width:100%;" target="_blank" rel="noopener" href="https://wa.me/${E(o.shop.whatsapp)}?text=${encodeURIComponent('Hello, about my order ' + o.code)}">Message the shop on WhatsApp</a>` : ''}
     ${o.shop.slug ? `<p style="text-align:center;margin:16px 0;"><a href="/shop/?s=${E(o.shop.slug)}">Back to ${E(o.shop.name)}</a></p>` : ''}
-  </div><footer>Keep this page: it's your order tracking link.</footer>`;
+  </div><footer>Keep this page: it's your order tracking link. Questions? Call or WhatsApp NYANSATEK on <a href="tel:0536340578">053 634 0578</a>.</footer>`;
   clearTimeout(trackTimer);
   if (!['completed', 'cancelled', 'returned'].includes(o.status)) trackTimer = setTimeout(() => { if (!document.getElementById('t-ref') || document.activeElement !== document.getElementById('t-ref')) showTracking(token); else trackTimer = setTimeout(() => showTracking(token), 20000); }, 20000);
 }

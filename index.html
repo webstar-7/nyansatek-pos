@@ -4402,11 +4402,11 @@ function fillProductExtras(p){
   const box=document.getElementById('ed-online');
   if(!onlineCfg?.addon_active){box.style.display='none';box.innerHTML='';return;}
   const approved=onlineCfg.marketplace_status==='approved';
-  const sizes=[['motorbike','Motorbike'],['car','Car'],['van','Van'],['truck','Truck (MoMo only, no pay on delivery)']];
+  const sizes=[['motorbike','Motorbike'],['car','Car'],['van','Van'],['truck','Truck']];
   box.innerHTML=`<div class="card" style="padding:12px;margin:8px 0;">
     <h3 style="margin:0 0 6px;font-size:.95rem;">Online selling</h3>
     <label class="os-chk"><input type="checkbox" id="ed-show-online"${p.show_online?' checked':''}> <span>Show in my online shop</span></label>
-    <label class="os-chk"><input type="checkbox" id="ed-list-market"${p.list_on_market?' checked':''}${approved?'':' disabled'}> <span>List on nyansatek.store (5% commission per marketplace sale)${approved?'':'<br><span class="hint">Available once your shop is approved for the marketplace (Settings → Online Shop).</span>'}</span></label>
+    <label class="os-chk"><input type="checkbox" id="ed-list-market"${p.list_on_market?' checked':''}${approved?'':' disabled'}> <span>List on nyansatek.store (customers pay 5% on top; you get your full price)${approved?'':'<br><span class="hint">Available once your shop is listed by NYANSATEK. Call 053 634 0578.</span>'}</span></label>
     <div class="fg"><label>Marketplace category</label><select id="ed-mkcat">${mkCatOptions(p.market_category_id)}</select></div>
     <div class="fg"><label>Delivery size (which vehicle can carry it)</label><select id="ed-dsize">${sizes.map(([v,l])=>`<option value="${v}"${(p.delivery_size||'motorbike')===v?' selected':''}>${l}</option>`).join('')}</select></div>
     <div class="fg"><label>Description (optional)</label><textarea id="ed-desc" rows="2" maxlength="500" style="width:100%;">${E(p.description||'')}</textarea></div>
@@ -4498,16 +4498,17 @@ async function renderOnlineShopCard(){
   const c=onlineCfg||{};
   if(!c.addon_active){
     el.innerHTML=`<div class="card" style="max-width:720px;"><h2>Online Shop</h2>
-      <p class="hint">Sell online with your own shop page: your products with photos and prices, orders by WhatsApp, MoMo or pay on delivery, and NYANSATEK riders to deliver. Shops on the Online Shop add-on can also list products on <b>nyansatek.store</b>, our marketplace.</p>
+      <p class="hint">Sell online with your own shop page: your products with photos and prices, paid by MoMo to NYANSATEK, and riders we send to deliver. Shops on the Online Shop add-on can also list products on <b>nyansatek.store</b>, our marketplace.</p>
       <p class="hint">Product photos are free for every shop: add them now under Admin Inventory → edit a product.</p>
       <p class="st-pend">The Online Shop add-on is not switched on for your shop yet. Contact NYANSATEK to add it.</p></div>`;
     return;
   }
   const url=storeUrl();
   const slugGuess=c.store_slug||String(prof.businessName||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
-  const mk={none:'Not on the marketplace yet.',pending:'Request sent. NYANSATEK will review your shop.',approved:'Your shop is approved. Tick “List on nyansatek.store” on the products you want there.',suspended:'Your marketplace listings are paused. Contact NYANSATEK.'}[c.marketplace_status||'none'];
+  const mk={none:'Not on nyansatek.store yet. Listing is free: call or WhatsApp NYANSATEK on 053 634 0578.',pending:'NYANSATEK will review your shop.',approved:'Your shop is approved. Tick “List on nyansatek.store” on the products you want there. Customers pay 5% on top of your prices.',suspended:'Your marketplace listings are paused. Contact NYANSATEK.'}[c.marketplace_status||'none'];
   const hidden=c.listings_hidden_reason==='commission_overdue'?'<p class="st-pend">Your marketplace listings are hidden because a commission statement is overdue. They come back as soon as it is paid (Billing).</p>':'';
   el.innerHTML=`<div class="card" style="max-width:720px;"><h2>Online Shop</h2>
+    <p class="hint" style="margin-bottom:10px;">Free for every NYANSATEK customer. Customers pay NYANSATEK by MoMo, we call you to place each order and send a rider, then pay you your own prices by MoMo by close of business.</p>
     ${url?`<p class="hint">Your shop page</p><div class="os-row"><span class="os-link" id="os-url">${E(url)}</span>
       <button class="btn" style="background:#fff;color:var(--p);border:1px solid var(--b);" onclick="copyStoreLink()">Copy link</button>
       <a class="btn ba" href="${E(url)}" target="_blank" rel="noopener">View my online shop</a>
@@ -4515,7 +4516,7 @@ async function renderOnlineShopCard(){
     <div class="fg" style="margin-top:12px;"><label>Web address</label><div class="os-row"><span class="hint">${E(location.origin)}/shop/?s=</span><input type="text" id="os-slug" maxlength="60" value="${E(slugGuess)}" style="flex:1;min-width:160px;" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'')"></div></div>
     <div class="fg"><label>Shop name online</label><input type="text" id="os-name" maxlength="80" value="${E(c.store_name||prof.businessName||'')}"></div>
     <div class="fg"><label>Short description (optional)</label><input type="text" id="os-tag" maxlength="140" value="${E(c.store_tagline||'')}" placeholder="e.g. Electricals and building materials, Kumasi"></div>
-    <div class="fg"><label>MoMo number customers pay</label><input type="tel" id="os-momo" value="${E(c.momo_number?'0'+c.momo_number.slice(3):'')}" placeholder="024XXXXXXX"></div>
+    <div class="fg"><label>MoMo number for your daily payouts</label><input type="tel" id="os-momo" value="${E(c.momo_number?'0'+c.momo_number.slice(3):'')}" placeholder="024XXXXXXX"></div>
     <div class="fg"><label>Name on the MoMo account</label><input type="text" id="os-momoname" maxlength="80" value="${E(c.momo_name||'')}"></div>
     <div class="fg"><label>WhatsApp number for orders</label><input type="tel" id="os-wa" value="${E(c.whatsapp_number?'0'+c.whatsapp_number.slice(3):'')}" placeholder="024XXXXXXX"></div>
     <div class="fg"><label>Shop address (where NYANSATEK riders collect orders)</label><input type="text" id="os-addr" maxlength="300" value="${E(c.shop_address||'')}" placeholder="Street, area, landmark"></div>
@@ -4524,7 +4525,6 @@ async function renderOnlineShopCard(){
     <button class="btn ba" onclick="saveOnlineShop()">Save online shop</button>
     <h3 style="margin:18px 0 6px;">nyansatek.store</h3>
     <p class="hint">${mk}</p>${hidden}
-    ${(c.marketplace_status||'none')==='none'?'<button class="btn" style="background:#fff;color:var(--p);border:1px solid var(--b);" onclick="saveOnlineShop(true)">Request to join nyansatek.store</button>':''}
   </div>`;
 }
 async function saveOnlineShop(requestMarket){
@@ -4564,11 +4564,11 @@ function olBeep(){
 async function pollOnlineOrders(){
   if(!navigator.onLine||!prof?.org_id)return;
   const since=new Date(Date.now()-14*864e5).toISOString();
-  const{data,error}=await sb.from('online_orders').select('*,online_order_items(name_snapshot,qty,price_snapshot,line_total),pickup_points(name,address),delivery_zones(name)')
+  const{data,error}=await sb.from('online_orders').select('*,online_order_items(name_snapshot,qty,price_snapshot,base_price_snapshot,line_total),pickup_points(name,address),delivery_zones(name)')
     .eq('org_id',prof.org_id).gte('created_at',since).order('created_at',{ascending:false}).limit(200);
   if(error)return;
   olOrders=data||[];
-  const fresh=olOrders.filter(o=>o.status==='placed');
+  const fresh=olOrders.filter(o=>o.status==='placed'&&o.payment_confirmed_at);
   const isNew=fresh.some(o=>!olSeen.has(o.id));
   fresh.forEach(o=>olSeen.add(o.id));
   if(isNew&&!olFirstLoad)olBeep();
@@ -4590,32 +4590,30 @@ function renderOnlineOrders(){
   const list=olOrders.filter(o=>olBucket(o)===olTab);
   const tab=(k,l)=>`<button class="tb${olTab===k?' on':''}" onclick="olTab='${k}';renderOnlineOrders()">${l} (${counts[k]})</button>`;
   el.innerHTML=`<div class="card" style="max-width:860px;"><h2>Online orders</h2>
-    <p class="hint">Orders from your online shop and nyansatek.store. Accept new orders within 10 minutes or they cancel automatically.</p>
+    <p class="hint">Orders from your online shop and nyansatek.store. Customers pay NYANSATEK by MoMo first; NYANSATEK then calls you to place the order. You can follow and confirm them here too. Amounts are your own prices.</p>
     <div class="tbar" style="margin:10px 0;">${tab('new','New')}${tab('active','In progress')}${tab('done','Finished')}</div>
     ${list.length?list.map(olCard).join(''):'<div class="es">No orders here.</div>'}</div>`;
 }
 function olCard(o){
-  const mins=Math.max(0,Math.ceil((new Date(o.accept_deadline)-Date.now())/60000));
-  const items=(o.online_order_items||[]).map(i=>`${i.qty} × ${E(i.name_snapshot)} <span style="float:right;">${GH(i.line_total)}</span>`).join('<br>');
+  const mins=Math.max(0,Math.ceil((new Date(o.accept_deadline)-Date.now())/60000)),paid=!!o.payment_confirmed_at;
+  const items=(o.online_order_items||[]).map(i=>`${i.qty} × ${E(i.name_snapshot)} <span style="float:right;">${GH(Number(i.base_price_snapshot??i.price_snapshot)*i.qty)}</span>`).join('<br>');
   const where=o.fulfilment==='delivery'?`Delivery (${E(o.vehicle)}) to ${E(o.address||'')}${o.landmark?' · '+E(o.landmark):''}${o.delivery_zones?.name?' · '+E(o.delivery_zones.name):''}`
     :`Pickup at ${E(o.pickup_points?.name||'pickup point')}`;
-  const pay=o.payment_method==='momo'?`MoMo${o.momo_txn_id?' · transaction ID <b>'+E(o.momo_txn_id)+'</b>':' · customer has not sent a transaction ID yet'}`:'Pay on delivery';
+  const pay=paid?'Paid by MoMo to NYANSATEK':'Customer has not paid yet';
   const btn=(a,l,cls='ba')=>`<button class="btn ${cls}" onclick="olAction('${o.id}','${a}')">${l}</button>`;
   let actions='';
-  if(o.status==='placed')actions=btn('accept',o.payment_method==='momo'?'MoMo received: accept':'Accept order')+btn('reject','Reject','bdanger');
+  if(o.status==='placed'&&paid)actions=btn('accept','Confirm order')+btn('reject','Reject','bdanger');
   else if(o.status==='accepted')actions=btn('ready','Packed: ready for the rider')+btn('cancel','Cancel order','bdanger');
   else if(o.status==='ready')actions=btn('cancel','Cancel order','bdanger');
-  else if(['delivered','collected'].includes(o.status)&&o.payment_method==='pod'&&['with_rider','with_pickup_point'].includes(o.cash_status))
-    actions=btn('confirm_cash',`I received ${GH(o.goods_total)} cash`);
   return `<div class="card" style="padding:12px;margin:10px 0;border-left:4px solid ${o.status==='placed'?'var(--a)':'var(--b)'};">
     <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
       <div><b>${E(o.code)}</b> · ${o.channel==='market'?'nyansatek.store':'Online shop'} · ${new Date(o.created_at).toLocaleString()}</div>
-      <div><b>${E(OL_LABEL[o.status]||o.status)}</b>${o.status==='placed'?` · <span style="color:#b42318;">${mins} min left</span>`:''}</div></div>
+      <div><b>${o.status==='placed'?(paid?'Paid: NYANSATEK will call you':'Waiting for the customer to pay'):E(OL_LABEL[o.status]||o.status)}</b>${o.status==='placed'&&!paid?` · <span style="color:#b42318;">${mins} min left to pay</span>`:''}</div></div>
     <div class="hint" style="margin:6px 0;">${E(o.customer_name)} · <a href="tel:+${E(o.customer_phone)}">0${E(String(o.customer_phone).slice(3))}</a> · ${where}</div>
     <div style="font-size:.9rem;line-height:1.6;">${items}</div>
-    <div style="margin-top:6px;font-size:.9rem;"><b>Items ${GH(o.goods_total)}</b>${o.channel==='market'?` · NYANSATEK commission 5%: ${GH(o.commission_amount)}`:''} · ${pay}</div>
+    <div style="margin-top:6px;font-size:.9rem;"><b>You receive ${GH(o.base_total??o.goods_total)}</b> · ${pay}${o.payout_id?' · paid out to you':''}</div>
     ${o.customer_note?`<div class="hint" style="margin-top:4px;">Note: ${E(o.customer_note)}</div>`:''}
-    ${o.cancel_reason&&o.status==='cancelled'?`<div class="hint" style="margin-top:4px;">${E(o.cancel_reason)}${o.payment_method==='momo'&&o.payment_confirmed_at?' · refund the customer’s MoMo payment':''}</div>`:''}
+    ${o.cancel_reason&&o.status==='cancelled'?`<div class="hint" style="margin-top:4px;">${E(o.cancel_reason)}${paid?' · NYANSATEK refunds the customer':''}</div>`:''}
     ${actions?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">${actions}</div>`:''}</div>`;
 }
 async function olAction(id,action){
@@ -4625,53 +4623,32 @@ async function olAction(id,action){
     note=prompt(action==='reject'?'Why are you rejecting this order? (the customer sees this)':'Why are you cancelling? (the customer sees this)','Out of stock');
     if(note===null)return;
   }
-  if(action==='accept'&&o?.payment_method==='momo'&&!confirm(`Check your MoMo: did you receive ${GH(Number(o.goods_total)+Number(o.delivery_fee))} for ${o.code}? Accept only once the money is in.`))return;
-  if(action==='confirm_cash'&&!confirm(`Confirm you have received ${GH(o.goods_total)} cash for ${o.code}?`))return;
+  if(action==='accept'&&!confirm(`Confirm ${o?.code}? Only confirm if you can prepare it now.`))return;
   L(true);
   const{error}=await sb.rpc('shop_order_action',{p_order:id,p_action:action,p_note:note});
   L(false);
   if(error){alert(error.message);}
   await pollOnlineOrders();
-  if(action==='accept'||action==='reject'||action==='cancel'||action==='confirm_cash')loadInv(prof.org_id);
+  if(action==='accept'||action==='reject'||action==='cancel')loadInv(prof.org_id);
 }
 // ================================================================
 
-// ===================== BILLING: ONLINE SHOP ADD-ON + MARKETPLACE COMMISSION =====================
+// ===================== BILLING: ONLINE SHOP PAYOUTS =====================
+// The online shop is free. Customers pay NYANSATEK, which pays the shop its own prices by close of business.
 async function renderOnlineBilling(){
   const el=document.getElementById('bv-online');if(!el)return;
   await loadOnlineCfg();
-  const[{data:cfg},{data:stm},{data:pays}]=await Promise.all([
-    sb.from('market_settings').select('commission_rate,commission_due_days,overdue_grace_days,addon_price_monthly,addon_price_yearly,nyansatek_momo_number,nyansatek_momo_name').maybeSingle(),
-    sb.from('commission_statements').select('*').eq('org_id',prof.org_id).neq('status','void').order('period_month',{ascending:false}).limit(24),
-    sb.from('addon_payments').select('*').eq('org_id',prof.org_id).order('submitted_at',{ascending:false}).limit(10)]);
-  const c=onlineCfg||{},m=cfg||{};
-  const momo=m.nyansatek_momo_number?`<b>0${E(m.nyansatek_momo_number.slice(3))}</b>${m.nyansatek_momo_name?' ('+E(m.nyansatek_momo_name)+')':''}`:'<i>NYANSATEK will share the MoMo number</i>';
-  const month=d=>new Date(d+'T00:00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'});
-  const owed=(stm||[]).filter(s=>['issued','overdue'].includes(s.status)).reduce((a,s)=>a+Number(s.commission_amount),0);
-  const badge=s=>s==='paid'?'<span class="badge bg">Paid</span>':s==='overdue'?'<span class="badge br">Overdue</span>':'<span class="badge" style="background:#fff3d6;color:#8a5a00;">Due</span>';
-  const pending=(pays||[]).filter(p=>p.status==='submitted');
+  const[{data:pays},{data:owed}]=await Promise.all([
+    sb.from('org_payouts').select('*').eq('org_id',prof.org_id).order('paid_at',{ascending:false}).limit(30),
+    sb.from('online_orders').select('base_total,goods_total').eq('org_id',prof.org_id).is('payout_id',null).not('payment_confirmed_at','is',null).in('status',['delivered','collected','completed'])]);
+  const c=onlineCfg||{};
+  const due=(owed||[]).reduce((a,o)=>a+Number(o.base_total??o.goods_total),0);
   el.innerHTML=`<h2 style="margin-top:22px;">Online Shop &amp; nyansatek.store</h2>
-    <table style="margin-bottom:12px;"><tbody>
-      <tr><td style="color:var(--g);width:160px;">Online Shop add-on</td><td>${c.addon_active?'<span class="badge bg">On</span>':'<span class="badge">Off</span>'}${c.addon_paid_through?' · paid until '+new Date(c.addon_paid_through+'T00:00:00').toLocaleDateString():''}</td></tr>
-      <tr><td style="color:var(--g);">Price</td><td>${m.addon_price_monthly?GH(m.addon_price_monthly)+' / month':'—'}${m.addon_price_yearly?' · '+GH(m.addon_price_yearly)+' / year':''}</td></tr>
-      <tr><td style="color:var(--g);">Commission owed</td><td><b>${GH(owed)}</b> <span class="hint">(${Math.round((m.commission_rate||0.05)*100)}% of marketplace sales)</span></td></tr>
-    </tbody></table>
-    ${m.addon_price_monthly||m.addon_price_yearly?`<div class="card" style="padding:12px;margin:8px 0;"><b>Pay for the add-on</b>
-      <p class="hint" style="margin:4px 0 8px;">Send the amount by MoMo to ${momo}, then enter the transaction ID. NYANSATEK confirms it and extends your add-on.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <select id="ob-period">${m.addon_price_monthly?`<option value="monthly">1 month · ${GH(m.addon_price_monthly)}</option>`:''}${m.addon_price_yearly?`<option value="yearly">1 year · ${GH(m.addon_price_yearly)}</option>`:''}</select>
-        <input type="text" id="ob-addon-txn" placeholder="MoMo transaction ID" style="flex:1;min-width:160px;">
-        <button class="btn ba" onclick="submitOnlinePayment('addon')">Send</button></div>
-      ${pending.length?`<p class="st-pend" style="margin-top:8px;">Waiting for NYANSATEK to confirm: ${pending.map(p=>E(p.period)+' '+GH(p.amount)+' (ID '+E(p.momo_txn_id)+')').join(', ')}</p>`:''}</div>`:''}
-    <h3 style="margin:14px 0 6px;">Commission statements</h3>
-    <p class="hint">One statement a month for your nyansatek.store sales, due ${m.commission_due_days||7} days after it is issued. ${m.overdue_grace_days||3} days after the due date, unpaid statements hide your marketplace listings until paid (your own shop page keeps working). Pay by MoMo to ${momo}.</p>
-    ${c.listings_hidden_reason==='commission_overdue'?'<p class="st-pend">Your marketplace listings are hidden because a statement is overdue.</p>':''}
-    ${(stm||[]).length?`<table><thead><tr><th>Month</th><th>Orders</th><th>Sales</th><th>Commission</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>${stm.map(s=>`<tr>
-      <td>${E(month(s.period_month))}</td><td>${s.orders_count}</td><td>${GH(s.goods_total)}</td><td><b>${GH(s.commission_amount)}</b></td>
-      <td>${s.due_date?new Date(s.due_date+'T00:00:00').toLocaleDateString():'—'}</td><td>${badge(s.status)}</td>
-      <td>${['issued','overdue'].includes(s.status)?(s.payment_ref?`<span class="hint">Sent (ID ${E(s.payment_ref)}), waiting for NYANSATEK</span>`
-        :`<input type="text" id="ob-st-${s.id}" placeholder="MoMo transaction ID" style="width:150px;"> <button class="btn ba" onclick="submitOnlinePayment('commission','${s.id}')">Send</button>`):''}</td></tr>`).join('')}</tbody></table>`
-      :'<div class="es">No statements yet. They appear after your first month of marketplace sales.</div>'}`;
+    <p class="hint">Your online shop is free. Customers pay NYANSATEK by MoMo; NYANSATEK pays you your own prices for delivered orders by close of business${c.momo_number?', to 0'+E(c.momo_number.slice(3)):''}. Set your payout MoMo number under Settings.</p>
+    <table style="margin:10px 0;"><tbody><tr><td style="color:var(--g);width:200px;">Delivered, not yet paid to you</td><td><b>${GH(due)}</b> (${(owed||[]).length} order${(owed||[]).length===1?'':'s'})</td></tr></tbody></table>
+    ${(pays||[]).length?`<table><thead><tr><th>Day</th><th>Orders</th><th>Amount</th><th>MoMo ID</th><th>Paid</th></tr></thead><tbody>${pays.map(p=>`<tr>
+      <td>${new Date(p.pay_date+'T00:00:00').toLocaleDateString()}</td><td>${p.orders_count}</td><td><b>${GH(p.amount)}</b></td><td>${E(p.momo_ref||'—')}</td><td>${new Date(p.paid_at).toLocaleString()}</td></tr>`).join('')}</tbody></table>`
+      :'<div class="es">No payouts yet.</div>'}`;
 }
 async function submitOnlinePayment(kind,id){
   const txn=(document.getElementById(kind==='addon'?'ob-addon-txn':'ob-st-'+id)?.value||'').trim();
