@@ -4406,7 +4406,7 @@ function fillProductExtras(p){
   box.innerHTML=`<div class="card" style="padding:12px;margin:8px 0;">
     <h3 style="margin:0 0 6px;font-size:.95rem;">Online selling</h3>
     <label class="os-chk"><input type="checkbox" id="ed-show-online"${p.show_online?' checked':''}> <span>Show in my online shop</span></label>
-    <label class="os-chk"><input type="checkbox" id="ed-list-market"${p.list_on_market?' checked':''}${approved?'':' disabled'}> <span>List on nyansatek.store (customers pay 5% on top; you get your full price)${approved?'':'<br><span class="hint">Available once your shop is listed by NYANSATEK. Call 053 634 0578.</span>'}</span></label>
+    <label class="os-chk"><input type="checkbox" id="ed-list-market"${p.list_on_market?' checked':''}${approved?'':' disabled'}> <span>List on nyansatek.store (you get your full price)${approved?'':'<br><span class="hint">Available once your shop is listed by NYANSATEK. Call 053 634 0578.</span>'}</span></label>
     <div class="fg"><label>Marketplace category</label><select id="ed-mkcat">${mkCatOptions(p.market_category_id)}</select></div>
     <div class="fg"><label>Delivery size (which vehicle can carry it)</label><select id="ed-dsize">${sizes.map(([v,l])=>`<option value="${v}"${(p.delivery_size||'motorbike')===v?' selected':''}>${l}</option>`).join('')}</select></div>
     <div class="fg"><label>Description (optional)</label><textarea id="ed-desc" rows="2" maxlength="500" style="width:100%;">${E(p.description||'')}</textarea></div>
@@ -4505,7 +4505,7 @@ async function renderOnlineShopCard(){
   }
   const url=storeUrl();
   const slugGuess=c.store_slug||String(prof.businessName||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
-  const mk={none:'Not on nyansatek.store yet. Listing is free: call or WhatsApp NYANSATEK on 053 634 0578.',pending:'NYANSATEK will review your shop.',approved:'Your shop is approved. Tick “List on nyansatek.store” on the products you want there. Customers pay 5% on top of your prices.',suspended:'Your marketplace listings are paused. Contact NYANSATEK.'}[c.marketplace_status||'none'];
+  const mk={none:'Not on nyansatek.store yet. Listing is free: call or WhatsApp NYANSATEK on 053 634 0578.',pending:'NYANSATEK will review your shop.',approved:'Your shop is approved. Tick “List on nyansatek.store” on the products you want there.',suspended:'Your marketplace listings are paused. Contact NYANSATEK.'}[c.marketplace_status||'none'];
   const hidden=c.listings_hidden_reason==='commission_overdue'?'<p class="st-pend">Your marketplace listings are hidden because a commission statement is overdue. They come back as soon as it is paid (Billing).</p>':'';
   el.innerHTML=`<div class="card" style="max-width:720px;"><h2>Online Shop</h2>
     <p class="hint" style="margin-bottom:10px;">Free for every NYANSATEK customer. Customers pay NYANSATEK by MoMo, we call you to place each order and send a rider, then pay you your own prices by MoMo by close of business.</p>
