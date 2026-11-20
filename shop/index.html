@@ -205,12 +205,12 @@ function renderCartPanel() {
       <label class="${S.points.length ? '' : 'dis'}"><input type="radio" name="ful" value="pickup" ${S.points.length ? '' : 'disabled'}> Pick up at a NYANSATEK point</label></div></div>
     <div id="ful-delivery">
       <div class="fg"><label>Delivery area</label><select id="c-zone"><option value="">Choose your area</option>${S.zones.map(z => `<option value="${z.id}">${E(z.name)}</option>`).join('')}</select></div>
-      <div class="fg"><label>Address</label><input id="c-addr" autocomplete="street-address" placeholder="House number, street, area" value="${E(saved.addr || '')}"></div>
-      <div class="fg"><label>Landmark (optional)</label><input id="c-land" placeholder="e.g. opposite the Total filling station" value="${E(saved.land || '')}"></div>
+      <div class="fg"><label>Directions for the rider (optional)</label><input id="c-land" placeholder="e.g. opposite the Total filling station" value="${E(saved.land || '')}"></div>
+      <p class="note">The rider will call you when they are close.</p>
     </div>
     <div id="ful-pickup" style="display:none;"><div class="fg"><label>Pickup point</label><select id="c-point"><option value="">Choose a pickup point</option>${S.points.map(p => `<option value="${p.id}">${E(p.name)} · ${E(p.address)}</option>`).join('')}</select></div>
       <p class="note">Collect within 24 hours of the SMS saying it has arrived, or it goes back to the shop.</p></div>
-    <div class="fg"><label>Payment</label><p class="note">You pay by MoMo to NYANSATEK after you place the order. NYANSATEK places your order with the shop as soon as the payment arrives.
+    <div class="fg"><label>Payment</label><p class="note">You pay by MoMo after you place the order. We start your order as soon as the payment arrives.
       For delivery, the rider charges a delivery fee when they bring it. Pay that to the rider.</p></div>
     <div class="fg"><label>Note for the shop (optional)</label><textarea id="c-note" rows="2" maxlength="300"></textarea></div>
     ${lines.some(l => l.p.age_restricted) ? `<label class="age"><input type="checkbox" id="c-age"> <span><b>I am 18 or older.</b> This order has alcohol. I'll show ID to the rider if asked.</span></label>` : ''}
@@ -247,13 +247,13 @@ async function placeOrder() {
   const payload = { channel: 'store', store_slug: S.shop.slug,
     items: cartLines().map(l => ({ product_id: l.p.id, qty: l.qty })),
     customer: { name: v('c-name'), phone: v('c-phone') }, fulfilment: st.ful, payment_method: st.pay, note: v('c-note'), age_confirmed: alc };
-  if (st.ful === 'delivery') Object.assign(payload, { zone_id: st.zone, address: v('c-addr'), landmark: v('c-land') });
+  if (st.ful === 'delivery') Object.assign(payload, { zone_id: st.zone, address: '', landmark: v('c-land') });
   else payload.pickup_point_id = v('c-point');
   go.disabled = true; go.textContent = 'Placing order…';
   const { data, error } = await sb.rpc('place_online_order', { p: payload });
   go.disabled = false; go.textContent = 'Place order';
   if (error) { err.textContent = errMsg(error); return; }
-  store.set('buyer', { name: v('c-name'), phone: v('c-phone'), addr: v('c-addr'), land: v('c-land') });
+  store.set('buyer', { name: v('c-name'), phone: v('c-phone'), land: v('c-land') });
   const mine = store.get('my-orders') || []; mine.unshift({ token: data.track_token, code: data.code, shop: S.shop.name, at: Date.now() });
   store.set('my-orders', mine.slice(0, 30));
   S.cart = {}; saveCart();
@@ -279,13 +279,13 @@ async function showTracking(token) {
   app.innerHTML = `<header class="top"><div class="wrap"><div class="shopname">Order ${E(o.code)}</div><div class="tagline">${E(o.shop.name)}</div></div></header>
   <div class="wrap" style="max-width:640px;">
     <div class="box"><span class="status ${ended ? 'bad' : ['delivered', 'collected', 'completed'].includes(o.status) ? 'good' : ''}">${E(label)}</span>
-      ${o.status === 'placed' ? `<p class="note" style="margin-top:8px;">${o.payment_confirmed ? 'NYANSATEK is placing your order with the shop now.'
-        : `Pay within ${minsLeft} minute${minsLeft === 1 ? '' : 's'}. If NYANSATEK doesn't receive your payment by then, the order is cancelled automatically.`}</p>` : ''}
+      ${o.status === 'placed' ? `<p class="note" style="margin-top:8px;">${o.payment_confirmed ? 'Payment received. Your order is being prepared.'
+        : `Pay within ${minsLeft} minute${minsLeft === 1 ? '' : 's'}, or the order is cancelled automatically.`}</p>` : ''}
       ${ended && o.cancel_reason ? `<p class="note" style="margin-top:8px;">${E(o.cancel_reason)}</p>` : ''}
       ${!ended ? `<ul class="steps">${steps.map(([k, t], i) => `<li class="${ORDER_OF(k) < done || (i === steps.length - 1 && done >= ORDER_OF(k)) ? 'done' : ORDER_OF(k) === done ? 'now' : ''}"><span class="dot"></span>${E(t)}</li>`).join('')}</ul>` : ''}
     </div>
     ${o.payment_method === 'momo' && !o.payment_confirmed && !ended ? `<div class="box"><b>Pay by MoMo</b>
-      <p class="note" style="margin:6px 0;">Send <b>${GH(o.total)}</b> to NYANSATEK's MoMo number:</p>
+      <p class="note" style="margin:6px 0;">Send <b>${GH(o.total)}</b> by MoMo to:</p>
       <div class="big">${E('0' + String(o.pay_to.momo_number || '').slice(3))}</div>${o.pay_to.momo_name ? `<div class="note">${E(o.pay_to.momo_name)}</div>` : ''}
       <p class="note" style="margin-top:6px;">Use your order number <b>${E(o.code)}</b> as the reference.</p>
       ${o.status === 'placed' ? `<div class="fg"><label>MoMo transaction ID (helps us find your payment)</label><input id="t-ref" value="${E(o.momo_txn_id || '')}"></div>
@@ -296,13 +296,13 @@ async function showTracking(token) {
       <p class="note">Pay the rider's delivery fee when your order arrives.</p></div>` : ''}
     ${o.fulfilment === 'pickup' && o.pickup_point ? `<div class="box"><b>Pickup point</b><p style="margin-top:6px;">${E(o.pickup_point.name)}<br><span class="note">${E(o.pickup_point.address)}${o.pickup_point.landmark ? ' · ' + E(o.pickup_point.landmark) : ''}${o.pickup_point.hours ? '<br>Open: ' + E(o.pickup_point.hours) : ''}</span></p>
       ${o.pickup_deadline ? `<p class="note" style="margin-top:6px;">Collect by ${new Date(o.pickup_deadline).toLocaleString()}.</p>` : ''}</div>` : ''}
-    ${o.fulfilment === 'delivery' ? `<div class="box"><b>Delivery to</b><p class="note" style="margin-top:6px;">${E(o.address || '')}${o.landmark ? ' · ' + E(o.landmark) : ''}${o.zone ? '<br>' + E(o.zone) : ''}</p></div>` : ''}
+    ${o.fulfilment === 'delivery' ? `<div class="box"><b>Delivery to</b><p class="note" style="margin-top:6px;">${E([o.zone, o.address, o.landmark].filter(Boolean).join(' · '))}</p></div>` : ''}
     <div class="box"><b>Items</b>${o.items.map(i => `<div class="sum" style="background:none;border:0;padding:4px 0;margin:0;"><div><span>${i.qty} × ${E(i.name)}</span><span>${GH(i.line_total)}</span></div></div>`).join('')}
       <div class="sum"><div><span>Items</span><span>${GH(o.goods_total)}</span></div>${o.fulfilment === 'delivery' ? `<div><span>Delivery</span><span>${Number(o.delivery_fee) ? GH(o.delivery_fee) : 'Paid to the rider on arrival'}</span></div>` : ''}<div class="tot"><span>Total</span><span>${GH(o.total)}</span></div>
-      <div class="note" style="display:block;margin-top:4px;">Paid by MoMo to NYANSATEK${o.payment_confirmed ? ' · payment received' : ''}</div></div></div>
+      <div class="note" style="display:block;margin-top:4px;">Paid by MoMo${o.payment_confirmed ? ' · payment received' : ''}</div></div></div>
     ${o.shop.whatsapp ? `<a class="btn wa" style="width:100%;" target="_blank" rel="noopener" href="https://wa.me/${E(o.shop.whatsapp)}?text=${encodeURIComponent('Hello, about my order ' + o.code)}">Message the shop on WhatsApp</a>` : ''}
     ${o.shop.slug ? `<p style="text-align:center;margin:16px 0;"><a href="/shop/?s=${E(o.shop.slug)}">Back to ${E(o.shop.name)}</a></p>` : ''}
-  </div><footer>Keep this page: it's your order tracking link. Questions? Call or WhatsApp NYANSATEK on <a href="tel:0536340578">053 634 0578</a>.</footer>`;
+  </div><footer>Keep this page: it's your order tracking link. Questions? Call or WhatsApp <a href="tel:0536340578">053 634 0578</a>.</footer>`;
   clearTimeout(trackTimer);
   if (!['completed', 'cancelled', 'returned'].includes(o.status)) trackTimer = setTimeout(() => { if (!document.getElementById('t-ref') || document.activeElement !== document.getElementById('t-ref')) showTracking(token); else trackTimer = setTimeout(() => showTracking(token), 20000); }, 20000);
 }
