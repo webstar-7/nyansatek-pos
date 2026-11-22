@@ -730,7 +730,7 @@ main>.view.on{animation:viewIn .3s ease both;}
               <div class="fg"><label>Barcode</label><input type="text" id="ed-barcode"></div>
               <div class="fg"><label>Retail Price (GH&#8373;)</label><input type="number" step="0.01" id="ed-sell"></div>
               <div class="fg tier"><label>Wholesale Price (GH&#8373;) <span style="font-weight:400;color:var(--g);">optional</span></label><input type="number" step="0.01" min="0" id="ed-whs" placeholder="Same as retail"></div>
-              <div class="fg tier"><label>Promo Price (GH&#8373;) <span style="font-weight:400;color:var(--g);">optional</span></label><input type="number" step="0.01" min="0" id="ed-promo" placeholder="Same as retail"></div>
+              <div class="fg tier"><label>Promo Price (GH&#8373;) <span style="font-weight:400;color:var(--g);">optional — also used as the online price</span></label><input type="number" step="0.01" min="0" id="ed-promo" placeholder="Same as retail"></div>
               <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="ed-cost"></div>
               <div class="fg"><label>Quantity</label><input type="number" id="ed-qty" min="0"></div>
               <div class="fg"><label>Photo</label>
@@ -791,7 +791,7 @@ main>.view.on{animation:viewIn .3s ease both;}
       <div class="rp">
         <div class="card">
           <h2>Current Inventory</h2>
-          <p class="hint">Edit prices inline — press Enter to save.<span class="tier"> Leave Wholesale or Promo empty to use the Retail price.</span></p>
+          <p class="hint">Edit prices inline — press Enter to save.<span class="tier"> Leave Wholesale or Promo empty to use the Retail price. When a product has a Promo price, it is sold online at that price.</span></p>
           <table id="ait">
             <thead><tr><th>Product</th>
               <th style="text-align:right;">Cost (GH&#8373;)</th>
@@ -1162,7 +1162,7 @@ main>.view.on{animation:viewIn .3s ease both;}
                 <div class="fg"><label>Barcode</label><input type="text" id="med-barcode"></div>
                 <div class="fg"><label>Retail Price (GH&#8373;)</label><input type="number" step="0.01" id="med-sell"></div>
               <div class="fg tier"><label>Wholesale Price (GH&#8373;) <span style="font-weight:400;color:var(--g);">optional</span></label><input type="number" step="0.01" min="0" id="med-whs" placeholder="Same as retail"></div>
-              <div class="fg tier"><label>Promo Price (GH&#8373;) <span style="font-weight:400;color:var(--g);">optional</span></label><input type="number" step="0.01" min="0" id="med-promo" placeholder="Same as retail"></div>
+              <div class="fg tier"><label>Promo Price (GH&#8373;) <span style="font-weight:400;color:var(--g);">optional — also used as the online price</span></label><input type="number" step="0.01" min="0" id="med-promo" placeholder="Same as retail"></div>
                 <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="med-cost"></div>
                 <div class="fg"><label>Quantity</label><input type="number" id="med-qty" min="0"></div>
                 <button class="btn bf ba" onclick="saveProductEdit('m')">Save Changes</button>
