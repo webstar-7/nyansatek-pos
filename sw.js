@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nyansatek-pos-v9'; // bumped: online price follows Promo (navigation is network-first, see below)
+const CACHE_NAME = 'nyansatek-pos-v10'; // bumped: customers type their delivery location (navigation is network-first, see below)
 const APP_SHELL = [
   './',              // the actual page, whatever it's served as (index.html) — was './pos.html', which doesn't exist and broke install entirely
   './manifest.json',

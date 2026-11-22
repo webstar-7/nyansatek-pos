@@ -205,7 +205,7 @@ function renderCartPanel() {
       <label><input type="radio" name="ful" value="delivery" checked> Deliver to me</label>
       <label class="${S.points.length ? '' : 'dis'}"><input type="radio" name="ful" value="pickup" ${S.points.length ? '' : 'disabled'}> Pick up at a NYANSATEK point</label></div></div>
     <div id="ful-delivery">
-      <div class="fg"><label>Delivery area</label><select id="c-zone"><option value="">Choose your area</option>${S.zones.map(z => `<option value="${z.id}">${E(z.name)}</option>`).join('')}</select></div>
+      <div class="fg"><label>Your location</label><input id="c-loc" autocomplete="address-level3" maxlength="200" placeholder="Area or town, e.g. Asonkore" value="${E(saved.loc || '')}"></div>
       <div class="fg"><label>Directions for the rider (optional)</label><input id="c-land" placeholder="e.g. opposite the Total filling station" value="${E(saved.land || '')}"></div>
       <p class="note">The rider will call you when they are close.</p>
     </div>
@@ -221,14 +221,13 @@ function renderCartPanel() {
       : '<button class="btn gold" style="width:100%;" id="c-go" onclick="placeOrder()">Place order</button>'}
     <p class="note" style="margin-top:8px;">Next you will see the MoMoPay merchant ID to pay. You'll get a tracking link and SMS updates.</p>`;
   P.querySelectorAll('input[name=ful]').forEach(r => r.onchange = updateCheckout);
-  document.getElementById('c-zone').onchange = updateCheckout;
   updateCheckout();
 }
 
 function checkoutState() {
   const ful = (document.querySelector('input[name=ful]:checked') || {}).value || 'delivery';
-  const veh = cartVehicle(), zone = document.getElementById('c-zone')?.value || '';
-  return { ful, pay: 'momo', veh, zone };
+  const veh = cartVehicle();
+  return { ful, pay: 'momo', veh };
 }
 function updateCheckout() {
   const st = checkoutState();
@@ -249,13 +248,14 @@ async function placeOrder() {
   const payload = { channel: 'store', store_slug: S.shop.slug,
     items: cartLines().map(l => ({ product_id: l.p.id, qty: l.qty })),
     customer: { name: v('c-name'), phone: v('c-phone') }, fulfilment: st.ful, payment_method: st.pay, note: v('c-note'), age_confirmed: alc };
-  if (st.ful === 'delivery') Object.assign(payload, { zone_id: st.zone, address: '', landmark: v('c-land') });
+  if (st.ful === 'delivery' && v('c-loc').length < 2) { err.textContent = 'Enter your location so the rider can find you.'; return; }
+  if (st.ful === 'delivery') Object.assign(payload, { address: v('c-loc'), landmark: v('c-land') });
   else payload.pickup_point_id = v('c-point');
   go.disabled = true; go.textContent = 'Placing order…';
   const { data, error } = await sb.rpc('place_online_order', { p: payload });
   go.disabled = false; go.textContent = 'Place order';
   if (error) { err.textContent = errMsg(error); return; }
-  store.set('buyer', { name: v('c-name'), phone: v('c-phone'), land: v('c-land') });
+  store.set('buyer', { name: v('c-name'), phone: v('c-phone'), loc: v('c-loc'), land: v('c-land') });
   const mine = store.get('my-orders') || []; mine.unshift({ token: data.track_token, code: data.code, shop: S.shop.name, at: Date.now() });
   store.set('my-orders', mine.slice(0, 30));
   S.cart = {}; saveCart();
