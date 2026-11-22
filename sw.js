@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nyansatek-pos-v7'; // bumped: online orders are paid to NYANSATEK (navigation is network-first, see below)
+const CACHE_NAME = 'nyansatek-pos-v8'; // bumped: Retail / Wholesale / Promo price levels (navigation is network-first, see below)
 const APP_SHELL = [
   './',              // the actual page, whatever it's served as (index.html) — was './pos.html', which doesn't exist and broke install entirely
   './manifest.json',

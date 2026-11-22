@@ -217,6 +217,11 @@ main{flex:1;overflow:hidden;}
 table{width:100%;border-collapse:collapse;font-size:.8rem;}
 th{background:#fafbfc;padding:9px 10px;font-weight:650;border-bottom:1px solid var(--b);text-align:left;font-size:.74rem;color:var(--g);}
 td{padding:9px 10px;border-bottom:1px solid #edf0f4;vertical-align:middle;}
+.plv{display:none;gap:4px;padding:6px 10px;border-bottom:1px solid var(--b);align-items:center;font-size:.72rem;color:var(--g);}
+.plv.on{display:flex;}
+.plv button{flex:1;border:1px solid var(--b);background:#fff;border-radius:6px;padding:5px 4px;font-size:.74rem;font-weight:600;cursor:pointer;color:var(--t,#1f2937);}
+.plv button.sel{background:var(--p);border-color:var(--p);color:#fff;}
+.lvt{display:inline-block;font-size:.6rem;font-weight:700;padding:0 4px;border-radius:3px;background:#fff4d6;color:#8a5a00;margin-left:4px;vertical-align:middle;}
 .ip{width:75px;padding:3px 5px;border:1px solid #b9c9e8;border-radius:6px;font-weight:600;text-align:right;font-size:.79rem;background:#e9f0fc;}
 .ip:focus{outline:none;border-color:var(--a);background:#fff;}
 /* SEARCH DROP */
@@ -629,6 +634,11 @@ main>.view.on{animation:viewIn .3s ease both;}
             <button class="rb-btn" onclick="openRecentBillings()">&#128338; Recent</button>
           </div>
         </div>
+        <div class="plv tier" id="plv"><span>Price:</span>
+          <button data-l="retail" class="sel" onclick="setPriceLevel('retail')">Retail</button>
+          <button data-l="wholesale" onclick="setPriceLevel('wholesale')">Wholesale</button>
+          <button data-l="promo" onclick="setPriceLevel('promo')">Promo</button>
+        </div>
         <div class="cl" id="cl"></div>
         <div class="ck">
           <div class="fg"><label>Payment Method</label>
@@ -718,7 +728,9 @@ main>.view.on{animation:viewIn .3s ease both;}
             <div id="ed-form" style="display:none;">
               <div class="fg"><label>Product Name</label><input type="text" id="ed-name"></div>
               <div class="fg"><label>Barcode</label><input type="text" id="ed-barcode"></div>
-              <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="ed-sell"></div>
+              <div class="fg"><label>Retail Price (GH&#8373;)</label><input type="number" step="0.01" id="ed-sell"></div>
+              <div class="fg tier"><label>Wholesale Price (GH&#8373;) <span style="font-weight:400;color:var(--g);">optional</span></label><input type="number" step="0.01" min="0" id="ed-whs" placeholder="Same as retail"></div>
+              <div class="fg tier"><label>Promo Price (GH&#8373;) <span style="font-weight:400;color:var(--g);">optional</span></label><input type="number" step="0.01" min="0" id="ed-promo" placeholder="Same as retail"></div>
               <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="ed-cost"></div>
               <div class="fg"><label>Quantity</label><input type="number" id="ed-qty" min="0"></div>
               <div class="fg"><label>Photo</label>
@@ -779,11 +791,13 @@ main>.view.on{animation:viewIn .3s ease both;}
       <div class="rp">
         <div class="card">
           <h2>Current Inventory</h2>
-          <p class="hint">Edit selling price &amp; cost price inline — press Enter to save.</p>
+          <p class="hint">Edit prices inline — press Enter to save.<span class="tier"> Leave Wholesale or Promo empty to use the Retail price.</span></p>
           <table id="ait">
             <thead><tr><th>Product</th>
               <th style="text-align:right;">Cost (GH&#8373;)</th>
-              <th style="text-align:right;">Sell (GH&#8373;)</th>
+              <th style="text-align:right;">Retail (GH&#8373;)</th>
+              <th class="tier" style="text-align:right;">Wholesale</th>
+              <th class="tier" style="text-align:right;">Promo</th>
               <th style="text-align:right;">Profit</th>
               <th style="text-align:center;">Stock</th></tr></thead>
             <tbody></tbody>
@@ -1146,7 +1160,9 @@ main>.view.on{animation:viewIn .3s ease both;}
               <div id="med-form" style="display:none;">
                 <div class="fg"><label>Product Name</label><input type="text" id="med-name"></div>
                 <div class="fg"><label>Barcode</label><input type="text" id="med-barcode"></div>
-                <div class="fg"><label>Selling Price (GH&#8373;)</label><input type="number" step="0.01" id="med-sell"></div>
+                <div class="fg"><label>Retail Price (GH&#8373;)</label><input type="number" step="0.01" id="med-sell"></div>
+              <div class="fg tier"><label>Wholesale Price (GH&#8373;) <span style="font-weight:400;color:var(--g);">optional</span></label><input type="number" step="0.01" min="0" id="med-whs" placeholder="Same as retail"></div>
+              <div class="fg tier"><label>Promo Price (GH&#8373;) <span style="font-weight:400;color:var(--g);">optional</span></label><input type="number" step="0.01" min="0" id="med-promo" placeholder="Same as retail"></div>
                 <div class="fg"><label>Cost Price (GH&#8373;)</label><input type="number" step="0.01" id="med-cost"></div>
                 <div class="fg"><label>Quantity</label><input type="number" id="med-qty" min="0"></div>
                 <button class="btn bf ba" onclick="saveProductEdit('m')">Save Changes</button>
@@ -1753,7 +1769,7 @@ async function syncOneQueuedFinanceAction(rec){
       const{error:itemsErr}=await sb.from('credit_sale_items').insert(p.items.map(it=>({
         credit_sale_id:rec.serverCreditSaleId,product_id:it.id,name_snapshot:it.name,
         cost_price_snapshot:it.cost_price||0,selling_price_snapshot:it.price,
-        qty:it.qty,line_total:it.price*it.qty
+        qty:it.qty,line_total:it.price*it.qty,price_level:it.price_level||'retail'
       })));
       if(itemsErr)throw itemsErr;
       rec.itemsApplied=true;await updateQueuedFinanceAction(rec);
@@ -1892,7 +1908,7 @@ async function syncOneQueuedSale(rec){
     const{error:itemsErr}=await sb.from('sale_items').insert(p.items.map(it=>({
       sale_id:rec.serverSaleId,product_id:it.id,name_snapshot:it.name,
       cost_price_snapshot:it.cost_price||0,price_snapshot:it.price,
-      qty:it.qty,line_total:it.price*it.qty
+      qty:it.qty,line_total:it.price*it.qty,price_level:it.price_level||'retail'
     })));
     if(itemsErr)throw itemsErr;
     rec.itemsApplied=true;
@@ -2464,6 +2480,7 @@ async function loadInv(orgId){
     const{data,error}=await sb.from('products').select('*').eq('org_id',orgId).order('name');
     if(error)throw error;
     inv=data||[];
+    try{syncPriceLevelUI();}catch(_){}
     // If any offline-created products are still waiting to sync (a genuine
     // sync failure, not just being offline right now), keep them visible
     // here rather than let a normal server refresh silently drop them —
@@ -2480,6 +2497,7 @@ async function loadInv(orgId){
   }catch(e){
     console.warn('Could not load products from Supabase, falling back to offline cache:',e);
     inv=await getCachedCatalogOffline(orgId);
+    try{syncPriceLevelUI();}catch(_){}
     inv.sort((a,b)=>a.name.localeCompare(b.name));
     if(!inv.length){
       alert("You're offline and no cached product list is available yet on this device. Connect once while online first so sales can work offline afterward.");
@@ -2684,13 +2702,15 @@ function sbadge(s){
 function renderInvTable(tid){
   const tb=document.querySelector('#'+tid+' tbody');if(!tb)return;
   tb.innerHTML='';
-  if(!inv.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--g);padding:20px;">No products yet.</td></tr>';return;}
+  if(!inv.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--g);padding:20px;">No products yet.</td></tr>';return;}
   inv.forEach(it=>{
     const profit=(it.price||0)-(it.cost_price||0);
     const tr=document.createElement('tr');
     tr.innerHTML=`<td><strong>${E(it.name)}</strong><br><span style="font-size:.68rem;color:var(--g);font-family:monospace;">${E(it.barcode||'')}</span></td>
       <td style="text-align:right;"><input type="number" step="0.01" min="0" class="ip" data-id="${it.id}" data-field="cost" value="${(it.cost_price||0).toFixed(2)}"></td>
       <td style="text-align:right;"><input type="number" step="0.01" min="0" class="ip" data-id="${it.id}" data-field="sell" value="${(it.price||0).toFixed(2)}"></td>
+      <td class="tier" style="text-align:right;"><input type="number" step="0.01" min="0" class="ip" data-id="${it.id}" data-field="whs" placeholder="—" value="${it.wholesale_price!=null?Number(it.wholesale_price).toFixed(2):''}"></td>
+      <td class="tier" style="text-align:right;"><input type="number" step="0.01" min="0" class="ip" data-id="${it.id}" data-field="promo" placeholder="—" value="${it.promo_price!=null?Number(it.promo_price).toFixed(2):''}"></td>
       <td style="text-align:right;font-weight:600;color:${profit>=0?'var(--s)':'var(--d)'};">${GH(profit)}</td>
       <td style="text-align:center;">${sbadge(it.stock)}</td>`;
     tr.querySelectorAll('.ip').forEach(inp=>inp.addEventListener('change',e=>updatePriceField(it.id,e.target.dataset.field,e.target.value)));
@@ -2699,8 +2719,10 @@ function renderInvTable(tid){
 }
 
 async function updatePriceField(id,field,val){
-  const v=parseFloat(val);if(isNaN(v)||v<0)return;
-  const upd=field==='cost'?{cost_price:v}:{price:v};
+  const tierField=field==='whs'?'wholesale_price':field==='promo'?'promo_price':null;
+  const v=parseFloat(val);
+  if(tierField&&String(val).trim()===''){var upd={[tierField]:null};}
+  else{if(isNaN(v)||v<0)return;var upd=field==='cost'?{cost_price:v}:tierField?{[tierField]:v}:{price:v};}
 
   const goOfflineUpdate=async()=>{
     const prod=inv.find(i=>i.id===id);
@@ -2741,7 +2763,7 @@ function renderPG(){
   shown.forEach(it=>{
     const card=document.createElement('div');card.className='pc'+(it.stock<=0?' oos':'');
     card.innerHTML=`${it.photo_url?`<img class="pimg" src="${E(it.photo_url)}" alt="" loading="lazy">`:''}<div class="pn" style="white-space:normal;font-size:12px;margin-bottom:3px;">${E(it.name)}</div>
-      <div class="pr">${GH(it.price)}</div>
+      <div class="pr">${GH(lvlPrice(it))}${priceLevel!=='retail'&&lvlUsed(it)!=='retail'?`<span class="lvt">${LVL_NAME[priceLevel]}</span>`:''}</div>
       <div style="font-size:9.5px;color:var(--g);margin-top:2px;">${it.stock<=0?'Out of stock':it.stock+' in stock'}</div>`;
     if(it.stock>0)card.onclick=()=>addToCart(it.id);else card.title='Out of stock';
     grid.appendChild(card);
@@ -2756,6 +2778,29 @@ document.getElementById('bci').addEventListener('keypress',e=>{
 function addByBarcode(bc){
   const p=inv.find(i=>i.barcode&&i.barcode.toLowerCase()===bc.toLowerCase());
   if(!p){alert('Item not found: '+bc);return;}addToCart(p.id);
+}
+
+// ── PRICE LEVELS (Retail / Wholesale / Promo) ───────────────────
+let priceLevel='retail';
+const LVL_NAME={retail:'Retail',wholesale:'Wholesale',promo:'Promo'};
+function lvlPrice(p,l=priceLevel){
+  if(l==='wholesale'&&p.wholesale_price!=null&&Number(p.wholesale_price)>0)return Number(p.wholesale_price);
+  if(l==='promo'&&p.promo_price!=null&&Number(p.promo_price)>0)return Number(p.promo_price);
+  return Number(p.price)||0;
+}
+function lvlUsed(p,l=priceLevel){return lvlPrice(p,l)!==(Number(p.price)||0)||l==='retail'?l:'retail';}
+function hasTierPrices(){return inv.some(p=>(p.wholesale_price!=null&&Number(p.wholesale_price)>0)||(p.promo_price!=null&&Number(p.promo_price)>0));}
+function syncPriceLevelUI(){
+  const bar=document.getElementById('plv');if(!bar)return;
+  const on=hasTierPrices();
+  if(!on&&priceLevel!=='retail')priceLevel='retail';
+  bar.classList.toggle('on',on);
+  bar.querySelectorAll('button').forEach(b=>b.classList.toggle('sel',b.dataset.l===priceLevel));
+}
+function setPriceLevel(l){
+  priceLevel=l;
+  cart.forEach(it=>{const p=inv.find(x=>x.id===it.id);if(p){it.price=lvlPrice(p);it.price_level=lvlUsed(p);}});
+  syncPriceLevelUI();renderCart();renderPG();
 }
 
 let qmProdId=null;
@@ -2778,7 +2823,7 @@ function confirmQtyAdd(){
   const ci=cart.find(i=>i.id===qmProdId);
   const already=ci?ci.qty:0;
   if(already+qty>p.stock){alert('Only '+p.stock+' units available (already '+already+' in cart).');return;}
-  if(ci)ci.qty+=qty;else cart.push({...p,qty});
+  if(ci)ci.qty+=qty;else cart.push({...p,price:lvlPrice(p),price_level:lvlUsed(p),qty});
   renderCart();closeQtyModal();
 }
 document.getElementById('qm-qty').addEventListener('keypress',e=>{if(e.key==='Enter'){e.preventDefault();confirmQtyAdd();}});
@@ -2791,7 +2836,7 @@ function rmCart(id){cart=cart.filter(i=>i.id!==id);renderCart();}
 function clearCart(){
   if(!cart.length)return;
   if(!confirm('Clear all '+cart.reduce((s,i)=>s+i.qty,0)+' item(s) from the cart?'))return;
-  cart=[];document.getElementById('ten').value='';renderCart();
+  cart=[];document.getElementById('ten').value='';priceLevel='retail';syncPriceLevelUI();renderCart();
 }
 function setQty(id,qty){
   const it=cart.find(i=>i.id===id),p=inv.find(i=>i.id===id);if(!it||!p)return;
@@ -2811,7 +2856,7 @@ function renderCart(){
   cl.innerHTML='';
   cart.forEach(it=>{
     const d=document.createElement('div');d.className='ci';
-    d.innerHTML=`<div class="cin">${E(it.name)}</div>
+    d.innerHTML=`<div class="cin">${E(it.name)}${it.price_level&&it.price_level!=='retail'?`<span class="lvt">${LVL_NAME[it.price_level]}</span>`:''}</div>
       <div style="display:flex;align-items:center;gap:2px;">
         <button class="qb" data-a="d">−</button>
         <input type="number" min="1" class="qty-in" value="${it.qty}" style="width:34px;text-align:center;font-size:.78rem;font-weight:600;border:1px solid var(--b);border-radius:3px;padding:1px;">
@@ -2887,7 +2932,7 @@ async function finSale(mode,phone){
       const p=inv.find(x=>x.id===it.id);
       if(p){p.stock-=it.qty;persistCachedProductStock(it.id,p.stock);}
     });
-    cart=[];document.getElementById('ten').value='';
+    cart=[];document.getElementById('ten').value='';priceLevel='retail';syncPriceLevelUI();
     renderPG();renderCart();await refSales();updateOfflineUI();L(false);
     if(mode==='print'){
       printIF(buildRcpt(invId,method,tot,ten,cartSnap,'RECEIPT','','','',cashierName));
@@ -2911,11 +2956,11 @@ async function finSale(mode,phone){
     const{error:itemsErr}=await sb.from('sale_items').insert(cartSnap.map(it=>({
       sale_id:sale.id,product_id:it.id,name_snapshot:it.name,
       cost_price_snapshot:it.cost_price||0,price_snapshot:it.price,
-      qty:it.qty,line_total:it.price*it.qty
+      qty:it.qty,line_total:it.price*it.qty,price_level:it.price_level||'retail'
     })));
     if(itemsErr)throw itemsErr;
     for(const it of cartSnap)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
-    cart=[];document.getElementById('ten').value='';
+    cart=[];document.getElementById('ten').value='';priceLevel='retail';syncPriceLevelUI();
     await loadInv(prof.org_id);renderCart();await refSales();L(false);
     if(mode==='print'){
       printIF(buildRcpt(invId,method,tot,ten,cartSnap,'RECEIPT','','','',cashierName));
@@ -2976,7 +3021,7 @@ async function submitCreditSale({cn,cphone,due,note,cartSnap}){
     const{error:itemsErr}=await sb.from('credit_sale_items').insert(cartSnap.map(it=>({
       credit_sale_id:cs.id,product_id:it.id,name_snapshot:it.name,
       cost_price_snapshot:it.cost_price||0,selling_price_snapshot:it.price,
-      qty:it.qty,line_total:it.price*it.qty
+      qty:it.qty,line_total:it.price*it.qty,price_level:it.price_level||'retail'
     })));
     if(itemsErr)throw itemsErr;
     for(const it of cartSnap)await sb.from('products').update({stock:it.stock-it.qty}).eq('id',it.id);
@@ -2999,7 +3044,7 @@ async function issueCreditFromCart(){
   const cartSnap=JSON.parse(JSON.stringify(cart));
   try{
     const{invId,cashierName,offline}=await submitCreditSale({cn,cphone:cp,due,note,cartSnap});
-    cart=[];document.getElementById('ten').value='';
+    cart=[];document.getElementById('ten').value='';priceLevel='retail';syncPriceLevelUI();
     renderCart();L(false);
     const rh=buildRcpt(invId,'Credit',tot,0,cartSnap,'CREDIT INVOICE',cn,cp,due,cashierName);
     printIF(rh);
@@ -3646,6 +3691,8 @@ function filterEditSearch(val,ctx){
       document.getElementById(pfx+'barcode').value=p.barcode||'';
       document.getElementById(pfx+'sell').value=(p.price||0).toFixed(2);
       document.getElementById(pfx+'cost').value=(p.cost_price||0).toFixed(2);
+      document.getElementById(pfx+'whs').value=p.wholesale_price!=null?Number(p.wholesale_price).toFixed(2):'';
+      document.getElementById(pfx+'promo').value=p.promo_price!=null?Number(p.promo_price).toFixed(2):'';
       document.getElementById(pfx+'qty').value=p.stock;
       if(ctx!=='m')fillProductExtras(p);
       document.getElementById(pfx+'form').style.display='block';
@@ -3665,6 +3712,8 @@ async function saveProductEdit(ctx){
   const stock=parseInt(document.getElementById(pfx+'qty').value)||0;
   if(!name){alert('Product name is required.');return;}
   const fields={name,barcode:barcode||null,price,cost_price,stock};
+  const tierVal=id=>{const el=document.getElementById(pfx+id);const t=el?el.value.trim():'';const n=parseFloat(t);return t===''||isNaN(n)?null:Math.max(0,n);};
+  fields.wholesale_price=tierVal('whs');fields.promo_price=tierVal('promo');
   const orgId=ctx==='m'?activeOrg:prof.org_id;
   if(ctx!=='m'&&!collectProductExtras(fields))return;
   if(ctx!=='m'&&pendingPhoto&&!navigator.onLine){alert('Adding a photo needs an internet connection. Connect and save again, or remove the new photo to save the other changes offline.');return;}
