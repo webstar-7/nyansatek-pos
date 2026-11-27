@@ -278,7 +278,7 @@ async function showTracking(token) {
   const label = { placed: o.payment_confirmed ? 'Payment received' : 'Waiting for your payment', accepted: 'Confirmed', ready: 'Ready', in_transit: 'On the way', at_pickup_point: 'Ready to collect',
     delivered: 'Delivered', collected: 'Collected', completed: 'Completed', cancelled: 'Cancelled', returning: 'Not collected', returned: 'Returned to shop' }[o.status] || o.status;
   const minsLeft = Math.max(0, Math.ceil((new Date(o.accept_deadline) - Date.now()) / 60000));
-  app.innerHTML = `<header class="top"><div class="wrap"><div class="shopname">Order ${E(o.code)}</div><div class="tagline">${E(o.shop.name)}</div></div></header>
+  app.innerHTML = `<header class="top"><div class="wrap">${o.shop.slug ? `<a class="pill" style="margin:0 0 10px;display:inline-flex;align-items:center;gap:6px;font-weight:700;" href="/shop/?s=${E(o.shop.slug)}">&#8249; Back to ${E(o.shop.name)}</a>` : ''}<div class="shopname">Order ${E(o.code)}</div><div class="tagline">${E(o.shop.name)}</div></div></header>
   <div class="wrap" style="max-width:640px;">
     <div class="box"><span class="status ${ended ? 'bad' : ['delivered', 'collected', 'completed'].includes(o.status) ? 'good' : ''}">${E(label)}</span>
       ${o.status === 'placed' ? `<p class="note" style="margin-top:8px;">${o.payment_confirmed ? 'Payment received. Your order is being prepared.'
