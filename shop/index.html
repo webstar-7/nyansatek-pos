@@ -289,12 +289,16 @@ async function showTracking(token) {
     ${o.payment_method === 'momo' && !o.payment_confirmed && !ended ? `<div class="box"><b>Pay by MoMo</b>
       ${o.pay_to.merchant_id ? `<p class="note" style="margin:6px 0;">Pay <b>${GH(o.total)}</b> with MoMoPay to merchant ID:</p>
       <div class="big">${E(o.pay_to.merchant_id)}</div>${o.pay_to.momo_name ? `<div class="note">${E(o.pay_to.momo_name)}</div>` : ''}
-      <p class="note" style="margin-top:6px;">On MTN MoMo: dial *170#, choose MoMoPay, then enter the merchant ID.</p>`
+      <p class="note" style="margin-top:6px;">On MTN MoMo: dial *170#, choose MoMoPay, enter the merchant ID and the amount, then your PIN.</p>
+      <a class="btn sec" style="margin-top:8px;display:inline-block;" href="tel:*170%23">Dial *170# now</a>`
       : `<p class="note" style="margin:6px 0;">Send <b>${GH(o.total)}</b> by MoMo to:</p>
       <div class="big">${E('0' + String(o.pay_to.momo_number || '').slice(3))}</div>${o.pay_to.momo_name ? `<div class="note">${E(o.pay_to.momo_name)}</div>` : ''}`}
-      <p class="note" style="margin-top:6px;">Use your order number <b>${E(o.code)}</b> as the reference.</p>
-      ${o.status === 'placed' ? `<div class="fg"><label>MoMo transaction ID (helps us find your payment)</label><input id="t-ref" value="${E(o.momo_txn_id || '')}"></div>
-      <button class="btn" onclick="addRef('${E(token)}')">Send transaction ID</button><div class="err" id="t-err"></div>` : ''}</div>` : ''}
+      ${o.status !== 'placed' ? '' : String(o.momo_txn_id || '').length ? `<div style="margin-top:10px;background:#ecfdf3;border:1px solid #abefc6;color:#05603a;border-radius:10px;padding:10px;"><b>Thanks, we're checking your payment.</b><br>It usually takes a few minutes. This page updates by itself.</div>`
+        : `<p class="note" style="margin-top:10px;">When you've paid, tap the button below. That's all.</p>
+      <button class="btn" style="width:100%;margin-top:6px;" id="t-paid" onclick="saysPaid('${E(token)}')">I've paid</button>
+      <details style="margin-top:10px;"><summary class="note" style="cursor:pointer;">Paid from a different number?</summary>
+        <div class="fg" style="margin-top:6px;"><label>The number you paid from</label><input id="t-ref" type="tel" placeholder="024XXXXXXX"></div></details>`}
+      <div class="err" id="t-err"></div></div>` : ''}
     ${!ended && !['delivered', 'collected', 'completed'].includes(o.status) && o.fulfilment === 'pickup' ? `<div class="box"><b>Your collection code</b>
       <div class="big" style="margin:6px 0;">${E(o.delivery_code)}</div><p class="note">Give this code to the pickup point staff only when you receive your order.</p></div>` : ''}
     ${o.courier && !ended && !['delivered', 'collected', 'completed'].includes(o.status) ? `<div class="box"><b>Your rider</b><p style="margin-top:6px;">${E(o.courier.name)} · <a href="tel:0${E(String(o.courier.phone).slice(3))}">0${E(String(o.courier.phone).slice(3))}</a></p>
@@ -312,10 +316,11 @@ async function showTracking(token) {
   if (!['completed', 'cancelled', 'returned'].includes(o.status)) trackTimer = setTimeout(() => { if (!document.getElementById('t-ref') || document.activeElement !== document.getElementById('t-ref')) showTracking(token); else trackTimer = setTimeout(() => showTracking(token), 20000); }, 20000);
 }
 
-async function addRef(token) {
-  const ref = document.getElementById('t-ref').value.trim(), err = document.getElementById('t-err');
-  const { error } = await sb.rpc('add_order_momo_ref', { p_token: token, p_txn: ref });
-  if (error) { err.textContent = errMsg(error); return; }
+async function saysPaid(token) {
+  const btn = document.getElementById('t-paid'), err = document.getElementById('t-err');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  const { error } = await sb.rpc('order_says_paid', { p_token: token, p_payer: (document.getElementById('t-ref')?.value || '').trim() || null });
+  if (error) { btn.disabled = false; btn.textContent = "I've paid"; err.textContent = errMsg(error); return; }
   showTracking(token);
 }
 </script>
